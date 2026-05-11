@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validata - Research Management System</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-slate-50 flex h-screen overflow-hidden text-slate-800">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-900 text-slate-100 flex flex-col shadow-xl z-10 relative">
+        <div class="p-6 border-b border-slate-700 flex items-center gap-3">
+            <div class="w-8 h-8 bg-blue-500 rounded flex items-center justify-center font-bold text-white shadow-lg">V
+            </div>
+            <h1 class="text-2xl font-bold tracking-wide">Validata</h1>
+        </div>
+
+        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+            <button onclick="app.navigate('participants')" id="nav-participants"
+                class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg bg-blue-600 text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
+                    </path>
+                </svg>
+                Participant Management
+            </button>
+            <button onclick="app.navigate('data')" id="nav-data"
+                class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
+                    </path>
+                </svg>
+                Data Collection
+            </button>
+            <button onclick="app.navigate('analysis')" id="nav-analysis"
+                class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                    </path>
+                </svg>
+                View & Analysis
+            </button>
+        </nav>
+
+        <div class="p-4 bg-slate-950 text-sm flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-300">R</div>
+            <div>
+                <p class="font-bold text-slate-200">Dr. Researcher</p>
+                <p class="text-xs text-slate-400">Lead Investigator</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto bg-slate-50">
+        <!-- Notification Toast -->
+        <div id="toast"
+            class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none z-50">
+            Action completed successfully!
+        </div>
+
+        <div class="p-8 max-w-6xl mx-auto">
+
+            <!-- 1. Participant Management -->
+            <section id="section-participants" class="app-section">
+                <header class="mb-8">
+                    <h2 class="text-3xl font-bold text-slate-800">Participant Management</h2>
+                    <p class="text-slate-500 mt-1">Registration, tracking, and consent management of study participants.</p>
+                </header>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Registration Form (Registration + Consent) -->
+                    <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="text-xl font-semibold mb-4 text-slate-800 border-b pb-2">Register New Participant</h3>
+                        <form id="form-register" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                                <input type="text" id="reg-name" required
+                                    class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">ID Number</label>
+                                <input type="text" id="reg-id" required pattern="\d{9}" title="Please enter 9 digits"
+                                    class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+
+                            <!-- Consent Management -->
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-2">
+                                <label class="flex items-start gap-3 cursor-pointer">
+                                    <input type="checkbox" id="reg-consent" required
+                                        class="mt-1 w-4 h-4 text-blue-600 rounded">
+                                    <span class="text-sm text-slate-700 leading-tight">
+                                        <strong>Informed Consent:</strong> I confirm that the participant has read and signed the informed consent form to participate in the study.
+                                    </span>
+                                </label>
+                            </div>
+
+                            <button type="submit"
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors">
+                                Add Participant
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Tracking Table (Participant Tracking) -->
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <div class="flex justify-between items-center border-b pb-2 mb-4">
+                            <h3 class="text-xl font-semibold text-slate-800">Active Participants Tracking</h3>
+                            <span class="text-sm bg-blue-100 text-blue-800 py-1 px-3 rounded-full"
+                                id="participants-count">Total: 0</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="text-slate-500 text-sm border-b border-slate-200">
+                                        <th class="py-3 px-2 font-medium">ID</th>
+                                        <th class="py-3 px-2 font-medium">Name</th>
+                                        <th class="py-3 px-2 font-medium">Consent</th>
+                                        <th class="py-3 px-2 font-medium">Status</th>
+                                        <th class="py-3 px-2 font-medium">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-participants">
+                                    <!-- Injected dynamically by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. Data Collection and Management -->
+            <section id="section-data" class="app-section hidden-section">
+                <header class="mb-8">
+                    <h2 class="text-3xl font-bold text-slate-800">Data Collection & Management</h2>
+                    <p class="text-slate-500 mt-1">Manual measurement logging and raw data file uploads.</p>
+                </header>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Measurement Log -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="text-xl font-semibold mb-4 text-slate-800 border-b pb-2">Measurement Log</h3>
+                        <form id="form-measurement" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Participant (Active Only)</label>
+                                <select id="meas-participant" required
+                                    class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                    <!-- Injected dynamically -->
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Measurement Type</label>
+                                    <input type="text" id="meas-type" required placeholder="e.g. Heart Rate"
+                                        class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Result Value</label>
+                                    <input type="text" id="meas-value" required placeholder="e.g. 80 bpm"
+                                        class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Researcher Notes</label>
+                                <textarea id="meas-notes" rows="2"
+                                    class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                            </div>
+                            <button type="submit"
+                                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition-colors">
+                                Log Measurement
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- File Upload -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col">
+                        <h3 class="text-xl font-semibold mb-4 text-slate-800 border-b pb-2">File Upload
+                        </h3>
+                        <div class="flex-1 flex flex-col justify-center items-center border-2 border-dashed border-slate-300 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer"
+                            onclick="document.getElementById('file-input').click()">
+                            <svg class="w-12 h-12 text-slate-400 mb-3" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                </path>
+                            </svg>
+                            <p class="text-slate-600 font-medium">Click here to select a data file</p>
+                            <p class="text-xs text-slate-400 mt-1">Supports CSV, Excel, JSON (up to 50MB)</p>
+                            <input type="file" id="file-input" class="hidden" onchange="app.handleFileUpload(this)">
+                        </div>
+
+                        <div id="file-upload-list" class="mt-4 space-y-2 hidden">
+                            <div
+                                class="flex items-center justify-between bg-green-50 text-green-700 p-3 rounded border border-green-200">
+                                <span class="text-sm font-medium flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    <span id="uploaded-filename">data.csv</span> uploaded successfully.
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. View and Analysis -->
+            <section id="section-analysis" class="app-section hidden-section">
+                <div class="flex justify-between items-end mb-8">
+                    <header>
+                        <h2 class="text-3xl font-bold text-slate-800">Results View & Analysis</h2>
+                        <p class="text-slate-500 mt-1">Data visualization, report generation, and smart analysis using AI.</p>
+                    </header>
+                    <button onclick="app.generateReport()"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-5 rounded-lg transition-colors flex items-center gap-2 shadow-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                            </path>
+                        </svg>
+                        Generate Summary Report (PDF)
+                    </button>
+                </div>
+
+                <!-- AI Analysis Module (Extend) -->
+                <div
+                    class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl shadow-sm border border-indigo-100 p-6 mb-8">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="text-xl font-bold text-indigo-900 flex items-center gap-2">
+                                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                AI Analysis Module (OpenAI)
+                            </h3>
+                            <p class="text-slate-600 mt-1 text-sm">Use artificial intelligence to identify trends, anomalies, and patterns in the collected data.</p>
+                        </div>
+                        <button id="btn-ai" onclick="app.runAIAnalysis()"
+                            class="bg-indigo-900 hover:bg-indigo-800 text-white font-medium py-2 px-6 rounded-lg transition-colors shadow-md">
+                            Run Data Analysis
+                        </button>
+                    </div>
+
+                    <!-- AI Result Display -->
+                    <div id="ai-results"
+                        class="mt-4 bg-white p-4 rounded-lg border border-indigo-100 shadow-inner hidden">
+                        <div class="flex items-center gap-2 mb-2 text-indigo-700 font-semibold">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z">
+                                </path>
+                            </svg>
+                            System Insights:
+                        </div>
+                        <p id="ai-text" class="text-slate-700 text-sm leading-relaxed whitespace-pre-line"></p>
+                    </div>
+                </div>
+
+                <!-- Research Data View -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-xl font-semibold mb-4 text-slate-800 border-b pb-2">Research Data View</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-sm border-b border-slate-200">
+                                    <th class="py-3 px-3 font-medium">Date & Time</th>
+                                    <th class="py-3 px-3 font-medium">Participant</th>
+                                    <th class="py-3 px-3 font-medium">Measurement Type</th>
+                                    <th class="py-3 px-3 font-medium">Value</th>
+                                    <th class="py-3 px-3 font-medium">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-measurements">
+                                <!-- Injected dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Vanilla JS Logic -->
+    <script src="script.js"></script>
+</body>
+
+</html>
