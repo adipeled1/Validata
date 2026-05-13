@@ -7,15 +7,37 @@
 const state = {
     currentView: 'participants',
     participants: [
-        { id: '201234567', name: 'Israel Israeli', consent: true, status: 'Active' },
-        { id: '309876543', name: 'Rona Cohen', consent: true, status: 'Active' },
-        { id: '012345678', name: 'Avi Levi', consent: true, status: 'Dropped' }
+        { id: 'P-1001', consent: true, status: 'Active' },
+        { id: 'P-1002', consent: true, status: 'Active' },
+        { id: 'P-1003', consent: true, status: 'Dropped' },
+        { id: 'P-1004', consent: true, status: 'Active' },
+        { id: 'P-1005', consent: true, status: 'Active' },
+        { id: 'P-1006', consent: true, status: 'Active' },
+        { id: 'P-1007', consent: true, status: 'Dropped' },
+        { id: 'P-1008', consent: true, status: 'Active' }
     ],
-    measurements: [
-        { timestamp: '10/05/2026 08:30', participant: '201234567', name: 'Israel Israeli', type: 'Heart Rate', value: '72 bpm', notes: 'Resting' },
-        { timestamp: '11/05/2026 09:15', participant: '309876543', name: 'Rona Cohen', type: 'Weight', value: '64 kg', notes: '' }
-    ]
+    measurements: [],
+    nextId: 1009
 };
+
+// Generate fake measurements for graphs and table
+const now = Date.now();
+for (let i = 0; i < 40; i++) {
+    const p = state.participants[Math.floor(Math.random() * state.participants.length)];
+    
+    // Random date in the last 14 days
+    const date = new Date(now - Math.floor(Math.random() * 14) * 24 * 60 * 60 * 1000);
+    const timestamp = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    
+    state.measurements.push({
+        participant: p.id,
+        notes: 'Session completed successfully',
+        timestamp,
+        dateObj: date
+    });
+}
+// Sort measurements descending by date for the table
+state.measurements.sort((a, b) => b.dateObj - a.dateObj);
 
 /**
  * ---------------------------------------------------------
@@ -25,6 +47,9 @@ const state = {
  * ---------------------------------------------------------
  */
 const app = {
+    chartMeasurements: null,
+    chartStatus: null,
+
     // Initialize app on load
     init() {
         this.bindEvents();
@@ -53,7 +78,10 @@ const app = {
         // Refresh screen-specific data (Render Data)
         if (viewId === 'participants') this.renderParticipants();
         if (viewId === 'data') this.renderParticipantSelect();
-        if (viewId === 'analysis') this.renderMeasurements();
+        if (viewId === 'analysis') {
+            this.renderMeasurements();
+            this.renderCharts();
+        }
     },
 
     // Form event binding (Event Binding)
@@ -61,36 +89,32 @@ const app = {
         // Participant registration form (Registration & Consent)
         document.getElementById('form-register').addEventListener('submit', (e) => {
             e.preventDefault();
-            const id = document.getElementById('reg-id').value;
-            const name = document.getElementById('reg-name').value;
             const consent = document.getElementById('reg-consent').checked;
 
-            // Check if exists
-            if (state.participants.find(p => p.id === id)) {
-                alert("Error: A participant with this ID number already exists in the system.");
-                return;
-            }
-
+            const newId = `P-${state.nextId++}`;
+            
             // Add to database
-            state.participants.push({ id, name, consent, status: 'Active' });
+            state.participants.push({ id: newId, consent, status: 'Active' });
             e.target.reset(); // Reset form
             this.renderParticipants();
-            this.showToast("Participant registered successfully!");
+            this.showToast(`Participant ${newId} registered successfully!`);
         });
 
         // Measurement documentation form (Measurement Log)
         document.getElementById('form-measurement').addEventListener('submit', (e) => {
             e.preventDefault();
             const partId = document.getElementById('meas-participant').value;
-            const partName = document.getElementById('meas-participant').options[document.getElementById('meas-participant').selectedIndex].text;
-            const type = document.getElementById('meas-type').value;
-            const value = document.getElementById('meas-value').value;
             const notes = document.getElementById('meas-notes').value;
 
-            const now = new Date();
-            const timestamp = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            const nowObj = new Date();
+            const timestamp = `${nowObj.getDate().toString().padStart(2, '0')}/${(nowObj.getMonth() + 1).toString().padStart(2, '0')}/${nowObj.getFullYear()} ${nowObj.getHours().toString().padStart(2, '0')}:${nowObj.getMinutes().toString().padStart(2, '0')}`;
 
-            state.measurements.unshift({ participant: partId, name: partName, type, value, notes, timestamp });
+            state.measurements.unshift({ 
+                participant: partId, 
+                notes, 
+                timestamp,
+                dateObj: nowObj 
+            });
 
             e.target.reset();
             this.showToast("Measurement logged and saved!");
@@ -108,8 +132,7 @@ const app = {
             const row = document.createElement('tr');
             row.className = 'border-b border-slate-100 hover:bg-slate-50 transition-colors';
             row.innerHTML = `
-                <td class="py-3 px-2 text-slate-600">${p.id}</td>
-                <td class="py-3 px-2 font-medium text-slate-800">${p.name}</td>
+                <td class="py-3 px-2 font-medium text-slate-800">${p.id}</td>
                 <td class="py-3 px-2">
                     ${p.consent ? '<span class="text-green-600 font-bold">✓ Signed</span>' : '<span class="text-red-500">Missing</span>'}
                 </td>
@@ -126,7 +149,7 @@ const app = {
 
     // Suspend participant registration
     suspendParticipant(index) {
-        if (confirm(`Are you sure you want to suspend the participation of ${state.participants[index].name}?`)) {
+        if (confirm(`Are you sure you want to suspend participant ${state.participants[index].id}?`)) {
             state.participants[index].status = 'Dropped';
             this.renderParticipants();
             this.showToast("Participant status updated.");
@@ -143,7 +166,7 @@ const app = {
         actives.forEach(p => {
             const option = document.createElement('option');
             option.value = p.id;
-            option.textContent = `${p.name} (${p.id})`;
+            option.textContent = `Participant ${p.id}`;
             select.appendChild(option);
         });
     },
@@ -174,12 +197,82 @@ const app = {
             row.className = 'border-b border-slate-100 hover:bg-slate-50';
             row.innerHTML = `
                 <td class="py-3 px-3 text-sm text-slate-500" dir="ltr">${m.timestamp}</td>
-                <td class="py-3 px-3 font-medium text-slate-800">${m.name}</td>
-                <td class="py-3 px-3 text-slate-700">${m.type}</td>
-                <td class="py-3 px-3 text-slate-800" dir="ltr">${m.value}</td>
+                <td class="py-3 px-3 font-medium text-slate-800">${m.participant}</td>
                 <td class="py-3 px-3 text-sm text-slate-500">${m.notes || '-'}</td>
             `;
             tbody.appendChild(row);
+        });
+    },
+
+    // Render Charts
+    renderCharts() {
+        // Destroy existing charts to prevent duplication
+        if (this.chartMeasurements) this.chartMeasurements.destroy();
+        if (this.chartStatus) this.chartStatus.destroy();
+
+        // Calculate Measured vs Pending
+        const measurementsByParticipant = {};
+        state.participants.forEach(p => {
+            measurementsByParticipant[p.id] = 0;
+        });
+        
+        state.measurements.forEach(m => {
+            if (measurementsByParticipant[m.participant] !== undefined) {
+                measurementsByParticipant[m.participant]++;
+            }
+        });
+
+        const labelsParticipants = Object.keys(measurementsByParticipant);
+        const measuredCount = labelsParticipants.filter(id => measurementsByParticipant[id] > 0).length;
+        const pendingCount = labelsParticipants.length - measuredCount;
+
+        // Chart 1: Measurement Progress
+        const ctxMeas = document.getElementById('chart-measurements').getContext('2d');
+        this.chartMeasurements = new Chart(ctxMeas, {
+            type: 'bar',
+            data: {
+                labels: ['Measured', 'Pending'],
+                datasets: [{
+                    label: 'Participants',
+                    data: [measuredCount, pendingCount],
+                    backgroundColor: ['#4f46e5', '#94a3b8'],
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+
+        // Chart 2: Participant Status Distribution
+        const activeCount = state.participants.filter(p => p.status === 'Active').length;
+        const droppedCount = state.participants.filter(p => p.status === 'Dropped').length;
+
+        const ctxStatus = document.getElementById('chart-status').getContext('2d');
+        this.chartStatus = new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+                labels: ['Active', 'Dropped'],
+                datasets: [{
+                    data: [activeCount, droppedCount],
+                    backgroundColor: ['#10b981', '#f43f5e'],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
         });
     },
 
@@ -203,12 +296,13 @@ const app = {
         // Simulate OpenAI server request time
         setTimeout(() => {
             const measurementCount = state.measurements.length;
+            const activeCount = state.participants.filter(p => p.status === 'Active').length;
 
             // Create dummy text based on data
-            let analysis = `Analysis performed on ${measurementCount} records from the database.\n\n`;
-            analysis += `• Data Integrity: High level of reliability identified in reports.\n`;
-            analysis += `• Trends: No significant statistical anomalies found in "Heart Rate" metrics among active participants.\n`;
-            analysis += `• AI Recommendation: Consider increasing measurement frequency for participant "Israel Israeli" for better data resolution.`;
+            let analysis = `Analysis performed on ${measurementCount} records from ${state.participants.length} total participants (${activeCount} active).\n\n`;
+            analysis += `• Data Integrity: High level of reliability identified in reports. ID anonymization confirmed.\n`;
+            analysis += `• Trends: No significant statistical anomalies found in the primary metrics among active participants.\n`;
+            analysis += `• AI Recommendation: Consider increasing measurement frequency for participants with ID P-1003 and P-1004 for better data resolution.`;
 
             resultText.innerText = analysis;
 
