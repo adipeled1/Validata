@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import DataCollectionDisplay from './display';
 import { getActiveParticipants } from './service';
 
@@ -6,7 +6,6 @@ import { getActiveParticipants } from './service';
 const DataCollectionControl = ({ participants, onLogMeasurement, onFileUpload }) => {
   const [participantId, setParticipantId] = useState('');
   const [goniometer, setGoniometer] = useState('');
-  const [protractor, setProtractor] = useState('');
   const [aiModel, setAiModel] = useState('');
   const [notes, setNotes] = useState('');
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -19,10 +18,9 @@ const DataCollectionControl = ({ participants, onLogMeasurement, onFileUpload })
     e.preventDefault();
     if (!participantId) return;
 
-    onLogMeasurement({ participantId, goniometer, protractor, aiModel, notes });
+    onLogMeasurement({ participantId, goniometer, aiModel, notes });
     setParticipantId('');
     setGoniometer('');
-    setProtractor('');
     setAiModel('');
     setNotes('');
   };
@@ -44,8 +42,6 @@ const DataCollectionControl = ({ participants, onLogMeasurement, onFileUpload })
       onParticipantChange={setParticipantId}
       goniometer={goniometer}
       onGoniometerChange={setGoniometer}
-      protractor={protractor}
-      onProtractorChange={setProtractor}
       aiModel={aiModel}
       onAiModelChange={setAiModel}
       notes={notes}

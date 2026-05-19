@@ -11,7 +11,7 @@ export const sortMeasurementsDescending = (measurements) => {
         const [hours, minutes] = timePart.split(':');
         // Month is 0-indexed in JS Date
         return new Date(year, month - 1, day, hours, minutes).getTime();
-      } catch (e) {
+      } catch {
         return 0; // Fallback if format is invalid
       }
     };

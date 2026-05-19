@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import ToastDisplay from './display';
 import { TOAST_DURATION } from './service';
 

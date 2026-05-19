@@ -1,4 +1,3 @@
-import React from 'react';
 
 // Pure presentational component
 const SidebarDisplay = ({ currentView, onNavigate, navItems }) => {

@@ -1,4 +1,3 @@
-import React from 'react';
 import SidebarDisplay from './display';
 import { getNavItems } from './service';
 

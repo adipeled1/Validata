@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Sidebar from './components/Sidebar/control';
 import Participants from './components/Participants/control';
+import ParticipantsView from './components/ParticipantsView/control';
 import DataCollection from './components/DataCollection/control';
 import Analysis from './components/Analysis/control';
 import Toast from './components/Toast/control';
@@ -8,19 +9,13 @@ import mockData from './mockData.json';
 
 function App() {
   const [currentView, setCurrentView] = useState('participants');
-  const [participants, setParticipants] = useState([]);
-  const [measurements, setMeasurements] = useState([]);
+  const [participants, setParticipants] = useState(mockData.participants);
+  const [measurements, setMeasurements] = useState(mockData.measurements);
   const [nextId, setNextId] = useState(1009); // Mock next ID
 
   // Toast state
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
-
-  // Initialize data on mount
-  useEffect(() => {
-    setParticipants(mockData.participants);
-    setMeasurements(mockData.measurements);
-  }, []);
 
   const triggerToast = (message) => {
     setToastMessage(message);
@@ -31,7 +26,20 @@ function App() {
   const handleAddParticipant = (consent) => {
     const newId = `P-${nextId}`;
     setNextId((prev) => prev + 1);
-    const newParticipant = { id: newId, consent, status: 'Active' };
+
+    // Generate random demographics for the prototype
+    const randomAge = Math.floor(Math.random() * 50) + 18; // Age between 18 and 67
+    const randomGender = Math.random() > 0.5 ? 'Male' : 'Female';
+    const randomHealth = Math.random() > 0.7 ? 'Sick' : 'Healthy';
+
+    const newParticipant = { 
+      id: newId, 
+      consent, 
+      status: 'Active',
+      age: randomAge,
+      gender: randomGender,
+      healthStatus: randomHealth
+    };
     setParticipants([...participants, newParticipant]);
     triggerToast(`Participant ${newId} registered successfully!`);
   };
@@ -46,7 +54,7 @@ function App() {
   };
 
   // Measurement Handlers
-  const handleLogMeasurement = ({ participantId, goniometer, protractor, aiModel, notes }) => {
+  const handleLogMeasurement = ({ participantId, goniometer, aiModel, notes }) => {
     const nowObj = new Date();
     const timestamp = `${nowObj.getDate().toString().padStart(2, '0')}/${(
       nowObj.getMonth() + 1
@@ -60,7 +68,6 @@ function App() {
     const newMeasurement = {
       participant: participantId,
       goniometer,
-      protractor,
       aiModel,
       notes,
       timestamp,
@@ -70,7 +77,7 @@ function App() {
     triggerToast('Measurement logged and saved!');
   };
 
-  const handleFileUpload = (file) => {
+  const handleFileUpload = () => {
     triggerToast('Raw file uploaded successfully.');
   };
 
@@ -97,6 +104,12 @@ function App() {
               participants={participants}
               onAddParticipant={handleAddParticipant}
               onSuspendParticipant={handleSuspendParticipant}
+            />
+          )}
+
+          {currentView === 'participantsView' && (
+            <ParticipantsView
+              participants={participants}
             />
           )}
 

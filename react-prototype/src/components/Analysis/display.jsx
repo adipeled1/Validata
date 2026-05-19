@@ -1,4 +1,3 @@
-import React from 'react';
 import { Download, Sparkles, AlertCircle } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -122,7 +121,6 @@ const AnalysisDisplay = ({
                 <th className="py-3 px-3 font-medium">Date & Time</th>
                 <th className="py-3 px-3 font-medium">Participant</th>
                 <th className="py-3 px-3 font-medium">Goniometer</th>
-                <th className="py-3 px-3 font-medium">Protractor</th>
                 <th className="py-3 px-3 font-medium">AI/ML Model</th>
                 <th className="py-3 px-3 font-medium">Notes</th>
               </tr>
@@ -130,7 +128,7 @@ const AnalysisDisplay = ({
             <tbody>
               {sortedMeasurements.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-6 text-slate-500">
+                  <td colSpan="5" className="text-center py-6 text-slate-500">
                     No data to display
                   </td>
                 </tr>
@@ -145,7 +143,6 @@ const AnalysisDisplay = ({
                     </td>
                     <td className="py-3 px-3 font-medium text-slate-800">{m.participant}</td>
                     <td className="py-3 px-3 text-sm text-slate-500">{m.goniometer || '-'}</td>
-                    <td className="py-3 px-3 text-sm text-slate-500">{m.protractor || '-'}</td>
                     <td className="py-3 px-3 text-sm text-slate-500">{m.aiModel || '-'}</td>
                     <td className="py-3 px-3 text-sm text-slate-500">{m.notes || '-'}</td>
                   </tr>

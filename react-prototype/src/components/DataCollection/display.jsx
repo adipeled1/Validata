@@ -1,4 +1,3 @@
-import React from 'react';
 import { UploadCloud, CheckCircle } from 'lucide-react';
 
 // Pure presentational component
@@ -8,8 +7,6 @@ const DataCollectionDisplay = ({
   onParticipantChange, 
   goniometer,
   onGoniometerChange,
-  protractor,
-  onProtractorChange,
   aiModel,
   onAiModelChange,
   notes, 
@@ -56,7 +53,7 @@ const DataCollectionDisplay = ({
               </select>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Goniometer
@@ -66,18 +63,6 @@ const DataCollectionDisplay = ({
                   placeholder="e.g. 45°"
                   value={goniometer}
                   onChange={(e) => onGoniometerChange(e.target.value)}
-                  className="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  Protractor
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. 45°"
-                  value={protractor}
-                  onChange={(e) => onProtractorChange(e.target.value)}
                   className="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>

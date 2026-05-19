@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import ParticipantsDisplay from './display';
 
 // Controller component manages local state and acts as the entry point

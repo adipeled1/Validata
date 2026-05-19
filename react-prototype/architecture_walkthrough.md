@@ -11,6 +11,7 @@ graph TD
     App --> Toast[Toast/control.jsx]
     App --> Views{Current View}
     Views --> Participants[Participants/control.jsx]
+    Views --> ParticipantsView[ParticipantsView/control.jsx]
     Views --> DataCollection[DataCollection/control.jsx]
     Views --> Analysis[Analysis/control.jsx]
 ```
@@ -53,6 +54,11 @@ Data flows unidirectionally from `App.jsx` down to the specific `control.jsx` fi
 - **Control**: Manages the local `consent` checkbox state and handles the form submission to register new participants.
 - **Service**: Helper logic for participants (e.g., counting active participants).
 - **Display**: Renders the registration form and the Tracking Table.
+
+### ParticipantsView
+- **Control**: Manages local search (`searchTerm`) and health status filtering states.
+- **Service**: Calculates clinical and demographic stats (average age, healthy/sick count).
+- **Display**: Renders a premium demographic metrics dashboard, interactive filters, and the detailed participant directory table.
 
 ### DataCollection
 - **Control**: Manages the form inputs (`participantId`, `notes`) and the `uploadedFile` state.
