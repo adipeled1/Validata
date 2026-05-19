@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .hidden-section {
+    display: none !important;
+  }
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}

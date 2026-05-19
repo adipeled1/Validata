@@ -1,0 +1,54 @@
+{
+  "participants": [
+    { "id": "P-1001", "consent": true, "status": "Active" },
+    { "id": "P-1002", "consent": true, "status": "Active" },
+    { "id": "P-1003", "consent": true, "status": "Dropped" },
+    { "id": "P-1004", "consent": true, "status": "Active" },
+    { "id": "P-1005", "consent": true, "status": "Active" },
+    { "id": "P-1006", "consent": true, "status": "Active" },
+    { "id": "P-1007", "consent": true, "status": "Dropped" },
+    { "id": "P-1008", "consent": true, "status": "Active" }
+  ],
+  "measurements": [
+    {
+      "participant": "P-1001",
+      "goniometer": "45.0°",
+      "protractor": "45.2°",
+      "aiModel": "44.9°",
+      "notes": "Session completed successfully",
+      "timestamp": "12/05/2026 14:30"
+    },
+    {
+      "participant": "P-1004",
+      "goniometer": "30.0°",
+      "protractor": "31.5°",
+      "aiModel": "30.8°",
+      "notes": "Patient seemed tired but completed tasks",
+      "timestamp": "13/05/2026 09:15"
+    },
+    {
+      "participant": "P-1002",
+      "goniometer": "60.0°",
+      "protractor": "59.8°",
+      "aiModel": "60.1°",
+      "notes": "Standard reading",
+      "timestamp": "14/05/2026 11:45"
+    },
+    {
+      "participant": "P-1008",
+      "goniometer": "45.0°",
+      "protractor": "45.0°",
+      "aiModel": "45.0°",
+      "notes": "No issues reported",
+      "timestamp": "15/05/2026 16:00"
+    },
+    {
+      "participant": "P-1005",
+      "goniometer": "15.0°",
+      "protractor": "16.1°",
+      "aiModel": "15.7°",
+      "notes": "Follow-up required next week",
+      "timestamp": "16/05/2026 10:20"
+    }
+  ]
+}
