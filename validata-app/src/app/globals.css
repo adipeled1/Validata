@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .hidden-section {
+    display: none !important;
+  }
+}
+
+body {
+  background: #f8fafc; /* slate-50 background for dashboard */
+  color: #0f172a; /* slate-900 foreground */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
