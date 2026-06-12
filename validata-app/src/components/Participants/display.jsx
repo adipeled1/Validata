@@ -4,6 +4,12 @@ const ParticipantsDisplay = ({
   participants, 
   consent, 
   onConsentChange, 
+  age,
+  onAgeChange,
+  gender,
+  onGenderChange,
+  healthStatus,
+  onHealthStatusChange,
   onSubmit, 
   onSuspend 
 }) => {
@@ -23,10 +29,60 @@ const ParticipantsDisplay = ({
             Register New Participant
           </h3>
           <form onSubmit={onSubmit} className="space-y-4">
-            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-4">
+            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-2">
               <p className="text-sm text-slate-600">
                 The system will automatically generate a unique, anonymous ID for the new participant to ensure privacy.
               </p>
+            </div>
+
+            {/* Age Input */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Age
+              </label>
+              <input
+                type="number"
+                required
+                min="18"
+                max="120"
+                placeholder="e.g. 35"
+                value={age}
+                onChange={(e) => onAgeChange(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+
+            {/* Gender Select */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Gender
+              </label>
+              <select
+                required
+                value={gender}
+                onChange={(e) => onGenderChange(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            {/* Health Status Select */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Health Status
+              </label>
+              <select
+                required
+                value={healthStatus}
+                onChange={(e) => onHealthStatusChange(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+              >
+                <option value="Healthy">Healthy</option>
+                <option value="Sick">Sick</option>
+              </select>
             </div>
 
             {/* Consent Management */}

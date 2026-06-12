@@ -13,6 +13,7 @@ import mockData from '../mockData.json';
 import { supabase } from '../lib/supabase';
 import { getCookie, setCookie, deleteCookie } from '../lib/cookies';
 import { Clock, Ban, LogOut } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 export default function Home() {
   const router = useRouter();
@@ -35,6 +36,10 @@ export default function Home() {
   // Toast state
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+
+  // File import states
+  const [isImporting, setIsImporting] = useState(false);
+  const [importSummary, setImportSummary] = useState(null);
 
   const triggerToast = (message) => {
     setToastMessage(message);
@@ -139,7 +144,15 @@ export default function Home() {
       try {
         if (isDemo) {
           setParticipants(mockData.participants);
-          setMeasurements(mockData.measurements);
+          const mappedMockMeasurements = mockData.measurements.map((m, idx) => ({
+            id: mockData.measurements.length - idx,
+            participant: m.participant,
+            goniometer: m.goniometer,
+            aiModel: m.aiModel,
+            notes: m.notes,
+            timestamp: m.timestamp
+          }));
+          setMeasurements(mappedMockMeasurements);
         } else {
           // Fetch from API
           const resP = await fetch('/api/participants');
@@ -175,6 +188,7 @@ export default function Home() {
             } catch { }
 
             return {
+              id: m.id,
               participant: m.participant_id,
               goniometer: `${parseFloat(m.goniometer).toFixed(1)}°`,
               aiModel: `${parseFloat(m.ai_model).toFixed(1)}°`,
@@ -200,23 +214,18 @@ export default function Home() {
   }, []);
 
   // Participant Handlers
-  const handleAddParticipant = async (consent) => {
+  const handleAddParticipant = async ({ consent, age, gender, healthStatus }) => {
     if (isDemoMode) {
       const newId = `P-${nextId}`;
       setNextId((prev) => prev + 1);
-
-      // Generate random demographics for demo
-      const randomAge = Math.floor(Math.random() * 50) + 18;
-      const randomGender = Math.random() > 0.5 ? 'Male' : 'Female';
-      const randomHealth = Math.random() > 0.7 ? 'Sick' : 'Healthy';
 
       const newParticipant = {
         id: newId,
         consent,
         status: 'Active',
-        age: randomAge,
-        gender: randomGender,
-        healthStatus: randomHealth
+        age: parseInt(age) || null,
+        gender,
+        healthStatus
       };
       setParticipants([newParticipant, ...participants]);
       triggerToast(`Participant ${newId} registered successfully! (Demo)`);
@@ -227,19 +236,15 @@ export default function Home() {
           : 1001;
         const newId = `P-${nextNumericId}`;
 
-        const randomAge = Math.floor(Math.random() * 50) + 18;
-        const randomGender = Math.random() > 0.5 ? 'Male' : 'Female';
-        const randomHealth = Math.random() > 0.7 ? 'Sick' : 'Healthy';
-
         const res = await fetch('/api/participants', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: newId,
             consent,
-            age: randomAge,
-            gender: randomGender,
-            healthStatus: randomHealth
+            age: parseInt(age) || null,
+            gender,
+            healthStatus
           })
         });
 
@@ -252,9 +257,9 @@ export default function Home() {
           id: newId,
           consent,
           status: 'Active',
-          age: randomAge,
-          gender: randomGender,
-          healthStatus: randomHealth
+          age: parseInt(age) || null,
+          gender,
+          healthStatus
         };
 
         setParticipants([newParticipant, ...participants]);
@@ -310,15 +315,20 @@ export default function Home() {
         .toString()
         .padStart(2, '0')}:${nowObj.getMinutes().toString().padStart(2, '0')}`;
 
-    const newMeasurement = {
-      participant: participantId,
-      goniometer: goniometer.includes('°') ? goniometer : `${goniometer}°`,
-      aiModel: aiModel.includes('°') ? aiModel : `${aiModel}°`,
-      notes,
-      timestamp: formattedTimestamp,
-    };
-
     if (isDemoMode) {
+      const simulatedId = measurements.length > 0
+        ? Math.max(...measurements.map(m => parseInt(m.id) || 0)) + 1
+        : 1;
+
+      const newMeasurement = {
+        id: simulatedId,
+        participant: participantId,
+        goniometer: goniometer.includes('°') ? goniometer : `${goniometer}°`,
+        aiModel: aiModel.includes('°') ? aiModel : `${aiModel}°`,
+        notes,
+        timestamp: formattedTimestamp,
+      };
+
       setMeasurements([newMeasurement, ...measurements]);
       triggerToast('Measurement logged and saved! (Demo)');
     } else {
@@ -334,6 +344,16 @@ export default function Home() {
           throw new Error(errData.error || 'Failed to log measurement');
         }
 
+        const savedData = await res.json();
+        const newMeasurement = {
+          id: savedData.id,
+          participant: savedData.participant_id,
+          goniometer: `${parseFloat(savedData.goniometer).toFixed(1)}°`,
+          aiModel: `${parseFloat(savedData.ai_model).toFixed(1)}°`,
+          notes: savedData.notes,
+          timestamp: formattedTimestamp
+        };
+
         setMeasurements([newMeasurement, ...measurements]);
         triggerToast('Measurement saved directly to the database!');
       } catch (error) {
@@ -343,27 +363,209 @@ export default function Home() {
     }
   };
 
-  const handleFileUpload = async (file) => {
-    if (isDemoMode) {
-      triggerToast('Raw file upload simulated successfully. (Demo)');
-    } else {
-      try {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `raw_data/${fileName}`;
-
-        // Upload to storage
-        const { error: uploadError } = await supabase.storage
-          .from('measurements-files')
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        triggerToast(`File "${file.name}" uploaded successfully to Supabase Storage.`);
-      } catch (error) {
-        console.error('Storage upload error:', error);
-        triggerToast('File upload failed: ' + error.message);
+  const parseCSV = (text) => {
+    const lines = [];
+    let row = [""];
+    lines.push(row);
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      const next = text[i+1];
+      if (c === '"') {
+        if (inQuotes && next === '"') { row[row.length - 1] += '"'; i++; } // Escaped quote
+        else { inQuotes = !inQuotes; }
+      } else if (c === ',' && !inQuotes) {
+        row.push("");
+      } else if ((c === '\r' || c === '\n') && !inQuotes) {
+        if (c === '\r' && next === '\n') { i++; }
+        row = [""];
+        lines.push(row);
+      } else {
+        row[row.length - 1] += c;
       }
+    }
+    const parsed = lines.filter(r => r.length > 1 || (r.length === 1 && r[0] !== ""));
+    if (parsed.length <= 1) return [];
+    const headers = parsed[0].map(h => h.trim().toLowerCase().replace(/^["']|["']$/g, ''));
+    return parsed.slice(1).map(r => {
+      const obj = {};
+      headers.forEach((h, idx) => {
+        obj[h] = r[idx] ? r[idx].trim().replace(/^["']|["']$/g, '') : '';
+      });
+      return obj;
+    });
+  };
+
+  const processImportedRows = async (rows) => {
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+    const newMeasurements = [];
+
+    // Map active participants for easy case-insensitive lookup
+    const activeParticipantIds = new Set(
+      participants
+        .filter(p => p.status.toLowerCase() === 'active')
+        .map(p => p.id.toLowerCase())
+    );
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      
+      // Try different common keys for flexibility
+      const pId = (row.participant_id || row.participant || row.participantid || row.participantId || '').toString().trim();
+      const goniometerRaw = row.goniometer;
+      const aiModelRaw = row.ai_model || row.aiModel || row.aimodel || row.ai_ml || row.aiml;
+      const notes = (row.notes || '').toString().trim();
+
+      if (!pId) {
+        errorCount++;
+        errors.push(`Row ${i + 2}: Missing Participant ID`);
+        continue;
+      }
+
+      if (!activeParticipantIds.has(pId.toLowerCase())) {
+        errorCount++;
+        errors.push(`Row ${i + 2}: Participant "${pId}" is not Active or does not exist`);
+        continue;
+      }
+
+      const parsedGoniometer = parseFloat(goniometerRaw?.toString().replace('°', ''));
+      const parsedAiModel = parseFloat(aiModelRaw?.toString().replace('°', ''));
+
+      if (isNaN(parsedGoniometer) || isNaN(parsedAiModel)) {
+        errorCount++;
+        errors.push(`Row ${i + 2} (${pId}): Invalid numeric values (Goniometer: ${goniometerRaw}, AI Model: ${aiModelRaw})`);
+        continue;
+      }
+
+      const dateToUse = new Date();
+
+      const formattedTimestamp = `${dateToUse.getDate().toString().padStart(2, '0')}/${(
+        dateToUse.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, '0')}/${dateToUse.getFullYear()} ${dateToUse
+          .getHours()
+          .toString()
+          .padStart(2, '0')}:${dateToUse.getMinutes().toString().padStart(2, '0')}`;
+
+      const payload = {
+        participantId: pId,
+        goniometer: parsedGoniometer,
+        aiModel: parsedAiModel,
+        notes
+      };
+
+      try {
+        if (isDemoMode) {
+          const simulatedId = (measurements.length + newMeasurements.length) > 0
+            ? Math.max(...measurements.map(m => parseInt(m.id) || 0)) + newMeasurements.length + 1
+            : newMeasurements.length + 1;
+
+          newMeasurements.push({
+            id: simulatedId,
+            participant: pId,
+            goniometer: `${parsedGoniometer.toFixed(1)}°`,
+            aiModel: `${parsedAiModel.toFixed(1)}°`,
+            notes,
+            timestamp: formattedTimestamp
+          });
+          successCount++;
+        } else {
+          const res = await fetch('/api/measurements', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.error || 'API Error');
+          }
+
+          const savedData = await res.json();
+          newMeasurements.push({
+            id: savedData.id,
+            participant: savedData.participant_id,
+            goniometer: `${parseFloat(savedData.goniometer).toFixed(1)}°`,
+            aiModel: `${parseFloat(savedData.ai_model).toFixed(1)}°`,
+            notes: savedData.notes,
+            timestamp: formattedTimestamp
+          });
+          successCount++;
+        }
+      } catch (err) {
+        errorCount++;
+        errors.push(`Row ${i + 2} (${pId}): Failed to save - ${err.message}`);
+      }
+    }
+
+    if (newMeasurements.length > 0) {
+      // Reverse array to ensure newest IDs are prepended first, maintaining descending order
+      setMeasurements(prev => [...newMeasurements.reverse(), ...prev]);
+    }
+
+    return { successCount, errorCount, errors };
+  };
+
+  const handleFileUpload = async (file) => {
+    setIsImporting(true);
+    setImportSummary(null);
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        let rows = [];
+        const fileExt = file.name.split('.').pop().toLowerCase();
+
+        if (fileExt === 'json') {
+          const text = e.target.result;
+          const parsed = JSON.parse(text);
+          rows = Array.isArray(parsed) ? parsed : [parsed];
+        } else if (fileExt === 'csv') {
+          const text = e.target.result;
+          rows = parseCSV(text);
+        } else if (fileExt === 'xlsx' || fileExt === 'xls') {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          rows = XLSX.utils.sheet_to_json(worksheet);
+        } else {
+          throw new Error('Unsupported file format. Please upload CSV, Excel (.xlsx/.xls), or JSON.');
+        }
+
+        if (rows.length === 0) {
+          throw new Error('No rows found in the file.');
+        }
+
+        const result = await processImportedRows(rows);
+        setImportSummary(result);
+        
+        if (result.successCount > 0) {
+          triggerToast(`Successfully imported ${result.successCount} measurements!`);
+        } else {
+          triggerToast('Import failed. No valid rows were saved.');
+        }
+      } catch (err) {
+        console.error('File parsing error:', err);
+        setImportSummary({
+          successCount: 0,
+          errorCount: 1,
+          errors: [err.message]
+        });
+        triggerToast('Failed to import file: ' + err.message);
+      } finally {
+        setIsImporting(false);
+      }
+    };
+
+    const fileExt = file.name.split('.').pop().toLowerCase();
+    if (fileExt === 'xlsx' || fileExt === 'xls') {
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.readAsText(file);
     }
   };
 
@@ -482,6 +684,9 @@ export default function Home() {
               participants={participants}
               onLogMeasurement={handleLogMeasurement}
               onFileUpload={handleFileUpload}
+              isImporting={isImporting}
+              importSummary={importSummary}
+              onClearImportSummary={() => setImportSummary(null)}
             />
           )}
 

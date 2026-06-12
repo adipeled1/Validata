@@ -15,7 +15,13 @@ export const sortMeasurementsDescending = (measurements) => {
         return 0; // Fallback if format is invalid
       }
     };
-    return parseDate(b.timestamp) - parseDate(a.timestamp); // Descending (newest up)
+    const timeDiff = parseDate(b.timestamp) - parseDate(a.timestamp);
+    if (timeDiff !== 0) return timeDiff;
+
+    // Fallback to sorting by database ID if timestamps are within the same minute
+    const idA = parseInt(a.id) || 0;
+    const idB = parseInt(b.id) || 0;
+    return idB - idA; // Descending (newest ID first)
   });
 };
 

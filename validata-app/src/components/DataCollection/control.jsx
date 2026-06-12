@@ -3,7 +3,14 @@ import DataCollectionDisplay from './display';
 import { getActiveParticipants } from './service';
 
 // Controller component manages local state and input references
-const DataCollectionControl = ({ participants, onLogMeasurement, onFileUpload }) => {
+const DataCollectionControl = ({ 
+  participants, 
+  onLogMeasurement, 
+  onFileUpload,
+  isImporting,
+  importSummary,
+  onClearImportSummary
+}) => {
   const [participantId, setParticipantId] = useState('');
   const [goniometer, setGoniometer] = useState('');
   const [aiModel, setAiModel] = useState('');
@@ -35,6 +42,11 @@ const DataCollectionControl = ({ participants, onLogMeasurement, onFileUpload })
     }
   };
 
+  const handleClearSummary = () => {
+    setUploadedFile(null);
+    onClearImportSummary();
+  };
+
   return (
     <DataCollectionDisplay
       activeParticipants={activeParticipants}
@@ -50,6 +62,9 @@ const DataCollectionControl = ({ participants, onLogMeasurement, onFileUpload })
       uploadedFile={uploadedFile}
       onFileChange={handleFileChange}
       fileInputRef={fileInputRef}
+      isImporting={isImporting}
+      importSummary={importSummary}
+      onClearImportSummary={handleClearSummary}
     />
   );
 };

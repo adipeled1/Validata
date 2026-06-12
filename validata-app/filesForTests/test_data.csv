@@ -1,0 +1,5 @@
+participant_id,goniometer,ai_model,notes
+"P-1001",45.5,44.9,"Import Successful"
+"P-1002",60,60.1,"Another successful row"
+"P-9999",90,90,"This participant does not exist (should skip)"
+"P-1004",30.5,31,"Valid row after error"

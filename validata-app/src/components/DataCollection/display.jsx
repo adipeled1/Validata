@@ -14,7 +14,10 @@ const DataCollectionDisplay = ({
   onSubmitLog, 
   uploadedFile, 
   onFileChange, 
-  fileInputRef 
+  fileInputRef,
+  isImporting,
+  importSummary,
+  onClearImportSummary
 }) => {
   return (
     <section className="app-section">
@@ -93,40 +96,82 @@ const DataCollectionDisplay = ({
             </div>
             <button
               type="submit"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition-colors"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition-colors cursor-pointer"
             >
               Log Measurement
             </button>
           </form>
         </div>
 
-        {/* File Upload */}
+        {/* File Upload / Import */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col">
           <h3 className="text-xl font-semibold mb-4 text-slate-800 border-b pb-2">
-            File Upload
+            Bulk Import (CSV, JSON, Excel)
           </h3>
-          <div
-            className="flex-1 flex flex-col justify-center items-center border-2 border-dashed border-slate-300 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer p-6"
-            onClick={() => fileInputRef.current.click()}
-          >
-            <UploadCloud className="w-12 h-12 text-slate-400 mb-3" />
-            <p className="text-slate-600 font-medium">Click here to select a data file</p>
-            <p className="text-xs text-slate-400 mt-1">Supports CSV, Excel, JSON (up to 50MB)</p>
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              onChange={onFileChange}
-            />
-          </div>
+          
+          {isImporting ? (
+            <div className="flex-1 flex flex-col justify-center items-center p-6 bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg">
+              <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+              <p className="text-slate-600 font-medium">Processing and importing file...</p>
+              <p className="text-xs text-slate-400 mt-1">Please do not refresh the page.</p>
+            </div>
+          ) : importSummary ? (
+            <div className="flex-1 flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className={`p-4 rounded-xl border ${importSummary.errorCount === 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                  <div className="flex items-center gap-2 font-bold mb-1">
+                    <CheckCircle className="w-5 h-5 text-emerald-600" />
+                    Import Complete
+                  </div>
+                  <p className="text-sm">
+                    Successfully imported <strong>{importSummary.successCount}</strong> measurements.
+                    {importSummary.errorCount > 0 && <span> Skipped <strong>{importSummary.errorCount}</strong> rows due to validation errors.</span>}
+                  </p>
+                </div>
 
-          {uploadedFile && (
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between bg-green-50 text-green-700 p-3 rounded border border-green-200">
-                <span className="text-sm font-medium flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" />
-                  <span>{uploadedFile}</span> uploaded successfully.
-                </span>
+                {importSummary.errors && importSummary.errors.length > 0 && (
+                  <div className="max-h-48 overflow-y-auto p-3.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 font-mono space-y-1">
+                    <div className="font-semibold mb-1 text-rose-800">Errors & Warnings:</div>
+                    {importSummary.errors.map((err, i) => (
+                      <div key={i}>• {err}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <button
+                onClick={onClearImportSummary}
+                className="mt-4 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 rounded-lg transition-colors border border-slate-200 cursor-pointer"
+              >
+                Import Another File
+              </button>
+            </div>
+          ) : (
+            <div className="flex-grow flex flex-col justify-between">
+              <div
+                className="flex-1 flex flex-col justify-center items-center border-2 border-dashed border-slate-300 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer p-6 min-h-[160px]"
+                onClick={() => fileInputRef.current.click()}
+              >
+                <UploadCloud className="w-12 h-12 text-slate-400 mb-3" />
+                <p className="text-slate-600 font-medium">Click here to select a data file</p>
+                <p className="text-xs text-slate-400 mt-1">Supports CSV, Excel (.xlsx/.xls), JSON (up to 50MB)</p>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={onFileChange}
+                  accept=".csv,.json,.xlsx,.xls"
+                />
+              </div>
+
+              <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500">
+                <p className="font-semibold text-slate-600 mb-1.5">Expected Spreadsheet Headers:</p>
+                <code className="block bg-white border border-slate-100 p-2 rounded text-indigo-600 font-mono break-all leading-normal">
+                  participant_id, goniometer, ai_model, notes
+                </code>
+                <p className="mt-1.5 text-slate-400 leading-normal">
+                  * Note: Only active participants are imported. Goniometer and AI Model values must be numeric.
+                </p>
               </div>
             </div>
           )}
