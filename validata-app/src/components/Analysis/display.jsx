@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { Download, Sparkles, AlertCircle } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -43,8 +44,6 @@ const AnalysisDisplay = ({
   statusOptions,
   isAnalyzing,
   aiResult,
-  onRunAnalysis,
-  onGenerateReport,
   statsData,
   summaryStats,
   threshold,
@@ -58,8 +57,67 @@ const AnalysisDisplay = ({
     ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     : null;
 
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+
+  const handleGenerateReport = async () => {
+    setIsGenerating(true);
+    setShowToast(true);
+    
+    try {
+      const html2canvas = (await import('html2canvas-pro')).default;
+      const { jsPDF } = await import('jspdf');
+      
+      const charts = document.querySelectorAll('.pdf-chart');
+      if (!charts.length) return;
+      
+      const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'landscape' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      for (let i = 0; i < charts.length; i++) {
+        const canvas = await html2canvas(charts[i], { scale: 2, useCORS: true });
+        const imgData = canvas.toDataURL('image/jpeg', 0.98);
+        
+        const margin = 0.5;
+        const maxPdfWidth = pdfWidth - margin * 2;
+        const maxPdfHeight = pageHeight - margin * 2;
+        
+        const imgRatio = canvas.width / canvas.height;
+        const pdfRatio = maxPdfWidth / maxPdfHeight;
+        
+        let renderWidth, renderHeight;
+        if (imgRatio > pdfRatio) {
+          renderWidth = maxPdfWidth;
+          renderHeight = maxPdfWidth / imgRatio;
+        } else {
+          renderHeight = maxPdfHeight;
+          renderWidth = maxPdfHeight * imgRatio;
+        }
+        
+        if (i > 0) pdf.addPage();
+        
+        const xOffset = (pdfWidth - renderWidth) / 2;
+        const yOffset = (pageHeight - renderHeight) / 2;
+        pdf.addImage(imgData, 'JPEG', xOffset, yOffset, renderWidth, renderHeight);
+      }
+      
+      pdf.save('validata-analysis.pdf');
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+    } finally {
+      setIsGenerating(false);
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
   return (
     <section className="app-section">
+      {showToast && (
+        <div className="fixed top-10 left-1/2 transform -translate-x-1/2 z-50 flex items-center bg-[#10b981] text-white px-6 py-3 rounded shadow-lg transition-all duration-300">
+          <span className="font-medium text-sm">Preparing PDF report... Download will begin shortly.</span>
+        </div>
+      )}
       <div className="flex justify-between items-end mb-8">
         <header>
           <h2 className="text-3xl font-bold text-slate-800">Results View & Analysis</h2>
@@ -68,25 +126,27 @@ const AnalysisDisplay = ({
           </p>
         </header>
         <button
-          onClick={onGenerateReport}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-5 rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+          onClick={handleGenerateReport}
+          disabled={isGenerating}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-5 rounded-lg transition-colors flex items-center gap-2 shadow-sm text-sm"
         >
           <Download className="w-5 h-5" />
-          Generate Summary Report (PDF)
+          <span>Generate Summary Report (PDF)</span>
         </button>
       </div>
 
+      <div id="analysis-pdf-container">
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         {/* Chart 1: Measurement Completion */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div className="pdf-chart bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <h3 className="text-lg font-semibold text-slate-800 mb-4">Measurement Progress</h3>
           <div className="relative h-64">
             <Bar data={progressData} options={progressOptions} />
           </div>
         </div>
         {/* Chart 2: Participant Status */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div className="pdf-chart bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <h3 className="text-lg font-semibold text-slate-800 mb-4">
             Participant Status Distribution
           </h3>
@@ -214,7 +274,7 @@ const AnalysisDisplay = ({
           </ChartCard>
         </>
       )}
-
+      </div>
     </section>
   );
 };

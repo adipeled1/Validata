@@ -9,7 +9,7 @@ const EmptyChart = () => (
 
 // Consistent card wrapper for every clinical accuracy chart
 const ChartCard = ({ title, subtitle, info, isEmpty, children, center = false }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+  <div className="pdf-chart bg-white p-6 rounded-xl shadow-sm border border-slate-200">
     <div className={`flex items-start gap-0.5 mb-0.5 ${center ? 'justify-center' : ''}`}>
       <h3 className="text-lg font-semibold text-slate-800 leading-tight">{title}</h3>
       {info && <InfoTooltip text={info} />}

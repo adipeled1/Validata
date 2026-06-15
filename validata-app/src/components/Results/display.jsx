@@ -5,36 +5,50 @@ const ResultsDisplay = ({ sortedMeasurements }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
-  const handleGenerateReport = () => {
+  const handleGenerateReport = async () => {
     setIsGenerating(true);
+    setShowToast(true);
     
-    setTimeout(() => {
-      setIsGenerating(false);
-      setShowToast(true);
+    try {
+      const html2canvas = (await import('html2canvas-pro')).default;
+      const { jsPDF } = await import('jspdf');
       
-      setTimeout(() => {
-        setShowToast(false);
-      }, 4000);
-    }, 1000);
+      const element = document.getElementById('results-pdf-container');
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      
+      const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position -= pageHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      pdf.save('validata-results.pdf');
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+    } finally {
+      setIsGenerating(false);
+      setTimeout(() => setShowToast(false), 3000);
+    }
   };
 
   return (
     <section className="app-section">
       {showToast && (
-        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl shadow-lg min-w-[300px] justify-between transition-all duration-300">
-          <div className="flex items-center gap-2.5">
-            <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
-            <div className="flex flex-col">
-              <span className="font-semibold text-sm text-emerald-900">System Insights</span>
-              <span className="text-xs text-emerald-700">Summary Report (PDF) generated successfully!</span>
-            </div>
-          </div>
-          <button 
-            onClick={() => setShowToast(false)}
-            className="text-emerald-400 hover:text-emerald-600 transition-colors p-0.5 rounded-lg hover:bg-emerald-100"
-          >
-            <X className="w-4 h-4" />
-          </button>
+        <div className="fixed top-10 left-1/2 transform -translate-x-1/2 z-50 flex items-center bg-[#10b981] text-white px-6 py-3 rounded shadow-lg transition-all duration-300">
+          <span className="font-medium text-sm">Preparing PDF report... Download will begin shortly.</span>
         </div>
       )}
 
@@ -49,23 +63,14 @@ const ResultsDisplay = ({ sortedMeasurements }) => {
         <button
           onClick={handleGenerateReport}
           disabled={isGenerating}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-5 rounded-lg transition-colors flex items-center gap-2 shadow-sm text-sm disabled:opacity-50"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-5 rounded-lg transition-colors flex items-center gap-2 shadow-sm text-sm"
         >
-          {isGenerating ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Generating Report (API)...</span>
-            </>
-          ) : (
-            <>
-              <Download className="w-5 h-5" />
-              <span>Generate Summary Report (PDF)</span>
-            </>
-          )}
+          <Download className="w-5 h-5" />
+          <span>Generate Summary Report (PDF)</span>
         </button>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200" id="results-pdf-container">
         <h3 className="text-xl font-semibold mb-4 text-slate-800 border-b pb-2">
           Research Data View
         </h3>

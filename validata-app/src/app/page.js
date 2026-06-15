@@ -124,7 +124,7 @@ export default function Home() {
             setCookie('user-status', status, 7);
           }
         } catch (e) {
-          console.error('Session verification failed, logging out:', e);
+          console.warn('Session verification failed, logging out:', e.message);
           handleLogout();
           return;
         }
