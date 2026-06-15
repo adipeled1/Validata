@@ -32,31 +32,7 @@ export default function LoginPage() {
     deleteCookie('user-status');
   }, []);
 
-  const handleDemoLogin = (role) => {
-    setIsLoading(true);
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    setTimeout(() => {
-      const demoEmail = role === 'mentor' ? 'mentor@demo.com' : 'team@demo.com';
-      const sessionData = {
-        email: demoEmail,
-        role: role,
-        status: 'active'
-      };
-
-      // Set cookies for Demo Mode
-      setCookie('demo-session', JSON.stringify(sessionData), 7);
-      setCookie('user-role', role, 7);
-      setCookie('user-status', 'active', 7);
-
-      setSuccessMessage(`Logged in successfully to Demo Mode as ${role === 'mentor' ? 'Mentor' : 'Team Member'}!`);
-      setTimeout(() => {
-        router.push('/');
-        router.refresh();
-      }, 1000);
-    }, 800);
-  };
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -302,30 +278,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Quick Demo Logins */}
-        <div className="mt-8 border-t border-slate-800/80 pt-6">
-          <p className="text-center text-slate-500 text-xs font-medium mb-3.5">
-            Quick Sandbox Logins (Demo Mode)
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              disabled={isLoading}
-              className="py-2.5 px-3 bg-slate-950/60 hover:bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-all active:scale-[0.98]"
-              onClick={() => handleDemoLogin('mentor')}
-            >
-              Mentor Dashboard
-            </button>
-            <button
-              type="button"
-              disabled={isLoading}
-              className="py-2.5 px-3 bg-slate-950/60 hover:bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-all active:scale-[0.98]"
-              onClick={() => handleDemoLogin('team_member')}
-            >
-              Team Member
-            </button>
-          </div>
-        </div>
+ 
 
       </div>
     </div>
