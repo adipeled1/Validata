@@ -1,46 +1,37 @@
 import { useState } from 'react';
-import { Download, CheckCircle, X } from 'lucide-react';
+import { FileSpreadsheet, CheckCircle, X } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 const ResultsDisplay = ({ sortedMeasurements }) => {
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
-  const handleGenerateReport = async () => {
-    setIsGenerating(true);
+  const handleExportToExcel = () => {
+    setIsExporting(true);
     setShowToast(true);
     
     try {
-      const html2canvas = (await import('html2canvas-pro')).default;
-      const { jsPDF } = await import('jspdf');
-      
-      const element = document.getElementById('results-pdf-container');
-      const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL('image/jpeg', 0.98);
-      
-      const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      let heightLeft = imgHeight;
-      let position = 0;
+      // Map measurements to Excel-friendly headers and values
+      const worksheetData = sortedMeasurements.map(m => ({
+        'Date & Time': m.timestamp,
+        'Participant': m.participant,
+        'Goniometer': m.goniometer || '-',
+        'AI/ML Model': m.aiModel || '-',
+        'Notes': m.notes || '-'
+      }));
 
-      pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
-      heightLeft -= pageHeight;
+      // Create workbook and worksheet
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Results');
 
-      while (heightLeft > 0) {
-        position -= pageHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-      
-      pdf.save('validata-results.pdf');
+      // Download the Excel file
+      XLSX.writeFile(workbook, 'validata-results.xlsx');
     } catch (err) {
-      console.error('Failed to generate PDF:', err);
+      console.error('Failed to export to Excel:', err);
     } finally {
-      setIsGenerating(false);
-      setTimeout(() => setShowToast(false), 3000);
+      setIsExporting(false);
+      setTimeout(() => setShowToast(false), 2000);
     }
   };
 
@@ -48,7 +39,7 @@ const ResultsDisplay = ({ sortedMeasurements }) => {
     <section className="app-section">
       {showToast && (
         <div className="fixed top-10 left-1/2 transform -translate-x-1/2 z-50 flex items-center bg-[#10b981] text-white px-6 py-3 rounded shadow-lg transition-all duration-300">
-          <span className="font-medium text-sm">Preparing PDF report... Download will begin shortly.</span>
+          <span className="font-medium text-sm">Preparing Excel report... Download will begin shortly.</span>
         </div>
       )}
 
@@ -61,12 +52,12 @@ const ResultsDisplay = ({ sortedMeasurements }) => {
         </div>
 
         <button
-          onClick={handleGenerateReport}
-          disabled={isGenerating}
+          onClick={handleExportToExcel}
+          disabled={isExporting}
           className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-5 rounded-lg transition-colors flex items-center gap-2 shadow-sm text-sm"
         >
-          <Download className="w-5 h-5" />
-          <span>Generate Summary Report (PDF)</span>
+          <FileSpreadsheet className="w-5 h-5" />
+          <span>Export Results to Excel</span>
         </button>
       </div>
 
