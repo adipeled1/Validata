@@ -96,51 +96,6 @@ const AnalysisDisplay = ({
         </div>
       </div>
 
-      {/* AI Analysis Module */}
-      <div className="bg-linear-to-r from-indigo-50 to-purple-50 rounded-xl shadow-sm border border-indigo-100 p-6 mb-8">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-xl font-bold text-indigo-900 flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-indigo-600" />
-              AI Analysis Module (OpenAI)
-            </h3>
-            <p className="text-slate-600 mt-1 text-sm">
-              Use artificial intelligence to identify trends, anomalies, and patterns in the
-              collected data.
-            </p>
-          </div>
-          <button
-            onClick={onRunAnalysis}
-            disabled={isAnalyzing}
-            className={`bg-indigo-900 hover:bg-indigo-800 text-white font-medium py-2 px-6 rounded-lg transition-colors shadow-md flex items-center gap-2 ${
-              isAnalyzing ? 'opacity-80 cursor-not-allowed' : ''
-            }`}
-          >
-            {isAnalyzing ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Analyzing (API)...
-              </>
-            ) : (
-              'Run Data Analysis'
-            )}
-          </button>
-        </div>
-
-        {/* AI Result Display */}
-        {aiResult && (
-          <div className="mt-4 bg-white p-4 rounded-lg border border-indigo-100 shadow-inner">
-            <div className="flex items-center gap-2 mb-2 text-indigo-700 font-semibold">
-              <AlertCircle className="w-5 h-5" />
-              System Insights:
-            </div>
-            <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-line">
-              {aiResult}
-            </p>
-          </div>
-        )}
-      </div>
-
       {/* ── Clinical Accuracy Analysis header ── */}
       <div className="flex items-start justify-between mb-4">
         <div>

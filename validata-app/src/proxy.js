@@ -25,7 +25,7 @@ export function proxy(request) {
     // For API requests, return a JSON error
     if (pathname.startsWith('/api/')) {
       // Allow API routes to perform login/register operations if we make custom API endpoints
-      if (pathname.includes('/api/auth') || pathname.includes('/api/profiles/create')) {
+      if (pathname.includes('/api/auth') || pathname.includes('/api/profiles/create') || pathname.includes('/api/chat')) {
         return NextResponse.next();
       }
       return NextResponse.json(

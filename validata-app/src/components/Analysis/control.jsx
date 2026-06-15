@@ -13,6 +13,7 @@ import {
   calculatePassRate,
 } from '../../utils/statistics';
 import analysisData from './analysisData';
+import AIChatBubble from '../AIChat/AIChatBubble';
 
 // Controller component manages local state and processes data using service methods
 const AnalysisControl = ({ participants, measurements, onGenerateReport, isDemoMode, threshold = 5 }) => {
@@ -96,21 +97,24 @@ const AnalysisControl = ({ participants, measurements, onGenerateReport, isDemoM
   const { percentage: passRate } = calculatePassRate(statsData, threshold);
 
   return (
-    <AnalysisDisplay
-      progressData={progressData}
-      progressOptions={progressOptions}
-      statusData={statusData}
-      statusOptions={statusOptions}
-      isAnalyzing={isAnalyzing}
-      aiResult={aiResult}
-      onRunAnalysis={handleRunAnalysis}
-      onGenerateReport={onGenerateReport}
-      statsData={statsData}
-      summaryStats={{ rmse, mae, meanBias: meanDiff, passRate }}
-      threshold={threshold}
-      isLoadingCharts={isLoadingCharts}
-      lastUpdated={lastUpdated}
-    />
+    <>
+      <AnalysisDisplay
+        progressData={progressData}
+        progressOptions={progressOptions}
+        statusData={statusData}
+        statusOptions={statusOptions}
+        isAnalyzing={isAnalyzing}
+        aiResult={aiResult}
+        onRunAnalysis={handleRunAnalysis}
+        onGenerateReport={onGenerateReport}
+        statsData={statsData}
+        summaryStats={{ rmse, mae, meanBias: meanDiff, passRate }}
+        threshold={threshold}
+        isLoadingCharts={isLoadingCharts}
+        lastUpdated={lastUpdated}
+      />
+      <AIChatBubble participants={participants} measurements={measurements} />
+    </>
   );
 };
 
