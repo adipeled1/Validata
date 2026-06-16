@@ -9,9 +9,7 @@ const SidebarDisplay = ({ currentView, onNavigate, navItems, userRole, currentUs
   return (
     <aside className="w-64 bg-slate-900 text-slate-100 flex flex-col shadow-xl z-10 relative">
       <div className="p-6 border-b border-slate-700 flex items-center gap-3">
-        <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center font-bold text-white shadow-lg">
-          V
-        </div>
+        <img src="/favicon.png" alt="Validata Logo" className="w-10 h-10 object-contain drop-shadow-md" />
         <h1 className="text-2xl font-bold tracking-wide">Validata</h1>
       </div>
 
