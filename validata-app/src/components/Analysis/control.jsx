@@ -22,6 +22,7 @@ const AnalysisControl = ({ participants, measurements, onGenerateReport, isDemoM
   // Raw records fetched directly from the API for the clinical accuracy charts
   const [dbMeasurements, setDbMeasurements] = useState(null); // null = still loading
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [localThreshold, setLocalThreshold] = useState(threshold);
 
   // Fetch fresh measurements from the API whenever the Analysis view is opened
   useEffect(() => {
@@ -94,7 +95,7 @@ const AnalysisControl = ({ participants, measurements, onGenerateReport, isDemoM
   const rmse = calculateRMSE(statsData);
   const mae = calculateMAE(statsData);
   const { meanDiff } = calculateBlandAltman(statsData);
-  const { percentage: passRate } = calculatePassRate(statsData, threshold);
+  const { percentage: passRate } = calculatePassRate(statsData, localThreshold);
 
   return (
     <>
@@ -109,7 +110,8 @@ const AnalysisControl = ({ participants, measurements, onGenerateReport, isDemoM
         onGenerateReport={onGenerateReport}
         statsData={statsData}
         summaryStats={{ rmse, mae, meanBias: meanDiff, passRate }}
-        threshold={threshold}
+        threshold={localThreshold}
+        onThresholdChange={setLocalThreshold}
         isLoadingCharts={isLoadingCharts}
         lastUpdated={lastUpdated}
       />

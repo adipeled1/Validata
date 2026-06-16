@@ -47,6 +47,7 @@ const AnalysisDisplay = ({
   statsData,
   summaryStats,
   threshold,
+  onThresholdChange,
   isLoadingCharts,
   lastUpdated,
 }) => {
@@ -59,6 +60,11 @@ const AnalysisDisplay = ({
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [thresholdInput, setThresholdInput] = useState(String(threshold));
+
+  React.useEffect(() => {
+    setThresholdInput(String(threshold));
+  }, [threshold]);
 
   const handleGenerateReport = async () => {
     setIsGenerating(true);
@@ -263,7 +269,28 @@ const AnalysisDisplay = ({
 
           {/* Threshold Donut — full row, centered */}
           <ChartCard
-            title={`Pass / Fail Rate (±${threshold}° threshold)`}
+            title={
+              <div className="flex items-center justify-center gap-2">
+                <span>Pass / Fail Rate (±</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={thresholdInput}
+                  onChange={(e) => {
+                    let val = e.target.value;
+                    if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
+                      setThresholdInput(val);
+                      const num = parseFloat(val);
+                      if (!isNaN(num) && num >= 0) {
+                        onThresholdChange?.(num);
+                      }
+                    }
+                  }}
+                  className="w-20 px-2 py-1 text-sm border border-slate-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 font-normal m-0"
+                />
+                <span>° threshold)</span>
+              </div>
+            }
             info={infoDonut(threshold)}
             isEmpty={!statsData.length}
             center
