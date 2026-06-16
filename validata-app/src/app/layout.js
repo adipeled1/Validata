@@ -1,6 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
+  metadataBase: new URL('https://validata-pink.vercel.app'),
   title: "Validata | Clinical Trial Dashboard",
   description: "Secure portal for managing participants, logging measurements, and analyzing clinical data.",
 };
