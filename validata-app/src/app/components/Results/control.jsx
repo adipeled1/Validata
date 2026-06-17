@@ -1,5 +1,5 @@
 import ResultsDisplay from './display';
-import { sortMeasurementsDescending } from '../Analysis/service';
+import { sortMeasurementsDescending } from './service';
 
 const ResultsControl = ({ measurements }) => {
   const sortedMeasurements = sortMeasurementsDescending(measurements);

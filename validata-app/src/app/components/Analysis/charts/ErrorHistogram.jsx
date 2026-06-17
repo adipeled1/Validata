@@ -2,7 +2,6 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Label,
 } from 'recharts';
-import { binDifferences } from '../../../utils/statistics';
 import { COLORS, AXIS_TICK, CHART_MARGIN, CHART_HEIGHT } from '../chartConfig';
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -17,13 +16,11 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 // Histogram of AI − goniometer errors; a narrow peak around 0 = consistently accurate AI
 const ErrorHistogram = ({ data }) => {
-  if (!data?.length) return null;
-
-  const bins = binDifferences(data);
+  if (!data || !data.bins?.length) return null;
 
   return (
     <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-      <BarChart data={bins} margin={CHART_MARGIN} barCategoryGap="5%">
+      <BarChart data={data.bins} margin={CHART_MARGIN} barCategoryGap="5%">
         <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
         <XAxis dataKey="range" tick={AXIS_TICK}>
           <Label value="Error (degrees)" position="insideBottom" offset={-20} fontSize={11} fill="#64748b" />

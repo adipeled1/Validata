@@ -2,7 +2,6 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, Label,
 } from 'recharts';
-import { calculateRMSEPerSession } from '../../../utils/statistics';
 import { COLORS, AXIS_TICK, CHART_MARGIN, CHART_HEIGHT } from '../chartConfig';
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -21,9 +20,9 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 // RMSE and MAE per session over time — requires at least 2 sessions to show a trend
 const PerformanceTrend = ({ data }) => {
-  if (!data?.length) return null;
+  if (!data || !data.sessions) return null;
 
-  const sessions = calculateRMSEPerSession(data);
+  const { sessions } = data;
 
   if (sessions.length < 2) {
     return (

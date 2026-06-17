@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Sidebar from '../components/Sidebar/control';
-import Participants from '../components/Participants/control';
-import ParticipantsView from '../components/ParticipantsView/control';
-import DataCollection from '../components/DataCollection/control';
-import Analysis from '../components/Analysis/control';
-import Results from '../components/Results/control';
-import UserManagement from '../components/UserManagement/control';
-import Toast from '../components/Toast/control';
+import Sidebar from './components/Sidebar/control';
+import Participants from './components/Participants/control';
+import ParticipantsView from './components/ParticipantsView/control';
+import DataCollection from './components/DataCollection/control';
+import Analysis from './components/Analysis/control';
+import Results from './components/Results/control';
+import UserManagement from './components/UserManagement/control';
+import Toast from './components/Toast/control';
 import mockData from '../mockData.json';
 import { supabase } from '../lib/supabase';
 import { getCookie, setCookie, deleteCookie } from '../lib/cookies';

@@ -1,3 +1,9 @@
+// Server-side statistics and charting calculations
+
+// -----------------------------------------------------
+// Core Statistics (formerly src/utils/statistics.js)
+// -----------------------------------------------------
+
 // Parse numeric angle from a string like "45.0°" or pass through if already a number
 const parseAngle = (value) => {
   if (typeof value === 'number') return value;
@@ -5,8 +11,6 @@ const parseAngle = (value) => {
 };
 
 // Normalize a raw measurement record to the { aiAngle, goniometerAngle, sessionId, date } shape.
-// Handles: the DB snake_case response (participant_id, ai_model), the frontend camelCase shape
-// (participant, aiModel), string angles ("45.0°"), and the numeric analysisData format.
 export const normalizeRecord = (m) => ({
   id: String(m.id || ''),
   sessionId: m.sessionId || m.participant_id || m.participant || m.participantId || '',
@@ -16,7 +20,6 @@ export const normalizeRecord = (m) => ({
   goniometerAngle: parseAngle(m.goniometerAngle ?? m.goniometer),
 });
 
-// Adds { mean: (ai+gonio)/2, diff: ai-gonio } to each record — required for Bland-Altman
 export const getDifferences = (data) =>
   data.map((d) => ({
     ...d,
@@ -35,7 +38,6 @@ export const calculateMAE = (data) => {
   return data.reduce((acc, d) => acc + Math.abs(d.aiAngle - d.goniometerAngle), 0) / data.length;
 };
 
-// Returns { meanDiff, upperLimit, lowerLimit } — 95% limits of agreement (mean diff ± 1.96 SD)
 export const calculateBlandAltman = (data) => {
   if (!data.length) return { meanDiff: 0, upperLimit: 0, lowerLimit: 0 };
   const diffs = data.map((d) => d.aiAngle - d.goniometerAngle);
@@ -49,7 +51,6 @@ export const calculateBlandAltman = (data) => {
   };
 };
 
-// Returns histogram bins [{ range, count }] over error distribution (ai - gonio)
 export const binDifferences = (data, binCount = 10) => {
   if (!data.length) return [];
   const diffs = data.map((d) => d.aiAngle - d.goniometerAngle);
@@ -70,7 +71,6 @@ export const binDifferences = (data, binCount = 10) => {
   return bins;
 };
 
-// Returns { pass, fail, percentage } — pass if |ai - gonio| <= threshold degrees
 export const calculatePassRate = (data, threshold) => {
   if (!data.length) return { pass: 0, fail: 0, percentage: 0 };
   const pass = data.filter((d) => Math.abs(d.aiAngle - d.goniometerAngle) <= threshold).length;
@@ -78,7 +78,6 @@ export const calculatePassRate = (data, threshold) => {
   return { pass, fail, percentage: (pass / data.length) * 100 };
 };
 
-// Returns [{ sessionId, date, rmse, mae }] grouped by sessionId and sorted by date
 export const calculateRMSEPerSession = (data) => {
   const sessions = {};
   data.forEach((d) => {
@@ -95,4 +94,82 @@ export const calculateRMSEPerSession = (data) => {
       mae: parseFloat(calculateMAE(s.records).toFixed(2)),
     }))
     .sort((a, b) => (a.date < b.date ? -1 : 1));
+};
+
+
+// -----------------------------------------------------
+// Charting Logic (formerly src/components/Analysis/service.js)
+// -----------------------------------------------------
+
+export const sortMeasurementsDescending = (measurements) => {
+  return [...measurements].sort((a, b) => {
+    // Parse timestamp format "DD/MM/YYYY HH:MM"
+    const parseDate = (dateStr) => {
+      try {
+        const [datePart, timePart] = dateStr.split(' ');
+        const [day, month, year] = datePart.split('/');
+        const [hours, minutes] = timePart.split(':');
+        return new Date(year, month - 1, day, hours, minutes).getTime();
+      } catch {
+        return 0;
+      }
+    };
+    const timeDiff = parseDate(b.timestamp) - parseDate(a.timestamp);
+    if (timeDiff !== 0) return timeDiff;
+
+    const idA = parseInt(a.id) || 0;
+    const idB = parseInt(b.id) || 0;
+    return idB - idA;
+  });
+};
+
+export const getProgressChartData = (participants, measurements) => {
+  const measurementsByParticipant = {};
+  participants.forEach((p) => {
+    measurementsByParticipant[p.id] = 0;
+  });
+
+  measurements.forEach((m) => {
+    const pId = m.participant_id || m.participant || m.participantId;
+    if (measurementsByParticipant[pId] !== undefined) {
+      measurementsByParticipant[pId]++;
+    }
+  });
+
+  const participantIds = Object.keys(measurementsByParticipant);
+  const measuredCount = participantIds.filter((id) => measurementsByParticipant[id] > 0).length;
+  const pendingCount = participantIds.length - measuredCount;
+
+  return {
+    labels: ['Measured', 'Pending'],
+    datasets: [
+      {
+        label: 'Participants',
+        data: [measuredCount, pendingCount],
+        backgroundColor: ['#4f46e5', '#94a3b8'],
+        borderRadius: 4,
+      },
+    ],
+  };
+};
+
+export const getStatusChartData = (participants) => {
+  const activeCount = participants.filter((p) => p.status === 'Active').length;
+  const droppedCount = participants.filter((p) => p.status === 'Dropped').length;
+
+  return {
+    labels: ['Active', 'Dropped'],
+    datasets: [
+      {
+        data: [activeCount, droppedCount],
+        backgroundColor: ['#10b981', '#f43f5e'],
+        hoverOffset: 4,
+      },
+    ],
+  };
+};
+
+export const generateAnalysisText = (participants, measurements) => {
+  const activeCount = participants.filter(p => p.status === 'Active').length;
+  return `Analysis performed on ${measurements.length} records from ${participants.length} total participants (${activeCount} active).\n\n• Data Integrity: High level of reliability identified in reports. ID anonymization confirmed.\n• Trends: No significant statistical anomalies found in the primary metrics among active participants.\n• AI Recommendation: Consider increasing measurement frequency for participants with pending measurements for better data resolution.`;
 };

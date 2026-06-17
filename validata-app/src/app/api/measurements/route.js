@@ -1,8 +1,22 @@
 import { verifySession } from '@/lib/auth-server';
 import mockData from '@/mockData.json';
+import analysisData from './analysisData';
+import {
+  normalizeRecord,
+  calculateRMSE,
+  calculateMAE,
+  calculateBlandAltman,
+  calculatePassRate,
+  binDifferences,
+  calculateRMSEPerSession,
+  getDifferences,
+  getProgressChartData,
+  getStatusChartData,
+  generateAnalysisText
+} from './statistics';
 
-// GET: Fetch all measurements from Supabase
-export async function GET() {
+// GET: Fetch measurements data from Supabase
+export async function GET(request) {
   try {
     const session = await verifySession();
     if (session.error) {
@@ -25,7 +39,7 @@ export async function GET() {
   }
 }
 
-// POST: Add a new measurement log
+// POST: Add a new measurement log OR calculate analysis
 export async function POST(request) {
   try {
     const session = await verifySession();
@@ -34,6 +48,47 @@ export async function POST(request) {
     }
 
     const body = await request.json();
+
+    // If this is an analysis calculation request
+    if (body.type === 'analysis') {
+      const threshold = parseFloat(body.threshold) || 5;
+      const rawMeasurements = body.measurements || [];
+      const participants = body.participants || [];
+
+      const progressData = getProgressChartData(participants, rawMeasurements);
+      const statusData = getStatusChartData(participants);
+      const aiResult = generateAnalysisText(participants, rawMeasurements);
+
+      let statsData = [];
+      if (session.isDemo && (!rawMeasurements.length || rawMeasurements === mockData.measurements)) {
+         statsData = analysisData;
+      } else {
+         statsData = rawMeasurements
+           .map(normalizeRecord)
+           .filter((m) => m.goniometerAngle > 0 && m.aiAngle > 0);
+      }
+
+      const rmse = calculateRMSE(statsData);
+      const mae = calculateMAE(statsData);
+      const { meanDiff, upperLimit, lowerLimit } = calculateBlandAltman(statsData);
+      const { pass, fail, percentage } = calculatePassRate(statsData, threshold);
+
+      return Response.json({
+        progressData,
+        statusData,
+        aiResult,
+        statsData,
+        summaryStats: { rmse, mae, meanBias: meanDiff, passRate: percentage },
+        charts: {
+          blandAltman: { plotData: getDifferences(statsData), meanDiff, upperLimit, lowerLimit },
+          errorHistogram: { bins: binDifferences(statsData) },
+          performanceTrend: { sessions: calculateRMSEPerSession(statsData) },
+          thresholdDonut: { pass, fail, percentage, threshold }
+        }
+      });
+    }
+
+    // Otherwise, this is a standard measurement insertion
     const { participantId, goniometer, aiModel, notes } = body;
 
     const parsedGoniometer = parseFloat(goniometer.toString().replace('°', '')) || 0.0;

@@ -46,6 +46,7 @@ const AnalysisDisplay = ({
   aiResult,
   statsData,
   summaryStats,
+  charts,
   threshold,
   onThresholdChange,
   isLoadingCharts,
@@ -175,10 +176,7 @@ const AnalysisDisplay = ({
           </p>
         </div>
         <div className="flex items-center gap-3 mt-1 shrink-0">
-          {/* Threshold badge — always visible so users never have to recall it */}
-          <span className="text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-3 py-1">
-            Pass threshold: ±{threshold}°
-          </span>
+
           {/* Last-updated timestamp — Visibility of System Status (Nielsen heuristic #1) */}
           {formattedTime && (
             <span className="text-xs text-slate-400">Last updated: {formattedTime}</span>
@@ -205,7 +203,7 @@ const AnalysisDisplay = ({
       {!isLoadingCharts && statsData.length > 0 && (
         <>
           {/* Summary Stats Cards — sticky above charts so numbers stay in view */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
               <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">RMSE</p>
               <p className="text-3xl font-bold text-indigo-600 mt-1">{rmse.toFixed(2)}°</p>
@@ -222,13 +220,6 @@ const AnalysisDisplay = ({
                 {meanBias >= 0 ? '+' : ''}{meanBias.toFixed(2)}°
               </p>
               <p className="text-xs text-slate-400 mt-1">Systematic AI offset</p>
-            </div>
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Pass Rate</p>
-              <p className={`text-3xl font-bold mt-1 ${passRate >= 80 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                {passRate.toFixed(1)}%
-              </p>
-              <p className="text-xs text-slate-400 mt-1">Within ±{threshold}° threshold</p>
             </div>
           </div>
 
@@ -247,7 +238,7 @@ const AnalysisDisplay = ({
               info={INFO_BLAND_ALTMAN}
               isEmpty={!statsData.length}
             >
-              <BlandAltmanPlot data={statsData} />
+              <BlandAltmanPlot data={charts?.blandAltman} />
             </ChartCard>
 
             <ChartCard
@@ -255,7 +246,7 @@ const AnalysisDisplay = ({
               info={INFO_HISTOGRAM}
               isEmpty={!statsData.length}
             >
-              <ErrorHistogram data={statsData} />
+              <ErrorHistogram data={charts?.errorHistogram} />
             </ChartCard>
 
             <ChartCard
@@ -263,7 +254,7 @@ const AnalysisDisplay = ({
               info={INFO_TREND}
               isEmpty={!statsData.length}
             >
-              <PerformanceTrend data={statsData} />
+              <PerformanceTrend data={charts?.performanceTrend} />
             </ChartCard>
           </div>
 
@@ -280,10 +271,20 @@ const AnalysisDisplay = ({
                     let val = e.target.value;
                     if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
                       setThresholdInput(val);
-                      const num = parseFloat(val);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const num = parseFloat(thresholdInput);
                       if (!isNaN(num) && num >= 0) {
                         onThresholdChange?.(num);
                       }
+                    }
+                  }}
+                  onBlur={() => {
+                    const num = parseFloat(thresholdInput);
+                    if (!isNaN(num) && num >= 0) {
+                      onThresholdChange?.(num);
                     }
                   }}
                   className="w-20 px-2 py-1 text-sm border border-slate-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 font-normal m-0"
@@ -296,7 +297,7 @@ const AnalysisDisplay = ({
             center
           >
             <div className="max-w-sm mx-auto">
-              <ThresholdDonut data={statsData} threshold={threshold} />
+              <ThresholdDonut data={charts?.thresholdDonut} threshold={threshold} />
             </div>
           </ChartCard>
         </>

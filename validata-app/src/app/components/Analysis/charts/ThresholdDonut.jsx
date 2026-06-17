@@ -1,5 +1,4 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { calculatePassRate } from '../../../utils/statistics';
 import { COLORS, CHART_HEIGHT } from '../chartConfig';
 
 const CustomTooltip = ({ active, payload }) => {
@@ -15,9 +14,9 @@ const CustomTooltip = ({ active, payload }) => {
 
 // Pass/fail donut — threshold in degrees determines what counts as clinically acceptable
 const ThresholdDonut = ({ data, threshold = 5 }) => {
-  if (!data?.length) return null;
+  if (!data || data.pass === undefined) return null;
 
-  const { pass, fail, percentage } = calculatePassRate(data, threshold);
+  const { pass, fail, percentage } = data;
   const chartData = [
     { name: 'Pass', value: pass, fill: COLORS.pass },
     { name: 'Fail', value: fail, fill: COLORS.fail },

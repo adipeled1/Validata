@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import UserManagementDisplay from './display';
+import { fetchUsersAPI, updateRoleAPI, updateStatusAPI, deleteUserAPI } from './service';
 
 const UserManagementControl = ({ isDemoMode, currentUserEmail }) => {
   const [users, setUsers] = useState([]);
@@ -19,7 +20,6 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail }) => {
     setError('');
     
     if (isDemoMode) {
-      // In demo mode, load mock users (or keep the current updated local state)
       if (users.length === 0) {
         setUsers(mockUsersList);
       }
@@ -28,12 +28,7 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail }) => {
     }
 
     try {
-      const res = await fetch('/api/profiles');
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to fetch users');
-      }
-      const data = await res.json();
+      const data = await fetchUsersAPI();
       setUsers(data);
     } catch (err) {
       console.error('Fetch users error:', err);
@@ -56,17 +51,7 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail }) => {
     }
 
     try {
-      const res = await fetch('/api/profiles', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: userId, role: newRole })
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to update role');
-      }
-
+      await updateRoleAPI(userId, newRole);
       setUsers(prevUsers =>
         prevUsers.map(user => (user.id === userId ? { ...user, role: newRole } : user))
       );
@@ -84,17 +69,7 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail }) => {
     }
 
     try {
-      const res = await fetch('/api/profiles', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: userId, status: newStatus })
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to update status');
-      }
-
+      await updateStatusAPI(userId, newStatus);
       setUsers(prevUsers =>
         prevUsers.map(user => (user.id === userId ? { ...user, status: newStatus } : user))
       );
@@ -114,15 +89,7 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail }) => {
     }
 
     try {
-      const res = await fetch(`/api/profiles?id=${userId}`, {
-        method: 'DELETE'
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to delete user');
-      }
-
+      await deleteUserAPI(userId);
       setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
     } catch (err) {
       alert('Error deleting user: ' + err.message);

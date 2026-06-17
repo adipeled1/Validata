@@ -2,7 +2,6 @@ import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid,
   Tooltip, ReferenceLine, ResponsiveContainer, Label,
 } from 'recharts';
-import { getDifferences, calculateBlandAltman } from '../../../utils/statistics';
 import { COLORS, AXIS_TICK, CHART_MARGIN, CHART_HEIGHT } from '../chartConfig';
 
 const CustomTooltip = ({ active, payload }) => {
@@ -23,10 +22,9 @@ const CustomTooltip = ({ active, payload }) => {
 // x = mean of (AI, goniometer), y = AI − goniometer
 // Solid line = mean bias; dashed lines = 95% limits of agreement (±1.96 SD)
 const BlandAltmanPlot = ({ data }) => {
-  if (!data?.length) return null;
+  if (!data || !data.plotData?.length) return null;
 
-  const plotData = getDifferences(data);
-  const { meanDiff, upperLimit, lowerLimit } = calculateBlandAltman(data);
+  const { plotData, meanDiff, upperLimit, lowerLimit } = data;
 
   return (
     <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
