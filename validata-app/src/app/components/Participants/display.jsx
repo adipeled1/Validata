@@ -1,17 +1,17 @@
 
 // Pure presentational component
-const ParticipantsDisplay = ({ 
-  participants, 
-  consent, 
-  onConsentChange, 
+const ParticipantsDisplay = ({
+  participants,
+  consent,
+  onConsentChange,
   age,
   onAgeChange,
   gender,
   onGenderChange,
   healthStatus,
   onHealthStatusChange,
-  onSubmit, 
-  onSuspend 
+  onSubmit,
+  onSuspend
 }) => {
   return (
     <section className="app-section">
@@ -141,23 +141,28 @@ const ParticipantsDisplay = ({
                     </td>
                     <td className="py-3 px-2">
                       <span
-                        className={`text-xs px-2 py-1 rounded-full ${
-                          p.status === 'Active'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-slate-200 text-slate-600'
-                        }`}
+                        className={`text-xs px-2 py-1 rounded-full ${p.status === 'Active'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-slate-200 text-slate-600'
+                          }`}
                       >
                         {p.status}
                       </span>
                     </td>
                     <td className="py-3 px-2">
                       {p.status === 'Active' && (
-                        <button
-                          onClick={() => onSuspend(p.id)}
-                          className="text-sm text-red-500 hover:text-red-700 hover:underline"
-                        >
-                          Suspend
-                        </button>
+                        <div className="relative inline-block group">
+                          <button
+                            onClick={() => onSuspend(p.id)}
+                            className="text-sm text-red-500 hover:text-red-700 hover:underline"
+                          >
+                            Suspend
+                          </button>
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                            Immediately pauses or freezes this participant&apos;s active participation in the study.
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                          </div>
+                        </div>
                       )}
                     </td>
                   </tr>
