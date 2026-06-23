@@ -1,0 +1,63 @@
+<svg viewBox="0 0 1100 950" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Validata architecture diagram</title>
+<desc>Four layers: Browser client, Vercel edge network with proxy.js middleware, Vercel serverless functions for participants/measurements/profiles/chat routes, and Supabase cloud with Postgres, Auth and RLS policies.</desc>
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#888780"/>
+  </marker>
+</defs>
+<style>
+  .tier { fill: #2C2C2A; rx: 16; }
+  .tier-label { fill: #ffffff; font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; }
+  .box-blue { fill: #185FA5; rx: 8; }
+  .box-teal { fill: #085041; rx: 8; }
+  .box-purple { fill: #3C3489; rx: 8; }
+  .title { fill: #ffffff; font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; text-anchor: middle; }
+  .sub { fill: #cfd8e3; font-family: Arial, sans-serif; font-size: 13px; text-anchor: middle; }
+  .arr { stroke: #888780; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+</style>
+
+<rect class="tier" x="40" y="20" width="1020" height="220"/>
+<text class="tier-label" x="60" y="55">Browser (client)</text>
+<rect class="box-blue" x="80" y="90" width="280" height="110"/>
+<text class="title" x="220" y="130">React UI</text>
+<text class="sub" x="220" y="155">renders dashboard</text>
+<rect class="box-blue" x="400" y="90" width="280" height="110"/>
+<text class="title" x="540" y="130">page.js</text>
+<text class="sub" x="540" y="155">state + API calls</text>
+<rect class="box-blue" x="720" y="90" width="280" height="110"/>
+<text class="title" x="860" y="130">AI chat widget</text>
+<text class="sub" x="860" y="155">AI chat + charts</text>
+
+<line class="arr" x1="540" y1="240" x2="540" y2="290"/>
+
+<rect class="tier" x="40" y="300" width="1020" height="180"/>
+<text class="tier-label" x="60" y="335">Vercel edge network</text>
+<rect class="box-teal" x="280" y="370" width="540" height="80"/>
+<text class="title" x="550" y="400">proxy.js (middleware)</text>
+<text class="sub" x="550" y="423">checks session cookie before routing</text>
+
+<line class="arr" x1="540" y1="480" x2="540" y2="530"/>
+
+<rect class="tier" x="40" y="540" width="1020" height="220"/>
+<text class="tier-label" x="60" y="575">Vercel serverless functions</text>
+<rect class="box-teal" x="80" y="610" width="220" height="110"/>
+<text class="title" x="190" y="650">participants</text>
+<text class="sub" x="190" y="675">route.js</text>
+<rect class="box-teal" x="320" y="610" width="220" height="110"/>
+<text class="title" x="430" y="650">measurements</text>
+<text class="sub" x="430" y="675">route.js</text>
+<rect class="box-teal" x="560" y="610" width="220" height="110"/>
+<text class="title" x="670" y="650">profiles</text>
+<text class="sub" x="670" y="675">route.js</text>
+<rect class="box-teal" x="800" y="610" width="220" height="110"/>
+<text class="title" x="910" y="650">chat</text>
+<text class="sub" x="910" y="675">route.js</text>
+
+<line class="arr" x1="540" y1="760" x2="540" y2="810"/>
+
+<rect class="tier" x="40" y="820" width="1020" height="120"/>
+<text class="tier-label" x="60" y="855">Supabase cloud</text>
+<rect class="box-purple" x="280" y="870" width="540" height="60"/>
+<text class="title" x="550" y="905">Postgres + Auth + RLS policies</text>
+</svg>
