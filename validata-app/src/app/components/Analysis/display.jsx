@@ -127,8 +127,8 @@ const AnalysisDisplay = ({
       )}
       <div className="flex justify-between items-end mb-8">
         <header>
-          <h2 className="text-3xl font-bold text-slate-800">Results View & Analysis</h2>
-          <p className="text-slate-500 mt-1">
+          <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Results View & Analysis</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
             Data visualization, report generation, and smart analysis using AI.
           </p>
         </header>
@@ -146,15 +146,15 @@ const AnalysisDisplay = ({
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         {/* Chart 1: Measurement Completion */}
-        <div className="pdf-chart bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">Measurement Progress</h3>
+        <div className="pdf-chart bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Measurement Progress</h3>
           <div className="relative h-64">
             <Bar data={progressData} options={progressOptions} />
           </div>
         </div>
         {/* Chart 2: Participant Status */}
-        <div className="pdf-chart bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">
+        <div className="pdf-chart bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
             Participant Status Distribution
           </h3>
           <div className="relative h-64">
@@ -166,8 +166,8 @@ const AnalysisDisplay = ({
       {/* ── Clinical Accuracy Analysis header ── */}
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-xl font-bold text-slate-800">Clinical Accuracy Analysis</h3>
-          <p className="text-slate-500 text-sm mt-0.5">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Clinical Accuracy Analysis</h3>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">
             {isLoadingCharts
               ? 'Loading data from database…'
               : isEmpty
@@ -179,14 +179,14 @@ const AnalysisDisplay = ({
 
           {/* Last-updated timestamp — Visibility of System Status (Nielsen heuristic #1) */}
           {formattedTime && (
-            <span className="text-xs text-slate-400">Last updated: {formattedTime}</span>
+            <span className="text-xs text-slate-400 dark:text-slate-400">Last updated: {formattedTime}</span>
           )}
         </div>
       </div>
 
       {/* Loading state */}
       {isLoadingCharts && (
-        <div className="flex items-center justify-center py-20 text-slate-400">
+        <div className="flex items-center justify-center py-20 text-slate-400 dark:text-slate-400">
           <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-3"></div>
           Fetching measurements from database…
         </div>
@@ -194,7 +194,7 @@ const AnalysisDisplay = ({
 
       {/* Empty state */}
       {isEmpty && (
-        <div className="text-center py-16 text-slate-400 bg-white rounded-xl border border-slate-200 mb-8">
+        <div className="text-center py-16 text-slate-400 dark:text-slate-400 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 mb-8">
           No measurements found in the database yet.
         </div>
       )}
@@ -204,22 +204,22 @@ const AnalysisDisplay = ({
         <>
           {/* Summary Stats Cards — sticky above charts so numbers stay in view */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">RMSE</p>
-              <p className="text-3xl font-bold text-indigo-600 mt-1">{rmse.toFixed(2)}°</p>
-              <p className="text-xs text-slate-400 mt-1">Root Mean Square Error</p>
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">RMSE</p>
+              <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">{rmse.toFixed(2)}°</p>
+              <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Root Mean Square Error</p>
             </div>
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">MAE</p>
-              <p className="text-3xl font-bold text-emerald-600 mt-1">{mae.toFixed(2)}°</p>
-              <p className="text-xs text-slate-400 mt-1">Mean Absolute Error</p>
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">MAE</p>
+              <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{mae.toFixed(2)}°</p>
+              <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Mean Absolute Error</p>
             </div>
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Mean Bias</p>
-              <p className={`text-3xl font-bold mt-1 ${meanBias >= 0 ? 'text-amber-500' : 'text-rose-500'}`}>
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Mean Bias</p>
+              <p className={`text-3xl font-bold mt-1 ${meanBias >= 0 ? 'text-amber-500 dark:text-amber-400' : 'text-rose-500 dark:text-rose-400'}`}>
                 {meanBias >= 0 ? '+' : ''}{meanBias.toFixed(2)}°
               </p>
-              <p className="text-xs text-slate-400 mt-1">Systematic AI offset</p>
+              <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Systematic AI offset</p>
             </div>
           </div>
 
@@ -287,7 +287,7 @@ const AnalysisDisplay = ({
                       onThresholdChange?.(num);
                     }
                   }}
-                  className="w-20 px-2 py-1 text-sm border border-slate-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 font-normal m-0"
+                  className="w-20 px-2 py-1 text-sm border border-slate-300 dark:border-slate-700 rounded text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 font-normal m-0 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
                 />
                 <span>° threshold)</span>
               </div>

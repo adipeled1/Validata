@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@config "../../tailwind.config.js";
 
 @layer utilities {
   .hidden-section {
@@ -10,5 +11,10 @@ body {
   background: #f8fafc; /* slate-50 background for dashboard */
   color: #0f172a; /* slate-900 foreground */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.dark body {
+  background: #020617; /* slate-950 background for dashboard */
+  color: #f1f5f9; /* slate-100 foreground */
 }
 

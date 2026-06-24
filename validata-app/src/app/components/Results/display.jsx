@@ -45,8 +45,8 @@ const ResultsDisplay = ({ sortedMeasurements }) => {
 
       <div className="flex justify-between items-end mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-800">Results</h2>
-          <p className="text-slate-500 mt-1">
+          <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Results</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
             Research data collected from all participants.
           </p>
         </div>
@@ -61,14 +61,14 @@ const ResultsDisplay = ({ sortedMeasurements }) => {
         </button>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200" id="results-pdf-container">
-        <h3 className="text-xl font-semibold mb-4 text-slate-800 border-b pb-2">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800" id="results-pdf-container">
+        <h3 className="text-xl font-semibold mb-4 text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-2">
           Research Data View
         </h3>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 text-slate-500 text-sm border-b border-slate-200">
+              <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-sm border-b border-slate-200 dark:border-slate-800">
                 <th className="py-3 px-3 font-medium">Date & Time</th>
                 <th className="py-3 px-3 font-medium">Participant</th>
                 <th className="py-3 px-3 font-medium">Goniometer</th>
@@ -79,18 +79,18 @@ const ResultsDisplay = ({ sortedMeasurements }) => {
             <tbody>
               {sortedMeasurements.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-6 text-slate-500">
+                  <td colSpan="5" className="text-center py-6 text-slate-500 dark:text-slate-400">
                     No data to display
                   </td>
                 </tr>
               ) : (
                 sortedMeasurements.map((m, index) => (
-                  <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="py-3 px-3 text-sm text-slate-500" dir="ltr">{m.timestamp}</td>
-                    <td className="py-3 px-3 font-medium text-slate-800">{m.participant}</td>
-                    <td className="py-3 px-3 text-sm text-slate-500">{m.goniometer || '-'}</td>
-                    <td className="py-3 px-3 text-sm text-slate-500">{m.aiModel || '-'}</td>
-                    <td className="py-3 px-3 text-sm text-slate-500">{m.notes || '-'}</td>
+                  <tr key={index} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                    <td className="py-3 px-3 text-sm text-slate-500 dark:text-slate-400" dir="ltr">{m.timestamp}</td>
+                    <td className="py-3 px-3 font-medium text-slate-800 dark:text-slate-100">{m.participant}</td>
+                    <td className="py-3 px-3 text-sm text-slate-500 dark:text-slate-400">{m.goniometer || '-'}</td>
+                    <td className="py-3 px-3 text-sm text-slate-500 dark:text-slate-400">{m.aiModel || '-'}</td>
+                    <td className="py-3 px-3 text-sm text-slate-500 dark:text-slate-400">{m.notes || '-'}</td>
                   </tr>
                 ))
               )}

@@ -2,16 +2,17 @@ import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid,
   Tooltip, ReferenceLine, ResponsiveContainer, Label,
 } from 'recharts';
-import { COLORS, AXIS_TICK, CHART_MARGIN, CHART_HEIGHT } from '../chartConfig';
+import { COLORS, CHART_MARGIN, CHART_HEIGHT, getGridColor, getAxisTick, getAxisTextColor } from '../chartConfig';
+import { useTheme } from '../../../../context/ThemeContext';
 
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-md text-xs space-y-1">
-      <p className="font-semibold text-slate-700">{d.participantId || 'Unknown'}</p>
-      <p className="text-slate-600">Mean angle: <span className="font-medium">{d.mean?.toFixed(1)}°</span></p>
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 shadow-md text-xs space-y-1">
+      <p className="font-semibold text-slate-700 dark:text-slate-300">{d.participantId || 'Unknown'}</p>
+      <p className="text-slate-600 dark:text-slate-300">Mean angle: <span className="font-medium">{d.mean?.toFixed(1)}°</span></p>
       <p style={{ color: Number(d.diff) >= 0 ? COLORS.bias : COLORS.limit }}>
         AI − Goniometer: <span className="font-medium">{Number(d.diff) >= 0 ? '+' : ''}{d.diff?.toFixed(2)}°</span>
       </p>
@@ -22,23 +23,26 @@ const CustomTooltip = ({ active, payload }) => {
 // x = mean of (AI, goniometer), y = AI − goniometer
 // Solid line = mean bias; dashed lines = 95% limits of agreement (±1.96 SD)
 const BlandAltmanPlot = ({ data }) => {
+  const { theme } = useTheme();
   if (!data || !data.plotData?.length) return null;
 
   const { plotData, meanDiff, upperLimit, lowerLimit } = data;
+  const gridColor = getGridColor(theme);
+  const axisTextColor = getAxisTextColor(theme);
 
   return (
     <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
       <ScatterChart margin={CHART_MARGIN}>
-        <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
-        <XAxis type="number" dataKey="mean" tick={AXIS_TICK}>
-          <Label value="Mean of AI & Goniometer (degrees)" position="insideBottom" offset={-20} fontSize={11} fill="#64748b" />
+        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+        <XAxis type="number" dataKey="mean" tick={getAxisTick(theme)}>
+          <Label value="Mean of AI & Goniometer (degrees)" position="insideBottom" offset={-20} fontSize={11} fill={axisTextColor} />
         </XAxis>
-        <YAxis type="number" dataKey="diff" tick={AXIS_TICK}>
-          <Label value="AI − Goniometer (degrees)" angle={-90} position="insideLeft" offset={20} fontSize={11} fill="#64748b" />
+        <YAxis type="number" dataKey="diff" tick={getAxisTick(theme)}>
+          <Label value="AI − Goniometer (degrees)" angle={-90} position="insideLeft" offset={20} fontSize={11} fill={axisTextColor} />
         </YAxis>
         <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
         {/* Zero reference */}
-        <ReferenceLine y={0} stroke={COLORS.grid} strokeWidth={1} />
+        <ReferenceLine y={0} stroke={gridColor} strokeWidth={1} />
         {/* Mean bias */}
         <ReferenceLine
           y={meanDiff}

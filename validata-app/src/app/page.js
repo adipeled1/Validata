@@ -577,10 +577,10 @@ export default function Home() {
   // Loading Screen
   if (isLoading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-slate-50">
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
-          <p className="text-slate-500 font-medium">Validata is loading database...</p>
+          <p className="text-slate-500 dark:text-slate-400 font-medium">Validata is loading database...</p>
         </div>
       </div>
     );
@@ -638,34 +638,37 @@ export default function Home() {
 
   // Active Dashboard Layout
   return (
-    <div className="bg-slate-50 flex h-screen overflow-hidden text-slate-800">
-      <Sidebar 
-        currentView={currentView} 
-        onNavigate={setCurrentView} 
+    <div className="bg-slate-50 dark:bg-slate-950 flex h-screen overflow-hidden text-slate-800 dark:text-slate-100">
+      <Sidebar
+        currentView={currentView}
+        onNavigate={setCurrentView}
         userRole={userRole}
         currentUserEmail={currentUserEmail}
         onLogout={handleLogout}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto bg-slate-50 relative flex flex-col">
-        {/* Demo Mode Banner */}
-        {isDemoMode && (
-          <div className="bg-amber-50 border-b border-amber-200 text-amber-800 px-6 py-2.5 flex items-center justify-between text-sm shadow-sm font-medium z-10">
-            <div className="flex items-center gap-2">
-              <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-ping"></span>
-              <span><strong>Running in Demo Mode:</strong> Using local mock data. Fill in credentials in <code>.env.local</code> to connect to Supabase.</span>
+      {/* relative (not overflow) here so absolutely-positioned overlays (e.g. AIChat) anchor
+          to this box without disturbing the inner content's scroll position. */}
+      <main className="flex-1 relative flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
+        <div className="flex-1 overflow-y-auto flex flex-col">
+          {/* Demo Mode Banner */}
+          {isDemoMode && (
+            <div className="bg-amber-50 dark:bg-amber-950 border-b border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 px-6 py-2.5 flex items-center justify-between text-sm shadow-sm font-medium z-10">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-ping"></span>
+                <span><strong>Running in Demo Mode:</strong> Using local mock data. Fill in credentials in <code>.env.local</code> to connect to Supabase.</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <Toast
-          message={toastMessage}
-          show={showToast}
-          onHide={() => setShowToast(false)}
-        />
+          <Toast
+            message={toastMessage}
+            show={showToast}
+            onHide={() => setShowToast(false)}
+          />
 
-        <div className="p-8 max-w-6xl mx-auto w-full flex-grow">
+          <div className="p-4 md:p-8 max-w-6xl mx-auto w-full flex-grow">
           {currentView === 'participants' && (
             <Participants
               participants={participants}
@@ -710,6 +713,7 @@ export default function Home() {
               currentUserEmail={currentUserEmail}
             />
           )}
+          </div>
         </div>
       </main>
     </div>

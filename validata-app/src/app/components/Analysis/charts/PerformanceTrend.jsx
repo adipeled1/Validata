@@ -2,13 +2,14 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, Label,
 } from 'recharts';
-import { COLORS, AXIS_TICK, CHART_MARGIN, CHART_HEIGHT } from '../chartConfig';
+import { COLORS, CHART_MARGIN, CHART_HEIGHT, getGridColor, getAxisTick, getAxisTextColor } from '../chartConfig';
+import { useTheme } from '../../../../context/ThemeContext';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-md text-xs space-y-1">
-      <p className="font-semibold text-slate-700">Session: {label}</p>
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 shadow-md text-xs space-y-1">
+      <p className="font-semibold text-slate-700 dark:text-slate-300">Session: {label}</p>
       {payload.map((p) => (
         <p key={p.dataKey} style={{ color: p.color }}>
           {p.name}: <span className="font-medium">{p.value}°</span>
@@ -20,30 +21,33 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 // RMSE and MAE per session over time — requires at least 2 sessions to show a trend
 const PerformanceTrend = ({ data }) => {
+  const { theme } = useTheme();
   if (!data || !data.sessions) return null;
 
   const { sessions } = data;
 
   if (sessions.length < 2) {
     return (
-      <div className="flex items-center justify-center h-64 bg-slate-50 rounded-lg border border-dashed border-slate-200 text-slate-400 text-sm text-center px-6">
+      <div className="flex items-center justify-center h-64 bg-slate-50 dark:bg-slate-800 rounded-lg border border-dashed border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-400 text-sm text-center px-6">
         At least 2 sessions needed to show a trend
       </div>
     );
   }
 
+  const axisTextColor = getAxisTextColor(theme);
+
   return (
     <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
       <LineChart data={sessions} margin={CHART_MARGIN}>
-        <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
-        <XAxis dataKey="sessionId" tick={AXIS_TICK}>
-          <Label value="Session" position="insideBottom" offset={-20} fontSize={11} fill="#64748b" />
+        <CartesianGrid strokeDasharray="3 3" stroke={getGridColor(theme)} />
+        <XAxis dataKey="sessionId" tick={getAxisTick(theme)}>
+          <Label value="Session" position="insideBottom" offset={-20} fontSize={11} fill={axisTextColor} />
         </XAxis>
-        <YAxis tick={AXIS_TICK}>
-          <Label value="Error (degrees)" angle={-90} position="insideLeft" offset={20} fontSize={11} fill="#64748b" />
+        <YAxis tick={getAxisTick(theme)}>
+          <Label value="Error (degrees)" angle={-90} position="insideLeft" offset={20} fontSize={11} fill={axisTextColor} />
         </YAxis>
         <Tooltip content={<CustomTooltip />} />
-        <Legend wrapperStyle={{ fontSize: 12, paddingTop: 24 }} formatter={(v) => v.toUpperCase()} />
+        <Legend wrapperStyle={{ fontSize: 12, paddingTop: 24, color: axisTextColor }} formatter={(v) => v.toUpperCase()} />
         <Line
           type="monotone" dataKey="rmse" name="rmse"
           stroke={COLORS.rmse} strokeWidth={2}

@@ -17,3 +17,12 @@ export const AXIS_TICK = { fontSize: 11, fill: '#64748b' };
 export const CHART_MARGIN = { top: 10, right: 50, bottom: 34, left: 10 };
 
 export const CHART_HEIGHT = 256;
+
+// Theme-aware chrome colors (gridlines, axis/legend text, tooltip chrome) — data series colors above stay fixed
+export const getGridColor = (theme) => (theme === 'dark' ? '#334155' : '#e2e8f0');
+
+export const getAxisTextColor = (theme) => (theme === 'dark' ? '#cbd5e1' : '#475569');
+
+export const getAxisTick = (theme) => ({ fontSize: 11, fill: getAxisTextColor(theme) });
+
+export const getTooltipBg = (theme) => (theme === 'dark' ? '#1e293b' : '#ffffff');
