@@ -119,7 +119,7 @@ export default function AIChatDisplay({
       </button>
 
       {isOpen && (
-        <div className="fixed bottom-24 right-8 w-[400px] h-[600px] max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-10 duration-300">
+        <div className="fixed bottom-24 right-8 left-72 w-auto h-[600px] max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-10 duration-300">
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 text-white flex justify-between items-center shadow-md">
             <div className="flex items-center gap-3">

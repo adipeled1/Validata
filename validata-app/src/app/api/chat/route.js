@@ -18,7 +18,7 @@ Current context data:
 ${JSON.stringify(dataContext)}`;
 
   const result = await streamText({
-    model: google('gemini-1.5-flash', {
+    model: google('models/gemini-2.5-flash', {
       useSearchGrounding: false,
     }),
     system: systemPrompt,
