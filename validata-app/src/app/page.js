@@ -577,7 +577,7 @@ export default function Home() {
   // Loading Screen
   if (isLoading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <div className="flex h-dvh w-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
           <p className="text-slate-500 dark:text-slate-400 font-medium">Validata is loading database...</p>
@@ -638,7 +638,7 @@ export default function Home() {
 
   // Active Dashboard Layout
   return (
-    <div className="bg-slate-50 dark:bg-slate-950 flex h-screen overflow-hidden text-slate-800 dark:text-slate-100">
+    <div className="bg-slate-50 dark:bg-slate-950 flex h-dvh overflow-hidden text-slate-800 dark:text-slate-100">
       <Sidebar
         currentView={currentView}
         onNavigate={setCurrentView}
