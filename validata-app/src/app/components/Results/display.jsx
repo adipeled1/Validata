@@ -79,6 +79,10 @@ const ResultsDisplay = ({ sortedMeasurements }) => {
                   <span className="font-medium text-slate-800 dark:text-slate-100">{m.participant}</span>
                   <span className="text-xs text-slate-500 dark:text-slate-400" dir="ltr">{m.timestamp}</span>
                 </div>
+                <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300 mb-1">
+                  <span>Enrolled: {formatDateForDisplay(m.enrollmentDate || m.enrollment_date)}</span>
+                  <span dir="ltr">Test Date: {formatDateForDisplay(m.testDate || m.test_date)}</span>
+                </div>
                 <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
                   <span>Goniometer: {m.goniometer || '-'}</span>
                   <span>AI/ML Model: {m.aiModel || '-'}</span>

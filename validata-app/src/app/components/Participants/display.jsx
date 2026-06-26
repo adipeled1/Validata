@@ -137,12 +137,15 @@ const ParticipantsDisplay = ({
                     {p.status}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between text-sm mb-2">
                   {p.consent ? (
                     <span className="text-green-600 dark:text-green-400 font-bold">✓ Signed</span>
                   ) : (
                     <span className="text-red-500 dark:text-red-400">Missing</span>
                   )}
+                  <span className="text-slate-500 dark:text-slate-400">Enrolled: {p.enrollmentDateDisplay || '—'}</span>
+                </div>
+                <div className="flex items-center justify-end text-sm">
                   {p.status === 'Active' && (
                     // No HoverTooltip here: touch has no hover, so it would
                     // rarely surface. The permanence warning is carried by
