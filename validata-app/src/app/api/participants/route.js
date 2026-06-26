@@ -68,7 +68,7 @@ export async function POST(request) {
   }
 }
 
-// PATCH: Update participant status (e.g. suspend)
+// PATCH: Update participant status (e.g. drop)
 export async function PATCH(request) {
   try {
     const session = await verifySession();

@@ -1,3 +1,4 @@
+import HoverTooltip from '../common/HoverTooltip';
 
 // Pure presentational component
 const ParticipantsDisplay = ({
@@ -11,7 +12,7 @@ const ParticipantsDisplay = ({
   healthStatus,
   onHealthStatusChange,
   onSubmit,
-  onSuspend
+  onDrop
 }) => {
   return (
     <section className="app-section">
@@ -151,18 +152,14 @@ const ParticipantsDisplay = ({
                     </td>
                     <td className="py-3 px-2">
                       {p.status === 'Active' && (
-                        <div className="relative inline-block group">
+                        <HoverTooltip text="Permanently removes this participant from active tracking. This action cannot be undone.">
                           <button
-                            onClick={() => onSuspend(p.id)}
+                            onClick={() => onDrop(p.id)}
                             className="text-sm text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline"
                           >
-                            Suspend
+                            Drop
                           </button>
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                            Immediately pauses or freezes this participant&apos;s active participation in the study.
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
-                          </div>
-                        </div>
+                        </HoverTooltip>
                       )}
                     </td>
                   </tr>

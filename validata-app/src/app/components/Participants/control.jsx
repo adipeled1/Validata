@@ -2,7 +2,7 @@ import { useState } from 'react';
 import ParticipantsDisplay from './display';
 
 // Controller component manages local state and acts as the entry point
-const ParticipantsControl = ({ participants, onAddParticipant, onSuspendParticipant }) => {
+const ParticipantsControl = ({ participants, onAddParticipant, onDropParticipant }) => {
   const [consent, setConsent] = useState(false);
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('Male');
@@ -29,7 +29,7 @@ const ParticipantsControl = ({ participants, onAddParticipant, onSuspendParticip
       healthStatus={healthStatus}
       onHealthStatusChange={setHealthStatus}
       onSubmit={handleSubmit}
-      onSuspend={onSuspendParticipant}
+      onDrop={onDropParticipant}
     />
   );
 };
