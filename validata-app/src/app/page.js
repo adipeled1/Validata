@@ -300,8 +300,8 @@ export default function Home() {
     }
   };
 
-  const handleSuspendParticipant = async (id) => {
-    if (window.confirm(`Are you sure you want to suspend participant ${id}?`)) {
+  const handleDropParticipant = async (id) => {
+    if (window.confirm(`This will permanently drop participant ${id} from the study. This cannot be undone. Continue?`)) {
       if (isDemoMode) {
         setParticipants(
           participants.map((p) => (p.id === id ? { ...p, status: 'Dropped' } : p))
@@ -317,13 +317,13 @@ export default function Home() {
 
           if (!res.ok) {
             const errData = await res.json();
-            throw new Error(errData.error || 'Failed to suspend participant');
+            throw new Error(errData.error || 'Failed to drop participant');
           }
 
           setParticipants(
             participants.map((p) => (p.id === id ? { ...p, status: 'Dropped' } : p))
           );
-          triggerToast(`Participant ${id} suspended successfully.`);
+          triggerToast(`Participant ${id} dropped successfully.`);
         } catch (error) {
           console.error('Error updating participant status:', error);
           triggerToast('Failed to update participant: ' + error.message);
@@ -739,7 +739,7 @@ export default function Home() {
       {/* Main Content Area */}
       {/* relative (not overflow) here so absolutely-positioned overlays (e.g. AIChat) anchor
           to this box without disturbing the inner content's scroll position. */}
-      <main className="flex-1 relative flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
+      <main className="flex-1 relative flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950 pt-12 md:pt-0">
         <div className="flex-1 overflow-y-auto flex flex-col">
           {/* Demo Mode Banner */}
           {isDemoMode && (
@@ -762,7 +762,7 @@ export default function Home() {
             <Participants
               participants={participants}
               onAddParticipant={handleAddParticipant}
-              onSuspendParticipant={handleSuspendParticipant}
+              onDropParticipant={handleDropParticipant}
             />
           )}
 

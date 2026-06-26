@@ -85,9 +85,34 @@ const SidebarDisplay = ({ currentView, onNavigate, navItems, userRole, currentUs
         </div>
     </aside>
 
-    {/* Mobile bottom tab bar — replaces the rail below md; horizontally
-        scrollable so it scales with role-dependent item counts */}
-    <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900 text-slate-100 border-t border-slate-700 flex items-stretch overflow-x-auto pb-[env(safe-area-inset-bottom)]">
+    {/* Mobile top bar — theme/logout live here below md, so the bottom tab
+        bar can give all nav items equal width with no scrolling. */}
+    <div className="md:hidden fixed top-0 inset-x-0 z-40 bg-slate-900 text-slate-100 border-b border-slate-700 flex items-center justify-between px-3 py-2">
+      <div className="flex items-center gap-2">
+        <img src="/favicon.png" alt="Validata Logo" className="w-6 h-6 object-contain shrink-0" />
+        <span className="font-bold tracking-wide">Validata</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          className="p-2 text-slate-400 hover:text-amber-300 hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+        >
+          {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+        <button
+          onClick={onLogout}
+          title="Log Out"
+          className="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-all cursor-pointer"
+        >
+          <LogOut className="h-5 w-5" />
+        </button>
+      </div>
+    </div>
+
+    {/* Mobile bottom tab bar — replaces the rail below md. Items split the
+        full width evenly so all of them are always visible without scrolling. */}
+    <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900 text-slate-100 border-t border-slate-700 flex items-stretch pb-[env(safe-area-inset-bottom)]">
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = currentView === item.id;
@@ -96,26 +121,12 @@ const SidebarDisplay = ({ currentView, onNavigate, navItems, userRole, currentUs
             key={item.id}
             onClick={() => onNavigate(item.id)}
             title={item.label}
-            className={`flex-1 min-w-[64px] flex flex-col items-center justify-center gap-1 py-2.5 cursor-pointer ${isActive ? 'text-blue-400' : 'text-slate-400'}`}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 cursor-pointer ${isActive ? 'text-blue-400' : 'text-slate-400'}`}
           >
             <Icon className="w-5 h-5" />
           </button>
         );
       })}
-      <button
-        onClick={toggleTheme}
-        title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        className="flex-1 min-w-[64px] flex flex-col items-center justify-center py-2.5 text-slate-400 cursor-pointer"
-      >
-        {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-      </button>
-      <button
-        onClick={onLogout}
-        title="Log Out"
-        className="flex-1 min-w-[64px] flex flex-col items-center justify-center py-2.5 text-rose-400 cursor-pointer"
-      >
-        <LogOut className="w-5 h-5" />
-      </button>
     </nav>
     </>
   );
