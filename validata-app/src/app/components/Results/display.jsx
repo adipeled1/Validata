@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FileSpreadsheet, CheckCircle, X } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { formatDateForDisplay } from './service';
 
 const ResultsDisplay = ({ sortedMeasurements }) => {
   const [isExporting, setIsExporting] = useState(false);
@@ -13,7 +14,8 @@ const ResultsDisplay = ({ sortedMeasurements }) => {
     try {
       // Map measurements to Excel-friendly headers and values
       const worksheetData = sortedMeasurements.map(m => ({
-        'Date & Time': m.timestamp,
+        'Enrollment Date': formatDateForDisplay(m.enrollmentDate || m.enrollment_date),
+        'Test Date': formatDateForDisplay(m.testDate || m.test_date),
         'Participant': m.participant,
         'Goniometer': m.goniometer || '-',
         'AI/ML Model': m.aiModel || '-',
@@ -69,7 +71,8 @@ const ResultsDisplay = ({ sortedMeasurements }) => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-sm border-b border-slate-200 dark:border-slate-800">
-                <th className="py-3 px-3 font-medium">Date & Time</th>
+                <th className="py-3 px-3 font-medium">Enrollment Date</th>
+                <th className="py-3 px-3 font-medium">Test Date</th>
                 <th className="py-3 px-3 font-medium">Participant</th>
                 <th className="py-3 px-3 font-medium">Goniometer</th>
                 <th className="py-3 px-3 font-medium">AI/ML Model</th>
@@ -79,14 +82,15 @@ const ResultsDisplay = ({ sortedMeasurements }) => {
             <tbody>
               {sortedMeasurements.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-6 text-slate-500 dark:text-slate-400">
+                  <td colSpan="6" className="text-center py-6 text-slate-500 dark:text-slate-400">
                     No data to display
                   </td>
                 </tr>
               ) : (
                 sortedMeasurements.map((m, index) => (
                   <tr key={index} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                    <td className="py-3 px-3 text-sm text-slate-500 dark:text-slate-400" dir="ltr">{m.timestamp}</td>
+                    <td className="py-3 px-3 text-sm text-slate-500 dark:text-slate-400" dir="ltr">{formatDateForDisplay(m.enrollmentDate || m.enrollment_date)}</td>
+                    <td className="py-3 px-3 text-sm text-slate-500 dark:text-slate-400">{formatDateForDisplay(m.testDate || m.test_date)}</td>
                     <td className="py-3 px-3 font-medium text-slate-800 dark:text-slate-100">{m.participant}</td>
                     <td className="py-3 px-3 text-sm text-slate-500 dark:text-slate-400">{m.goniometer || '-'}</td>
                     <td className="py-3 px-3 text-sm text-slate-500 dark:text-slate-400">{m.aiModel || '-'}</td>

@@ -35,7 +35,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { id, consent, status, age, gender, healthStatus } = body;
+    const { id, consent, status, age, gender, healthStatus, enrollmentDate } = body;
 
     if (session.isDemo) {
       // Return the added participant as if it succeeded
@@ -45,7 +45,8 @@ export async function POST(request) {
         status: status || 'Active',
         age: parseInt(age) || null,
         gender,
-        health_status: healthStatus
+        health_status: healthStatus,
+        enrollment_date: enrollmentDate || new Date().toISOString().split('T')[0]
       });
     }
 
@@ -57,7 +58,8 @@ export async function POST(request) {
         status: status || 'Active',
         age: parseInt(age) || null,
         gender,
-        health_status: healthStatus // Map camelCase from frontend to snake_case in DB
+        health_status: healthStatus,
+        enrollment_date: enrollmentDate || new Date().toISOString().split('T')[0]
       })
       .select();
 

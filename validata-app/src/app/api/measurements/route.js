@@ -89,7 +89,7 @@ export async function POST(request) {
     }
 
     // Otherwise, this is a standard measurement insertion
-    const { participantId, goniometer, aiModel, notes } = body;
+    const { participantId, goniometer, aiModel, notes, testDate } = body;
 
     const parsedGoniometer = parseFloat(goniometer.toString().replace('°', '')) || 0.0;
     const parsedAiModel = parseFloat(aiModel.toString().replace('°', '')) || 0.0;
@@ -100,18 +100,20 @@ export async function POST(request) {
         goniometer: parsedGoniometer,
         ai_model: parsedAiModel,
         notes,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        test_date: testDate || new Date().toISOString().split('T')[0]
       });
     }
 
     const { data, error } = await session.supabaseClient
       .from('measurements')
       .insert({
-        participant_id: participantId, // Map frontend variable to DB column
+        participant_id: participantId,
         goniometer: parsedGoniometer,
         ai_model: parsedAiModel,
         notes,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        test_date: testDate || new Date().toISOString().split('T')[0]
       })
       .select();
 
