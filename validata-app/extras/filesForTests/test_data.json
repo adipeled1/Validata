@@ -3,24 +3,28 @@
     "participant_id": "P-1001",
     "goniometer": 45.5,
     "ai_model": 44.9,
+    "test_date": "2026-06-10",
     "notes": "Import Successful"
   },
   {
     "participant_id": "P-1002",
     "goniometer": 60,
     "ai_model": 60.1,
+    "test_date": "2026-06-12",
     "notes": "Another successful row"
   },
   {
     "participant_id": "P-9999",
     "goniometer": 90,
     "ai_model": 90,
+    "test_date": "2026-06-13",
     "notes": "This participant does not exist (should skip)"
   },
   {
     "participant_id": "P-1004",
     "goniometer": 30.5,
     "ai_model": 31,
+    "test_date": "2026-06-14",
     "notes": "Valid row after error"
   }
 ]

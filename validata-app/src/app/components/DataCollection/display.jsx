@@ -1,4 +1,12 @@
-import { UploadCloud, CheckCircle } from 'lucide-react';
+import { UploadCloud, CheckCircle, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
+
+const handleDownloadTemplate = () => {
+  const worksheet = XLSX.utils.aoa_to_sheet([['participant_id', 'goniometer', 'ai_model', 'test_date', 'notes']]);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+  XLSX.writeFile(workbook, 'validata-import-template.xlsx');
+};
 
 // Pure presentational component
 const DataCollectionDisplay = ({ 
@@ -119,9 +127,18 @@ const DataCollectionDisplay = ({
 
         {/* File Upload / Import */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col">
-          <h3 className="text-xl font-semibold mb-4 text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-2">
-            Bulk Import (CSV, JSON, Excel)
-          </h3>
+          <div className="flex items-center justify-between gap-3 mb-4 border-b border-slate-200 dark:border-slate-800 pb-2">
+            <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
+              Bulk Import (CSV, JSON, Excel)
+            </h3>
+            <button
+              onClick={handleDownloadTemplate}
+              className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline cursor-pointer shrink-0"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download Template
+            </button>
+          </div>
 
           {isImporting ? (
             <div className="flex-1 flex flex-col justify-center items-center p-6 bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
@@ -181,10 +198,13 @@ const DataCollectionDisplay = ({
               <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-500 dark:text-slate-400">
                 <p className="font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Expected Spreadsheet Headers:</p>
                 <code className="block bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-2 rounded text-indigo-600 dark:text-indigo-400 font-mono break-all leading-normal">
-                  participant_id, goniometer, ai_model, notes
+                  participant_id, goniometer, ai_model, test_date, notes
                 </code>
                 <p className="mt-1.5 text-slate-400 dark:text-slate-400 leading-normal">
                   * Note: Only active participants are imported. Goniometer and AI Model values must be numeric.
+                </p>
+                <p className="mt-1.5 text-slate-400 dark:text-slate-400 leading-normal">
+                  * Multiple measurements for the same participant: add one row per measurement, repeating the same <code className="text-indigo-600 dark:text-indigo-400 font-mono">participant_id</code> on each row. There is no limit on how many rows one participant can have.
                 </p>
               </div>
             </div>
