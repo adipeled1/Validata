@@ -66,7 +66,6 @@ const ParticipantsDisplay = ({
               >
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
-                <option value="Other">Other</option>
               </select>
             </div>
 
@@ -82,7 +81,7 @@ const ParticipantsDisplay = ({
                 className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
               >
                 <option value="Healthy">Healthy</option>
-                <option value="Sick">Sick</option>
+                <option value="Ankle Injury">Ankle Injury</option>
               </select>
             </div>
 
@@ -167,6 +166,7 @@ const ParticipantsDisplay = ({
                   <th className="py-3 px-2 font-medium">System ID</th>
                   <th className="py-3 px-2 font-medium">Consent</th>
                   <th className="py-3 px-2 font-medium">Status</th>
+                  <th className="py-3 px-2 font-medium">Enrollment Date</th>
                   <th className="py-3 px-2 font-medium">Actions</th>
                 </tr>
               </thead>
@@ -191,6 +191,9 @@ const ParticipantsDisplay = ({
                         {p.status}
                       </span>
                     </td>
+                    <td className="py-3 px-2 text-sm text-slate-600 dark:text-slate-300">
+                      {p.enrollmentDateDisplay || '—'}
+                    </td>
                     <td className="py-3 px-2">
                       {p.status === 'Active' && (
                         <HoverTooltip text="Permanently removes this participant from active tracking. This action cannot be undone.">
@@ -207,7 +210,7 @@ const ParticipantsDisplay = ({
                 ))}
                 {participants.length === 0 && (
                   <tr>
-                    <td colSpan="4" className="text-center py-6 text-slate-500 dark:text-slate-400">
+                    <td colSpan="5" className="text-center py-6 text-slate-500 dark:text-slate-400">
                       No participants found.
                     </td>
                   </tr>

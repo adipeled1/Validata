@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import DataCollectionDisplay from './display';
-import { getActiveParticipants } from './service';
+import { getActiveParticipants, getTodayDateString } from './service';
 
 // Controller component manages local state and input references
 const DataCollectionControl = ({ 
@@ -15,6 +15,7 @@ const DataCollectionControl = ({
   const [goniometer, setGoniometer] = useState('');
   const [aiModel, setAiModel] = useState('');
   const [notes, setNotes] = useState('');
+  const [testDate, setTestDate] = useState(getTodayDateString());
   const [uploadedFile, setUploadedFile] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -25,11 +26,12 @@ const DataCollectionControl = ({
     e.preventDefault();
     if (!participantId) return;
 
-    onLogMeasurement({ participantId, goniometer, aiModel, notes });
+    onLogMeasurement({ participantId, goniometer, aiModel, notes, testDate });
     setParticipantId('');
     setGoniometer('');
     setAiModel('');
     setNotes('');
+    setTestDate(getTodayDateString());
   };
 
   const handleFileChange = (e) => {
@@ -58,6 +60,8 @@ const DataCollectionControl = ({
       onAiModelChange={setAiModel}
       notes={notes}
       onNotesChange={setNotes}
+      testDate={testDate}
+      onTestDateChange={setTestDate}
       onSubmitLog={handleLogSubmit}
       uploadedFile={uploadedFile}
       onFileChange={handleFileChange}

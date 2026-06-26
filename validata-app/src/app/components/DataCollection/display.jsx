@@ -10,7 +10,9 @@ const DataCollectionDisplay = ({
   aiModel,
   onAiModelChange,
   notes, 
-  onNotesChange, 
+  onNotesChange,
+  testDate,
+  onTestDateChange,
   onSubmitLog, 
   uploadedFile, 
   onFileChange, 
@@ -81,6 +83,18 @@ const DataCollectionDisplay = ({
                   className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Test Date
+              </label>
+              <input
+                type="date"
+                value={testDate}
+                onChange={(e) => onTestDateChange(e.target.value)}
+                className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+              />
             </div>
 
             <div>

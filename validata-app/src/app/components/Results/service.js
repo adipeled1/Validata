@@ -1,3 +1,18 @@
+export const formatDateForDisplay = (value) => {
+  if (!value) return '—';
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return value;
+  }
+
+  const day = String(parsedDate.getDate()).padStart(2, '0');
+  const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+  const year = parsedDate.getFullYear();
+
+  return `${day}/${month}/${year}`;
+};
+
 export const sortMeasurementsDescending = (measurements) => {
   return [...measurements].sort((a, b) => {
     const parseDate = (dateStr) => {

@@ -6,7 +6,8 @@
       "status": "Active",
       "age": 45,
       "gender": "Female",
-      "healthStatus": "Healthy"
+      "healthStatus": "Healthy",
+      "enrollmentDate": "2026-05-01"
     },
     {
       "id": "P-1002",
@@ -14,7 +15,8 @@
       "status": "Active",
       "age": 62,
       "gender": "Male",
-      "healthStatus": "Sick"
+      "healthStatus": "Sick",
+      "enrollmentDate": "2026-05-02"
     },
     {
       "id": "P-1003",
@@ -22,7 +24,8 @@
       "status": "Dropped",
       "age": 28,
       "gender": "Female",
-      "healthStatus": "Healthy"
+      "healthStatus": "Healthy",
+      "enrollmentDate": "2026-05-03"
     },
     {
       "id": "P-1004",
@@ -30,7 +33,8 @@
       "status": "Active",
       "age": 35,
       "gender": "Male",
-      "healthStatus": "Healthy"
+      "healthStatus": "Healthy",
+      "enrollmentDate": "2026-05-04"
     },
     {
       "id": "P-1005",
@@ -38,7 +42,8 @@
       "status": "Active",
       "age": 50,
       "gender": "Female",
-      "healthStatus": "Sick"
+      "healthStatus": "Sick",
+      "enrollmentDate": "2026-05-05"
     },
     {
       "id": "P-1006",
@@ -46,7 +51,8 @@
       "status": "Active",
       "age": 19,
       "gender": "Male",
-      "healthStatus": "Healthy"
+      "healthStatus": "Healthy",
+      "enrollmentDate": "2026-05-06"
     },
     {
       "id": "P-1007",
@@ -54,7 +60,8 @@
       "status": "Dropped",
       "age": 41,
       "gender": "Female",
-      "healthStatus": "Sick"
+      "healthStatus": "Sick",
+      "enrollmentDate": "2026-05-07"
     },
     {
       "id": "P-1008",
@@ -62,7 +69,8 @@
       "status": "Active",
       "age": 30,
       "gender": "Male",
-      "healthStatus": "Healthy"
+      "healthStatus": "Healthy",
+      "enrollmentDate": "2026-05-08"
     }
   ],
   "measurements": [
@@ -71,35 +79,40 @@
       "goniometer": "45.0°",
       "aiModel": "44.9°",
       "notes": "Session completed successfully",
-      "timestamp": "12/05/2026 14:30"
+      "timestamp": "12/05/2026 14:30",
+      "testDate": "2026-05-12"
     },
     {
       "participant": "P-1004",
       "goniometer": "30.0°",
       "aiModel": "30.8°",
       "notes": "Patient seemed tired but completed tasks",
-      "timestamp": "13/05/2026 09:15"
+      "timestamp": "13/05/2026 09:15",
+      "testDate": "2026-05-13"
     },
     {
       "participant": "P-1002",
       "goniometer": "60.0°",
       "aiModel": "60.1°",
       "notes": "Standard reading",
-      "timestamp": "14/05/2026 11:45"
+      "timestamp": "14/05/2026 11:45",
+      "testDate": "2026-05-14"
     },
     {
       "participant": "P-1008",
       "goniometer": "45.0°",
       "aiModel": "45.0°",
       "notes": "No issues reported",
-      "timestamp": "15/05/2026 16:00"
+      "timestamp": "15/05/2026 16:00",
+      "testDate": "2026-05-15"
     },
     {
       "participant": "P-1005",
       "goniometer": "15.0°",
       "aiModel": "15.7°",
       "notes": "Follow-up required next week",
-      "timestamp": "16/05/2026 10:20"
+      "timestamp": "16/05/2026 10:20",
+      "testDate": "2026-05-16"
     }
   ]
 }

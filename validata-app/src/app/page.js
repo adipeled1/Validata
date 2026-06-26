@@ -145,14 +145,22 @@ export default function Home() {
       try {
         if (isDemo) {
           setParticipants(mockData.participants);
-          const mappedMockMeasurements = mockData.measurements.map((m, idx) => ({
-            id: mockData.measurements.length - idx,
-            participant: m.participant,
-            goniometer: m.goniometer,
-            aiModel: m.aiModel,
-            notes: m.notes,
-            timestamp: m.timestamp
-          }));
+          const mappedMockMeasurements = mockData.measurements.map((m, idx) => {
+            // Look up enrollment date from mock participants
+            const participantRecord = mockData.participants.find(p => p.id === m.participant);
+            const enrollmentDate = participantRecord?.enrollmentDate || null;
+            
+            return {
+              id: mockData.measurements.length - idx,
+              participant: m.participant,
+              goniometer: m.goniometer,
+              aiModel: m.aiModel,
+              notes: m.notes,
+              timestamp: m.timestamp,
+              testDate: m.testDate || m.test_date || null,
+              enrollmentDate: enrollmentDate
+            };
+          });
           setMeasurements(mappedMockMeasurements);
         } else {
           // Fetch from API
@@ -173,7 +181,8 @@ export default function Home() {
             status: p.status,
             age: p.age,
             gender: p.gender,
-            healthStatus: p.health_status
+            healthStatus: p.health_status,
+            enrollmentDate: p.enrollment_date || p.enrollmentDate || null
           }));
 
           const mappedMeasurements = mData.map(m => {
@@ -188,13 +197,19 @@ export default function Home() {
               formattedDate = `${day}/${month}/${year} ${hours}:${minutes}`;
             } catch { }
 
+            // Look up enrollment date from participants
+            const participantRecord = mappedParticipants.find(p => p.id === m.participant_id);
+            const enrollmentDate = participantRecord?.enrollmentDate || null;
+
             return {
               id: m.id,
               participant: m.participant_id,
               goniometer: `${parseFloat(m.goniometer).toFixed(1)}°`,
               aiModel: `${parseFloat(m.ai_model).toFixed(1)}°`,
               notes: m.notes,
-              timestamp: formattedDate
+              timestamp: formattedDate,
+              testDate: m.test_date || m.testDate || null,
+              enrollmentDate: enrollmentDate
             };
           });
 
@@ -215,7 +230,7 @@ export default function Home() {
   }, []);
 
   // Participant Handlers
-  const handleAddParticipant = async ({ consent, age, gender, healthStatus }) => {
+  const handleAddParticipant = async ({ consent, age, gender, healthStatus, enrollmentDate }) => {
     if (isDemoMode) {
       const newId = `P-${nextId}`;
       setNextId((prev) => prev + 1);
@@ -226,7 +241,8 @@ export default function Home() {
         status: 'Active',
         age: parseInt(age) || null,
         gender,
-        healthStatus
+        healthStatus,
+        enrollmentDate: enrollmentDate || new Date().toISOString().split('T')[0]
       };
       setParticipants([newParticipant, ...participants]);
       triggerToast(`Participant ${newId} registered successfully! (Demo)`);
@@ -245,7 +261,8 @@ export default function Home() {
             consent,
             age: parseInt(age) || null,
             gender,
-            healthStatus
+            healthStatus,
+            enrollmentDate: enrollmentDate || new Date().toISOString().split('T')[0]
           })
         });
 
@@ -260,7 +277,8 @@ export default function Home() {
           status: 'Active',
           age: parseInt(age) || null,
           gender,
-          healthStatus
+          healthStatus,
+          enrollmentDate: enrollmentDate || new Date().toISOString().split('T')[0]
         };
 
         setParticipants([newParticipant, ...participants]);
@@ -305,7 +323,7 @@ export default function Home() {
   };
 
   // Measurement Handlers
-  const handleLogMeasurement = async ({ participantId, goniometer, aiModel, notes }) => {
+  const handleLogMeasurement = async ({ participantId, goniometer, aiModel, notes, testDate }) => {
     const nowObj = new Date();
     const formattedTimestamp = `${nowObj.getDate().toString().padStart(2, '0')}/${(
       nowObj.getMonth() + 1
@@ -321,6 +339,10 @@ export default function Home() {
         ? Math.max(...measurements.map(m => parseInt(m.id) || 0)) + 1
         : 1;
 
+      // Look up participant's enrollment date
+      const participantRecord = participants.find(p => p.id === participantId);
+      const enrollmentDate = participantRecord?.enrollmentDate || null;
+
       const newMeasurement = {
         id: simulatedId,
         participant: participantId,
@@ -328,6 +350,8 @@ export default function Home() {
         aiModel: aiModel.includes('°') ? aiModel : `${aiModel}°`,
         notes,
         timestamp: formattedTimestamp,
+        testDate: testDate || new Date().toISOString().split('T')[0],
+        enrollmentDate: enrollmentDate
       };
 
       setMeasurements([newMeasurement, ...measurements]);
@@ -337,7 +361,7 @@ export default function Home() {
         const res = await fetch('/api/measurements', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ participantId, goniometer, aiModel, notes })
+          body: JSON.stringify({ participantId, goniometer, aiModel, notes, testDate: testDate || new Date().toISOString().split('T')[0] })
         });
 
         if (!res.ok) {
@@ -346,13 +370,19 @@ export default function Home() {
         }
 
         const savedData = await res.json();
+        // Look up participant's enrollment date
+        const participantRecord = participants.find(p => p.id === savedData.participant_id);
+        const enrollmentDate = participantRecord?.enrollmentDate || null;
+        
         const newMeasurement = {
           id: savedData.id,
           participant: savedData.participant_id,
           goniometer: `${parseFloat(savedData.goniometer).toFixed(1)}°`,
           aiModel: `${parseFloat(savedData.ai_model).toFixed(1)}°`,
           notes: savedData.notes,
-          timestamp: formattedTimestamp
+          timestamp: formattedTimestamp,
+          testDate: savedData.test_date || savedData.testDate || testDate || new Date().toISOString().split('T')[0],
+          enrollmentDate: enrollmentDate
         };
 
         setMeasurements([newMeasurement, ...measurements]);
@@ -451,11 +481,13 @@ export default function Home() {
           .toString()
           .padStart(2, '0')}:${dateToUse.getMinutes().toString().padStart(2, '0')}`;
 
+      const testDateValue = (row.test_date || row.testDate || '').toString().trim();
       const payload = {
         participantId: pId,
         goniometer: parsedGoniometer,
         aiModel: parsedAiModel,
-        notes
+        notes,
+        testDate: testDateValue || new Date().toISOString().split('T')[0]
       };
 
       try {
@@ -464,13 +496,19 @@ export default function Home() {
             ? Math.max(...measurements.map(m => parseInt(m.id) || 0)) + newMeasurements.length + 1
             : newMeasurements.length + 1;
 
+          // Look up enrollment date from participants
+          const participantRecord = participants.find(p => p.id === pId);
+          const enrollmentDate = participantRecord?.enrollmentDate || null;
+
           newMeasurements.push({
             id: simulatedId,
             participant: pId,
             goniometer: `${parsedGoniometer.toFixed(1)}°`,
             aiModel: `${parsedAiModel.toFixed(1)}°`,
             notes,
-            timestamp: formattedTimestamp
+            timestamp: formattedTimestamp,
+            testDate: testDateValue || new Date().toISOString().split('T')[0],
+            enrollmentDate: enrollmentDate
           });
           successCount++;
         } else {
@@ -486,13 +524,19 @@ export default function Home() {
           }
 
           const savedData = await res.json();
+          // Look up enrollment date from participants
+          const participantRecord = participants.find(p => p.id === savedData.participant_id);
+          const enrollmentDate = participantRecord?.enrollmentDate || null;
+          
           newMeasurements.push({
             id: savedData.id,
             participant: savedData.participant_id,
             goniometer: `${parseFloat(savedData.goniometer).toFixed(1)}°`,
             aiModel: `${parseFloat(savedData.ai_model).toFixed(1)}°`,
             notes: savedData.notes,
-            timestamp: formattedTimestamp
+            timestamp: formattedTimestamp,
+            testDate: savedData.test_date || savedData.testDate || testDateValue || new Date().toISOString().split('T')[0],
+            enrollmentDate: enrollmentDate
           });
           successCount++;
         }

@@ -68,7 +68,14 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 4. Enable RLS on other tables (if not already enabled) and add Policies
+-- 4. Add date-related columns if they don't exist
+ALTER TABLE public.participants
+ADD COLUMN IF NOT EXISTS enrollment_date DATE;
+
+ALTER TABLE public.measurements
+ADD COLUMN IF NOT EXISTS test_date DATE;
+
+-- 5. Enable RLS on other tables (if not already enabled) and add Policies
 -- Enable RLS on participants
 ALTER TABLE public.participants ENABLE ROW LEVEL SECURITY;
 
