@@ -22,9 +22,13 @@ const DataCollectionDisplay = ({
   testDate,
   onTestDateChange,
   onSubmitLog, 
-  uploadedFile, 
-  onFileChange, 
+  uploadedFile,
+  onFileChange,
   fileInputRef,
+  isDragging,
+  onDragOver,
+  onDragLeave,
+  onDrop,
   isImporting,
   importSummary,
   onClearImportSummary
@@ -180,12 +184,21 @@ const DataCollectionDisplay = ({
           ) : (
             <div className="flex-grow flex flex-col justify-between">
               <div
-                className="flex-1 flex flex-col justify-center items-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer p-6 min-h-[160px]"
+                className={`flex-1 flex flex-col justify-center items-center border-2 border-dashed rounded-lg transition-colors cursor-pointer p-6 min-h-[160px] ${
+                  isDragging
+                    ? 'border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40'
+                    : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
                 onClick={() => fileInputRef.current.click()}
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                onDrop={onDrop}
               >
-                <UploadCloud className="w-12 h-12 text-slate-400 dark:text-slate-500 mb-3" />
-                <p className="text-slate-600 dark:text-slate-300 font-medium">Click here to select a data file</p>
-                <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Supports CSV, Excel (.xlsx/.xls), JSON (up to 50MB)</p>
+                <UploadCloud className="w-12 h-12 text-slate-400 dark:text-slate-500 mb-3 pointer-events-none" />
+                <p className="text-slate-600 dark:text-slate-300 font-medium pointer-events-none">
+                  {isDragging ? 'Drop the file here' : 'Click or drag and drop a data file here'}
+                </p>
+                <p className="text-xs text-slate-400 dark:text-slate-400 mt-1 pointer-events-none">Supports CSV, Excel (.xlsx/.xls), JSON (up to 50MB)</p>
                 <input
                   type="file"
                   ref={fileInputRef}
