@@ -98,7 +98,7 @@ const ParticipantsViewDisplay = ({
                     className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                       p.healthStatus === 'Healthy'
                         ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300'
-                        : p.healthStatus === 'Sick'
+                        : p.healthStatus === 'Ankle Injured'
                         ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300'
                         : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                     }`}

@@ -146,7 +146,7 @@ const ParticipantsDisplay = ({
                   <span className="text-slate-500 dark:text-slate-400">Enrolled: {p.enrollmentDateDisplay || '—'}</span>
                 </div>
                 <div className="flex items-center justify-end text-sm">
-                  {p.status === 'Active' && (
+                  {String(p.status || '').toLowerCase() !== 'dropped' && (
                     // No HoverTooltip here: touch has no hover, so it would
                     // rarely surface. The permanence warning is carried by
                     // the confirm() dialog instead (see handleDropParticipant).
