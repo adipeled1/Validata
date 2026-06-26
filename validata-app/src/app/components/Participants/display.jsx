@@ -118,7 +118,51 @@ const ParticipantsDisplay = ({
               Total: {participants.length}
             </span>
           </div>
-          <div className="overflow-x-auto">
+          {/* Mobile cards — replaces the table below md, where horizontal
+              scrolling a 4-column table is uncomfortable */}
+          <div className="md:hidden space-y-3">
+            {participants.length === 0 && (
+              <p className="text-center py-6 text-slate-500 dark:text-slate-400">No participants found.</p>
+            )}
+            {participants.map((p) => (
+              <div key={p.id} className="border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-slate-800 dark:text-slate-100">{p.id}</span>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${p.status === 'Active'
+                      ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                      : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                      }`}
+                  >
+                    {p.status}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm mb-2">
+                  {p.consent ? (
+                    <span className="text-green-600 dark:text-green-400 font-bold">✓ Signed</span>
+                  ) : (
+                    <span className="text-red-500 dark:text-red-400">Missing</span>
+                  )}
+                  <span className="text-slate-500 dark:text-slate-400">Enrolled: {p.enrollmentDateDisplay || '—'}</span>
+                </div>
+                <div className="flex items-center justify-end text-sm">
+                  {p.status === 'Active' && (
+                    // No HoverTooltip here: touch has no hover, so it would
+                    // rarely surface. The permanence warning is carried by
+                    // the confirm() dialog instead (see handleDropParticipant).
+                    <button
+                      onClick={() => onDrop(p.id)}
+                      className="text-sm text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline"
+                    >
+                      Drop
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="text-slate-500 dark:text-slate-400 text-sm border-b border-slate-200 dark:border-slate-800">

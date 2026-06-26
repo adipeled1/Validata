@@ -67,7 +67,33 @@ const ResultsDisplay = ({ sortedMeasurements }) => {
         <h3 className="text-xl font-semibold mb-4 text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-2">
           Research Data View
         </h3>
-        <div className="overflow-x-auto">
+        {/* Mobile cards — replaces the table below md; Notes gets a full-width
+            line instead of a cramped cell since it's free text */}
+        <div className="md:hidden space-y-3">
+          {sortedMeasurements.length === 0 ? (
+            <p className="text-center py-6 text-slate-500 dark:text-slate-400">No data to display</p>
+          ) : (
+            sortedMeasurements.map((m, index) => (
+              <div key={index} className="border border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-slate-800 dark:text-slate-100">{m.participant}</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400" dir="ltr">{m.timestamp}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300 mb-1">
+                  <span>Enrolled: {formatDateForDisplay(m.enrollmentDate || m.enrollment_date)}</span>
+                  <span dir="ltr">Test Date: {formatDateForDisplay(m.testDate || m.test_date)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
+                  <span>Goniometer: {m.goniometer || '-'}</span>
+                  <span>AI/ML Model: {m.aiModel || '-'}</span>
+                </div>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Notes: {m.notes || '-'}</p>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-sm border-b border-slate-200 dark:border-slate-800">

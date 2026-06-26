@@ -17,10 +17,16 @@ const DataCollectionControl = ({
   const [notes, setNotes] = useState('');
   const [testDate, setTestDate] = useState(getTodayDateString());
   const [uploadedFile, setUploadedFile] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
   // Use service to filter participants
   const activeParticipants = getActiveParticipants(participants);
+
+  const handleFile = (file) => {
+    setUploadedFile(file.name);
+    onFileUpload(file);
+  };
 
   const handleLogSubmit = (e) => {
     e.preventDefault();
@@ -36,11 +42,27 @@ const DataCollectionControl = ({
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setUploadedFile(file.name);
-      onFileUpload(file);
+      handleFile(e.target.files[0]);
       // Reset input so the same file can be uploaded again if needed
-      e.target.value = null; 
+      e.target.value = null;
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
     }
   };
 
@@ -66,6 +88,10 @@ const DataCollectionControl = ({
       uploadedFile={uploadedFile}
       onFileChange={handleFileChange}
       fileInputRef={fileInputRef}
+      isDragging={isDragging}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
       isImporting={isImporting}
       importSummary={importSummary}
       onClearImportSummary={handleClearSummary}

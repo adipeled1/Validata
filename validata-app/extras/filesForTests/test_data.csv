@@ -1,5 +1,5 @@
-participant_id,goniometer,ai_model,notes
-"P-1001",45.5,44.9,"Import Successful"
-"P-1002",60,60.1,"Another successful row"
-"P-9999",90,90,"This participant does not exist (should skip)"
-"P-1004",30.5,31,"Valid row after error"
+participant_id,goniometer,ai_model,test_date,notes
+"P-1001",45.5,44.9,"2026-06-10","Import Successful"
+"P-1002",60,60.1,"2026-06-12","Another successful row"
+"P-9999",90,90,"2026-06-13","This participant does not exist (should skip)"
+"P-1004",30.5,31,"2026-06-14","Valid row after error"
