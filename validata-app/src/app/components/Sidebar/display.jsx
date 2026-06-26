@@ -1,5 +1,5 @@
 
-import { LogOut, Sun, Moon, Menu, X } from 'lucide-react';
+import { LogOut, Sun, Moon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 
 // Pure presentational component
@@ -24,9 +24,10 @@ const SidebarDisplay = ({ currentView, onNavigate, navItems, userRole, currentUs
           <button
             onClick={onToggleExpanded}
             title={isExpanded ? 'Collapse navigation' : 'Expand navigation'}
+            aria-expanded={isExpanded}
             className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer shrink-0"
           >
-            {isExpanded ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {isExpanded ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
           </button>
         </div>
 

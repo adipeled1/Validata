@@ -15,7 +15,7 @@
       "status": "Active",
       "age": 62,
       "gender": "Male",
-      "healthStatus": "Sick",
+      "healthStatus": "Ankle Injured",
       "enrollmentDate": "2026-05-02"
     },
     {
@@ -42,7 +42,7 @@
       "status": "Active",
       "age": 50,
       "gender": "Female",
-      "healthStatus": "Sick",
+      "healthStatus": "Ankle Injured",
       "enrollmentDate": "2026-05-05"
     },
     {
@@ -60,7 +60,7 @@
       "status": "Dropped",
       "age": 41,
       "gender": "Female",
-      "healthStatus": "Sick",
+      "healthStatus": "Ankle Injured",
       "enrollmentDate": "2026-05-07"
     },
     {

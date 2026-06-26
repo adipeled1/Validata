@@ -44,8 +44,8 @@ const ParticipantsViewDisplay = ({
             <ShieldAlert className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Sick Participants</p>
-            <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">{stats.sickCount}</p>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Ankle Injured Participants</p>
+            <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">{stats.ankleInjuredCount}</p>
           </div>
         </div>
       </div>
@@ -73,7 +73,7 @@ const ParticipantsViewDisplay = ({
             >
               <option value="All">All Statuses</option>
               <option value="Healthy">Healthy</option>
-              <option value="Sick">Sick</option>
+              <option value="Ankle Injured">Ankle Injured</option>
             </select>
           </div>
         </div>
@@ -110,7 +110,7 @@ const ParticipantsViewDisplay = ({
                         className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                           p.healthStatus === 'Healthy'
                             ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300'
-                            : p.healthStatus === 'Sick'
+                            : p.healthStatus === 'Ankle Injured'
                             ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300'
                             : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                         }`}

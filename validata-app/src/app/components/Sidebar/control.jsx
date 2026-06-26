@@ -5,26 +5,46 @@ import { getNavItems } from './service';
 // Controller component manages data fetching/logic for the view
 const SidebarControl = ({ currentView, onNavigate, userRole, currentUserEmail, onLogout }) => {
   const navItems = getNavItems(userRole);
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(() => {
+    if (typeof window === 'undefined') return true;
+
+    const saved = window.localStorage.getItem('validata-sidebar-expanded');
+    return saved === null ? true : saved === 'true';
+  });
   const [isMobile, setIsMobile] = useState(false);
 
-  // Default expanded on desktop, collapsed on mobile; re-applies whenever the
-  // viewport crosses the breakpoint (e.g. resizing devtools into mobile view).
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const mq = window.matchMedia('(max-width: 767px)');
     const applyForViewport = (matches) => {
       setIsMobile(matches);
-      setIsExpanded(!matches);
+
+      const saved = window.localStorage.getItem('validata-sidebar-expanded');
+      if (saved === null) {
+        setIsExpanded(!matches);
+      }
     };
+
     applyForViewport(mq.matches);
     const handler = (e) => applyForViewport(e.matches);
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('validata-sidebar-expanded', String(isExpanded));
+    }
+  }, [isExpanded]);
+
   const handleNavigate = (viewId) => {
     onNavigate(viewId);
     if (isMobile) setIsExpanded(false);
+  };
+
+  const handleToggleExpanded = () => {
+    setIsExpanded((prev) => !prev);
   };
 
   return (
@@ -36,7 +56,7 @@ const SidebarControl = ({ currentView, onNavigate, userRole, currentUserEmail, o
       currentUserEmail={currentUserEmail}
       onLogout={onLogout}
       isExpanded={isExpanded}
-      onToggleExpanded={() => setIsExpanded((prev) => !prev)}
+      onToggleExpanded={handleToggleExpanded}
     />
   );
 };

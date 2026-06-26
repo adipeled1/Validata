@@ -26,3 +26,45 @@ export const formatDateForDisplay = (value) => {
 
   return `${day}/${month}/${year}`;
 };
+
+const parseAngleValue = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+
+  const normalized = String(value).trim().replace('°', '');
+  const parsed = parseFloat(normalized);
+
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+export const hasCompleteMeasurement = (measurement) => {
+  const goniometer = parseAngleValue(measurement?.goniometer);
+  const aiModel = parseAngleValue(measurement?.aiModel);
+
+  return goniometer !== null && aiModel !== null && goniometer > 0 && aiModel > 0;
+};
+
+export const shouldCompleteParticipant = (participant, measurements = []) => {
+  if (!participant) return false;
+
+  const normalizedStatus = String(participant.status || '').toLowerCase();
+  if (normalizedStatus === 'completed' || normalizedStatus === 'dropped') {
+    return false;
+  }
+
+  const completedMeasurements = measurements.filter((measurement) => {
+    if (measurement?.participant !== participant.id) return false;
+    return hasCompleteMeasurement(measurement);
+  });
+
+  return completedMeasurements.length >= 1;
+};
+
+export const getUpdatedParticipantsForMeasurements = (participants = [], measurements = []) => {
+  return participants.map((participant) => {
+    if (shouldCompleteParticipant(participant, measurements)) {
+      return { ...participant, status: 'Completed' };
+    }
+
+    return participant;
+  });
+};

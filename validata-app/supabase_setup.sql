@@ -144,3 +144,14 @@ WITH CHECK (
     )
 );
 
+-- 6. Data migration: update health_status check constraint and rename 'Sick' to 'Ankle Injured'
+ALTER TABLE public.participants
+DROP CONSTRAINT IF EXISTS participants_health_status_check;
+
+UPDATE public.participants
+SET health_status = 'Ankle Injured'
+WHERE health_status = 'Sick';
+
+ALTER TABLE public.participants
+ADD CONSTRAINT participants_health_status_check
+CHECK (health_status IN ('Healthy', 'Ankle Injured'));

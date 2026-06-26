@@ -15,6 +15,7 @@ import { supabase } from '../lib/supabase';
 import { getCookie, setCookie, deleteCookie } from '../lib/cookies';
 import { Clock, Ban, LogOut } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { shouldCompleteParticipant, getUpdatedParticipantsForMeasurements } from './components/Participants/service';
 
 export default function Home() {
   const router = useRouter();
@@ -144,7 +145,6 @@ export default function Home() {
       // 4. Fetch Clinical Trial Data (Only if Active)
       try {
         if (isDemo) {
-          setParticipants(mockData.participants);
           const mappedMockMeasurements = mockData.measurements.map((m, idx) => {
             // Look up enrollment date from mock participants
             const participantRecord = mockData.participants.find(p => p.id === m.participant);
@@ -161,6 +161,7 @@ export default function Home() {
               enrollmentDate: enrollmentDate
             };
           });
+          setParticipants(getUpdatedParticipantsForMeasurements(mockData.participants, mappedMockMeasurements));
           setMeasurements(mappedMockMeasurements);
         } else {
           // Fetch from API
@@ -213,7 +214,16 @@ export default function Home() {
             };
           });
 
-          setParticipants(mappedParticipants);
+          const participantsWithCompletedStatus = getUpdatedParticipantsForMeasurements(mappedParticipants, mappedMeasurements);
+          const newlyCompleted = participantsWithCompletedStatus.filter((p, i) => p.status !== mappedParticipants[i].status);
+          await Promise.all(newlyCompleted.map(p =>
+            fetch('/api/participants', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: p.id, status: 'Completed' })
+            }).catch(err => console.warn(`Failed to sync completed status for ${p.id}:`, err))
+          ));
+          setParticipants(participantsWithCompletedStatus);
           setMeasurements(mappedMeasurements);
         }
       } catch (error) {
@@ -290,8 +300,8 @@ export default function Home() {
     }
   };
 
-  const handleDropParticipant = async (id) => {
-    if (window.confirm(`This will permanently drop participant ${id} from the study. This cannot be undone. Continue?`)) {
+  const handleSuspendParticipant = async (id) => {
+    if (window.confirm(`Are you sure you want to suspend participant ${id}?`)) {
       if (isDemoMode) {
         setParticipants(
           participants.map((p) => (p.id === id ? { ...p, status: 'Dropped' } : p))
@@ -307,13 +317,13 @@ export default function Home() {
 
           if (!res.ok) {
             const errData = await res.json();
-            throw new Error(errData.error || 'Failed to drop participant');
+            throw new Error(errData.error || 'Failed to suspend participant');
           }
 
           setParticipants(
             participants.map((p) => (p.id === id ? { ...p, status: 'Dropped' } : p))
           );
-          triggerToast(`Participant ${id} dropped successfully.`);
+          triggerToast(`Participant ${id} suspended successfully.`);
         } catch (error) {
           console.error('Error updating participant status:', error);
           triggerToast('Failed to update participant: ' + error.message);
@@ -354,7 +364,13 @@ export default function Home() {
         enrollmentDate: enrollmentDate
       };
 
-      setMeasurements([newMeasurement, ...measurements]);
+      const nextMeasurements = [newMeasurement, ...measurements];
+      setMeasurements(nextMeasurements);
+
+      const participant = participants.find(p => p.id === participantId);
+      if (participant && shouldCompleteParticipant(participant, nextMeasurements)) {
+        setParticipants(prev => prev.map(p => p.id === participantId ? { ...p, status: 'Completed' } : p));
+      }
       triggerToast('Measurement logged and saved! (Demo)');
     } else {
       try {
@@ -385,7 +401,18 @@ export default function Home() {
           enrollmentDate: enrollmentDate
         };
 
-        setMeasurements([newMeasurement, ...measurements]);
+        const nextMeasurements = [newMeasurement, ...measurements];
+        setMeasurements(nextMeasurements);
+
+        const affectedParticipant = participants.find(p => p.id === participantId);
+        if (affectedParticipant && shouldCompleteParticipant(affectedParticipant, nextMeasurements)) {
+          setParticipants(prev => prev.map(p => p.id === participantId ? { ...p, status: 'Completed' } : p));
+          await fetch('/api/participants', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: participantId, status: 'Completed' })
+          }).catch(err => console.warn(`Failed to persist completed status for ${participantId}:`, err));
+        }
         triggerToast('Measurement saved directly to the database!');
       } catch (error) {
         console.error('Error logging measurement:', error);
@@ -524,10 +551,6 @@ export default function Home() {
           }
 
           const savedData = await res.json();
-          // Look up enrollment date from participants
-          const participantRecord = participants.find(p => p.id === savedData.participant_id);
-          const enrollmentDate = participantRecord?.enrollmentDate || null;
-          
           newMeasurements.push({
             id: savedData.id,
             participant: savedData.participant_id,
@@ -535,8 +558,7 @@ export default function Home() {
             aiModel: `${parseFloat(savedData.ai_model).toFixed(1)}°`,
             notes: savedData.notes,
             timestamp: formattedTimestamp,
-            testDate: savedData.test_date || savedData.testDate || testDateValue || new Date().toISOString().split('T')[0],
-            enrollmentDate: enrollmentDate
+            testDate: savedData.test_date || savedData.testDate || testDateValue || new Date().toISOString().split('T')[0]
           });
           successCount++;
         }
@@ -547,8 +569,31 @@ export default function Home() {
     }
 
     if (newMeasurements.length > 0) {
-      // Reverse array to ensure newest IDs are prepended first, maintaining descending order
-      setMeasurements(prev => [...newMeasurements.reverse(), ...prev]);
+      const nextMeasurements = [...newMeasurements.reverse(), ...measurements];
+      setMeasurements(nextMeasurements);
+
+      const nextParticipants = getUpdatedParticipantsForMeasurements(participants, nextMeasurements);
+      const newlyCompletedIds = nextParticipants
+        .filter((p, i) =>
+          String(p.status).toLowerCase() === 'completed' &&
+          String(participants[i].status).toLowerCase() !== 'completed'
+        )
+        .map(p => p.id);
+
+      if (newlyCompletedIds.length > 0) {
+        setParticipants(nextParticipants);
+        if (!isDemoMode) {
+          await Promise.allSettled(
+            newlyCompletedIds.map(id =>
+              fetch('/api/participants', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, status: 'Completed' })
+              })
+            )
+          );
+        }
+      }
     }
 
     return { successCount, errorCount, errors };
@@ -717,7 +762,7 @@ export default function Home() {
             <Participants
               participants={participants}
               onAddParticipant={handleAddParticipant}
-              onDropParticipant={handleDropParticipant}
+              onSuspendParticipant={handleSuspendParticipant}
             />
           )}
 

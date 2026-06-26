@@ -81,7 +81,7 @@ const ParticipantsDisplay = ({
                 className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
               >
                 <option value="Healthy">Healthy</option>
-                <option value="Ankle Injury">Ankle Injury</option>
+                <option value="Ankle Injured">Ankle Injured</option>
               </select>
             </div>
 
@@ -130,43 +130,50 @@ const ParticipantsDisplay = ({
                 </tr>
               </thead>
               <tbody>
-                {participants.map((p) => (
-                  <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
-                    <td className="py-3 px-2 font-medium text-slate-800 dark:text-slate-100">{p.id}</td>
-                    <td className="py-3 px-2">
-                      {p.consent ? (
-                        <span className="text-green-600 dark:text-green-400 font-bold">✓ Signed</span>
-                      ) : (
-                        <span className="text-red-500 dark:text-red-400">Missing</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-2">
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full ${p.status === 'Active'
-                          ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
-                          : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                          }`}
-                      >
-                        {p.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 text-sm text-slate-600 dark:text-slate-300">
-                      {p.enrollmentDateDisplay || '—'}
-                    </td>
-                    <td className="py-3 px-2">
-                      {p.status === 'Active' && (
-                        <HoverTooltip text="Permanently removes this participant from active tracking. This action cannot be undone.">
-                          <button
-                            onClick={() => onDrop(p.id)}
-                            className="text-sm text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline"
-                          >
-                            Drop
-                          </button>
-                        </HoverTooltip>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {participants.map((p) => {
+                  const normalizedStatus = String(p.status || '').toLowerCase();
+                  const statusLabel = normalizedStatus === 'completed' ? 'Completed' : p.status;
+
+                  return (
+                    <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+                      <td className="py-3 px-2 font-medium text-slate-800 dark:text-slate-100">{p.id}</td>
+                      <td className="py-3 px-2">
+                        {p.consent ? (
+                          <span className="text-green-600 dark:text-green-400 font-bold">✓ Signed</span>
+                        ) : (
+                          <span className="text-red-500 dark:text-red-400">Missing</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-2">
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full ${p.status === 'Active'
+                            ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                            : normalizedStatus === 'completed'
+                              ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
+                              : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                            }`}
+                        >
+                          {statusLabel}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 text-sm text-slate-600 dark:text-slate-300">
+                        {p.enrollmentDateDisplay || '—'}
+                      </td>
+                      <td className="py-3 px-2">
+                        {normalizedStatus !== 'dropped' && (
+                          <HoverTooltip text="Permanently removes this participant from active tracking. This action cannot be undone.">
+                            <button
+                              onClick={() => onDrop(p.id)}
+                              className="text-sm text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline"
+                            >
+                              Drop
+                            </button>
+                          </HoverTooltip>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {participants.length === 0 && (
                   <tr>
                     <td colSpan="5" className="text-center py-6 text-slate-500 dark:text-slate-400">

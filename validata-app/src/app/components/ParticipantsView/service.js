@@ -4,11 +4,11 @@
 /**
  * Calculates statistics for the participants list.
  * @param {Array} participants 
- * @returns {Object} stats containing average age, healthy count, sick count, etc.
+ * @returns {Object} stats containing average age, healthy count, ankle injured count, etc.
  */
 export const getParticipantStats = (participants) => {
   if (!participants || participants.length === 0) {
-    return { avgAge: 0, healthyCount: 0, sickCount: 0, totalCount: 0 };
+    return { avgAge: 0, healthyCount: 0, ankleInjuredCount: 0, totalCount: 0 };
   }
 
   const validAges = participants
@@ -20,12 +20,12 @@ export const getParticipantStats = (participants) => {
     : 0;
 
   const healthyCount = participants.filter(p => p.healthStatus === 'Healthy').length;
-  const sickCount = participants.filter(p => p.healthStatus === 'Sick').length;
+  const ankleInjuredCount = participants.filter(p => p.healthStatus === 'Ankle Injured').length;
 
   return {
     avgAge,
     healthyCount,
-    sickCount,
+    ankleInjuredCount,
     totalCount: participants.length
   };
 };
