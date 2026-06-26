@@ -78,8 +78,41 @@ const ParticipantsViewDisplay = ({
           </div>
         </div>
 
+        {/* Mobile cards — replaces the table below md */}
+        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+          {participants.length === 0 ? (
+            <p className="text-center py-10 text-slate-500 dark:text-slate-400">No participants match the criteria</p>
+          ) : (
+            participants.map((p) => (
+              <div key={p.id} className="p-4">
+                <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-100 mb-2">
+                  <Activity className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+                  {p.id}
+                </div>
+                <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
+                  <span>Age: {p.age || 'N/A'}</span>
+                  <span>Gender: {p.gender || 'N/A'}</span>
+                </div>
+                <div className="mt-2">
+                  <span
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                      p.healthStatus === 'Healthy'
+                        ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300'
+                        : p.healthStatus === 'Sick'
+                        ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300'
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    {p.healthStatus || 'N/A'}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
         {/* Participants Table */}
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-sm border-b border-slate-200 dark:border-slate-800">

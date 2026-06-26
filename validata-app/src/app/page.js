@@ -668,7 +668,7 @@ export default function Home() {
             onHide={() => setShowToast(false)}
           />
 
-          <div className="p-4 md:p-8 max-w-6xl mx-auto w-full flex-grow">
+          <div className="p-4 pb-20 md:p-8 max-w-6xl mx-auto w-full flex-grow">
           {currentView === 'participants' && (
             <Participants
               participants={participants}

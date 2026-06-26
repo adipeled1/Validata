@@ -13,8 +13,9 @@ const SidebarDisplay = ({ currentView, onNavigate, navItems, userRole, currentUs
   const showLabels = isExpanded;
 
   return (
+    <>
     <aside
-      className={`${isExpanded ? 'w-64' : 'w-16'} bg-slate-900 text-slate-100 flex flex-col shadow-xl relative shrink-0 transition-[width] duration-200`}
+      className={`hidden md:flex md:flex-col ${isExpanded ? 'w-64' : 'w-16'} bg-slate-900 text-slate-100 shadow-xl relative shrink-0 transition-[width] duration-200`}
     >
         <div className={`p-3 border-b border-slate-700 flex items-center gap-2 ${showLabels ? 'flex-row justify-between' : 'flex-col'}`}>
           <div className={`flex items-center gap-3 overflow-hidden ${showLabels ? '' : 'flex-col'}`}>
@@ -82,6 +83,40 @@ const SidebarDisplay = ({ currentView, onNavigate, navItems, userRole, currentUs
           </div>
         </div>
     </aside>
+
+    {/* Mobile bottom tab bar — replaces the rail below md; horizontally
+        scrollable so it scales with role-dependent item counts */}
+    <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900 text-slate-100 border-t border-slate-700 flex items-stretch overflow-x-auto pb-[env(safe-area-inset-bottom)]">
+      {navItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = currentView === item.id;
+        return (
+          <button
+            key={item.id}
+            onClick={() => onNavigate(item.id)}
+            title={item.label}
+            className={`flex-1 min-w-[64px] flex flex-col items-center justify-center gap-1 py-2.5 cursor-pointer ${isActive ? 'text-blue-400' : 'text-slate-400'}`}
+          >
+            <Icon className="w-5 h-5" />
+          </button>
+        );
+      })}
+      <button
+        onClick={toggleTheme}
+        title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        className="flex-1 min-w-[64px] flex flex-col items-center justify-center py-2.5 text-slate-400 cursor-pointer"
+      >
+        {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+      </button>
+      <button
+        onClick={onLogout}
+        title="Log Out"
+        className="flex-1 min-w-[64px] flex flex-col items-center justify-center py-2.5 text-rose-400 cursor-pointer"
+      >
+        <LogOut className="w-5 h-5" />
+      </button>
+    </nav>
+    </>
   );
 };
 
