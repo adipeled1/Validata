@@ -155,3 +155,164 @@ WHERE health_status = 'Sick';
 ALTER TABLE public.participants
 ADD CONSTRAINT participants_health_status_check
 CHECK (health_status IN ('Healthy', 'Ankle Injured'));
+
+-- 7. Allow toggling is_valid on measurements - the app never edits
+-- goniometer/ai_model values in place once written, only this flag.
+DROP POLICY IF EXISTS "Allow active authenticated users to update measurements" ON public.measurements;
+
+CREATE POLICY "Allow active authenticated users to update measurements"
+ON public.measurements
+FOR UPDATE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE public.profiles.id = auth.uid() AND public.profiles.status = 'active'
+    )
+);
+
+-- 8. Studies table. Every study has its own recruitment goal; participants
+-- and measurements are tagged with a study_id so mentors/team members can
+-- switch between studies and only ever see one study's data at a time.
+-- There is no per-member access control yet - any active user can see and
+-- switch between all studies.
+CREATE TABLE IF NOT EXISTS public.studies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL UNIQUE,
+    recruitment_goal INTEGER NOT NULL DEFAULT 50,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+INSERT INTO public.studies (name, recruitment_goal)
+VALUES ('braude''s_research_1', 50), ('braude''s_research_2', 30)
+ON CONFLICT (name) DO NOTHING;
+
+ALTER TABLE public.studies ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow active authenticated users to view studies" ON public.studies;
+DROP POLICY IF EXISTS "Allow mentors to create studies" ON public.studies;
+DROP POLICY IF EXISTS "Allow mentors to update studies" ON public.studies;
+
+CREATE POLICY "Allow active authenticated users to view studies"
+ON public.studies
+FOR SELECT
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE public.profiles.id = auth.uid() AND public.profiles.status = 'active'
+    )
+);
+
+CREATE POLICY "Allow mentors to create studies"
+ON public.studies
+FOR INSERT
+TO authenticated
+WITH CHECK (public.is_mentor());
+
+CREATE POLICY "Allow mentors to update studies"
+ON public.studies
+FOR UPDATE
+TO authenticated
+USING (public.is_mentor());
+
+-- 9. Tag existing tables with study_id, backfilling pre-existing rows into
+-- braude's_research_1 so nothing currently in the database becomes orphaned.
+ALTER TABLE public.participants ADD COLUMN IF NOT EXISTS study_id UUID REFERENCES public.studies(id);
+ALTER TABLE public.measurements ADD COLUMN IF NOT EXISTS study_id UUID REFERENCES public.studies(id);
+
+UPDATE public.participants
+SET study_id = (SELECT id FROM public.studies WHERE name = 'braude''s_research_1')
+WHERE study_id IS NULL;
+
+UPDATE public.measurements
+SET study_id = (SELECT id FROM public.studies WHERE name = 'braude''s_research_1')
+WHERE study_id IS NULL;
+
+ALTER TABLE public.participants ALTER COLUMN study_id SET NOT NULL;
+ALTER TABLE public.measurements ALTER COLUMN study_id SET NOT NULL;
+
+-- participants.id was previously the sole primary key, so the same
+-- human-readable id (e.g. "P-1001") could not exist in two different studies.
+-- Replace it with a composite primary key of (id, study_id), so each study
+-- gets its own independent P-1001, P-1002... sequence.
+--
+-- measurements.participant_id has a foreign key into participants' current
+-- PK, which blocks dropping it. Drop every FK that references participants
+-- (discovered dynamically, in case the name differs from what's expected)
+-- before swapping the PK, then recreate the measurements FK below as a
+-- composite key against (id, study_id) - a participant id is now only
+-- unique within a study, so the FK must include study_id too.
+DO $$
+DECLARE
+  fk RECORD;
+BEGIN
+  FOR fk IN
+    SELECT con.conname, rel.relname AS table_name
+    FROM pg_constraint con
+    JOIN pg_class rel ON rel.oid = con.conrelid
+    JOIN pg_class frel ON frel.oid = con.confrelid
+    WHERE con.contype = 'f'
+      AND frel.relname = 'participants'
+      AND frel.relnamespace = 'public'::regnamespace
+  LOOP
+    EXECUTE format('ALTER TABLE public.%I DROP CONSTRAINT %I', fk.table_name, fk.conname);
+  END LOOP;
+END $$;
+
+DO $$
+DECLARE
+  pk_name text;
+BEGIN
+  SELECT tc.constraint_name INTO pk_name
+  FROM information_schema.table_constraints tc
+  WHERE tc.table_schema = 'public'
+    AND tc.table_name = 'participants'
+    AND tc.constraint_type = 'PRIMARY KEY';
+
+  IF pk_name IS NOT NULL THEN
+    EXECUTE format('ALTER TABLE public.participants DROP CONSTRAINT %I', pk_name);
+  END IF;
+END $$;
+
+ALTER TABLE public.participants ADD PRIMARY KEY (id, study_id);
+
+-- Recreate the measurements -> participants link as a composite FK. This
+-- only succeeds if every measurement's (participant_id, study_id) pair
+-- matches an existing participant row, which holds here because both tables
+-- were just backfilled into the same single study above.
+ALTER TABLE public.measurements
+ADD CONSTRAINT measurements_participant_study_fkey
+FOREIGN KEY (participant_id, study_id) REFERENCES public.participants (id, study_id);
+
+-- 10. Validity flag for measurements. Once a measurement's value is written
+-- it is never edited in place - instead it can be flagged invalid (one-way,
+-- like Drop) and is excluded from the statistics/Bland-Altman calculations.
+-- Defaults to valid for every row, including bulk Excel/CSV/JSON imports.
+ALTER TABLE public.measurements ADD COLUMN IF NOT EXISTS is_valid BOOLEAN NOT NULL DEFAULT true;
+
+-- 11. Deleting a study (mentors only, via the Study Management screen)
+-- permanently deletes all of its participants and measurements too. The API
+-- route deletes the child rows explicitly before deleting the study row, so
+-- these DELETE policies are required on all three tables.
+DROP POLICY IF EXISTS "Allow mentors to delete studies" ON public.studies;
+DROP POLICY IF EXISTS "Allow mentors to delete participants" ON public.participants;
+DROP POLICY IF EXISTS "Allow mentors to delete measurements" ON public.measurements;
+
+CREATE POLICY "Allow mentors to delete studies"
+ON public.studies
+FOR DELETE
+TO authenticated
+USING (public.is_mentor());
+
+CREATE POLICY "Allow mentors to delete participants"
+ON public.participants
+FOR DELETE
+TO authenticated
+USING (public.is_mentor());
+
+CREATE POLICY "Allow mentors to delete measurements"
+ON public.measurements
+FOR DELETE
+TO authenticated
+USING (public.is_mentor());

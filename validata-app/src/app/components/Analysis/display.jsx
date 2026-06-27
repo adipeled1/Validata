@@ -31,10 +31,13 @@ const INFO_HISTOGRAM =
   'How often each error size occurs. A narrow, centered peak means the AI is consistently close to the goniometer. A wide or off-center histogram indicates systematic errors.';
 
 const INFO_TREND =
-  'RMSE and MAE over time. Decreasing values indicate the AI model is improving across sessions. RMSE (Root Mean Square Error) penalises large errors more heavily. MAE (Mean Absolute Error) treats all errors equally. Both are in degrees — lower is better.';
+  'RMSE and MAE per participant. Each point uses that participant\'s average AI and goniometer readings. RMSE (Root Mean Square Error) penalises large errors more heavily. MAE (Mean Absolute Error) treats all errors equally. Both are in degrees — lower is better.';
 
 const infoDonut = (threshold) =>
   `Percentage of measurements where the AI error was within the acceptable clinical threshold of ±${threshold}°. Green = pass, red = fail.`;
+
+const INFO_DESCRIPTIVE =
+  'Descriptive statistics of the AI − goniometer error across participants, after averaging each participant\'s own measurements. Mean shows the average error (bias); SD shows how spread out errors are between participants; SE shows how precisely the mean error is estimated from this sample size.';
 
 // Pure presentational component
 const AnalysisDisplay = ({
@@ -46,6 +49,7 @@ const AnalysisDisplay = ({
   aiResult,
   statsData,
   summaryStats,
+  descriptiveStats,
   charts,
   threshold,
   onThresholdChange,
@@ -53,6 +57,7 @@ const AnalysisDisplay = ({
   lastUpdated,
 }) => {
   const { rmse, mae, meanBias, passRate } = summaryStats;
+  const { n: descN, mean: descMean, sd: descSd, se: descSe } = descriptiveStats || { n: 0, mean: 0, sd: 0, se: 0 };
   const isEmpty = !isLoadingCharts && statsData.length === 0;
 
   const formattedTime = lastUpdated
@@ -298,6 +303,34 @@ const AnalysisDisplay = ({
           >
             <div className="max-w-sm mx-auto">
               <ThresholdDonut data={charts?.thresholdDonut} threshold={threshold} />
+            </div>
+          </ChartCard>
+
+          {/* Descriptive Statistics — mean/SD/SE of the AI-goniometer error across participants */}
+          <ChartCard title="Descriptive Statistics" info={INFO_DESCRIPTIVE} isEmpty={descN === 0}>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">N</p>
+                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">{descN}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Participants</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Mean Error</p>
+                <p className={`text-2xl font-bold mt-1 ${descMean >= 0 ? 'text-amber-500 dark:text-amber-400' : 'text-rose-500 dark:text-rose-400'}`}>
+                  {descMean >= 0 ? '+' : ''}{descMean.toFixed(2)}°
+                </p>
+                <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Average bias</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">SD</p>
+                <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">{descSd.toFixed(2)}°</p>
+                <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Standard Deviation</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">SE</p>
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{descSe.toFixed(2)}°</p>
+                <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Standard Error</p>
+              </div>
             </div>
           </ChartCard>
         </>

@@ -5,7 +5,16 @@ import { getNavItems } from './service';
 // Controller component manages data fetching/logic for the view
 // Note: isExpanded only affects the desktop <aside> rail — mobile renders a
 // separate fixed top bar + bottom nav (see SidebarDisplay) that doesn't use it.
-const SidebarControl = ({ currentView, onNavigate, userRole, currentUserEmail, onLogout }) => {
+const SidebarControl = ({
+  currentView,
+  onNavigate,
+  userRole,
+  currentUserEmail,
+  onLogout,
+  studies = [],
+  currentStudyId,
+  onSwitchStudy
+}) => {
   const navItems = getNavItems(userRole);
   const [isExpanded, setIsExpanded] = useState(() => {
     if (typeof window === 'undefined') return true;
@@ -34,9 +43,11 @@ const SidebarControl = ({ currentView, onNavigate, userRole, currentUserEmail, o
       onLogout={onLogout}
       isExpanded={isExpanded}
       onToggleExpanded={handleToggleExpanded}
+      studies={studies}
+      currentStudyId={currentStudyId}
+      onSwitchStudy={onSwitchStudy}
     />
   );
 };
 
 export default SidebarControl;
-

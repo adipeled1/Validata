@@ -5,6 +5,12 @@ export const countActiveParticipants = (participants) => {
   return participants.filter((p) => p.status === 'Active').length;
 };
 
+// "Recruited" = anyone still meaningfully part of the study (not dropped),
+// since a Completed participant was still successfully recruited.
+export const countRecruitedParticipants = (participants) => {
+  return participants.filter((p) => p.status === 'Active' || p.status === 'Completed').length;
+};
+
 export const getTodayDateString = (date = new Date()) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -25,46 +31,4 @@ export const formatDateForDisplay = (value) => {
   const year = parsedDate.getFullYear();
 
   return `${day}/${month}/${year}`;
-};
-
-const parseAngleValue = (value) => {
-  if (value === null || value === undefined || value === '') return null;
-
-  const normalized = String(value).trim().replace('°', '');
-  const parsed = parseFloat(normalized);
-
-  return Number.isNaN(parsed) ? null : parsed;
-};
-
-export const hasCompleteMeasurement = (measurement) => {
-  const goniometer = parseAngleValue(measurement?.goniometer);
-  const aiModel = parseAngleValue(measurement?.aiModel);
-
-  return goniometer !== null && aiModel !== null && goniometer > 0 && aiModel > 0;
-};
-
-export const shouldCompleteParticipant = (participant, measurements = []) => {
-  if (!participant) return false;
-
-  const normalizedStatus = String(participant.status || '').toLowerCase();
-  if (normalizedStatus === 'completed' || normalizedStatus === 'dropped') {
-    return false;
-  }
-
-  const completedMeasurements = measurements.filter((measurement) => {
-    if (measurement?.participant !== participant.id) return false;
-    return hasCompleteMeasurement(measurement);
-  });
-
-  return completedMeasurements.length >= 1;
-};
-
-export const getUpdatedParticipantsForMeasurements = (participants = [], measurements = []) => {
-  return participants.map((participant) => {
-    if (shouldCompleteParticipant(participant, measurements)) {
-      return { ...participant, status: 'Completed' };
-    }
-
-    return participant;
-  });
 };

@@ -9,26 +9,31 @@ import DataCollection from './components/DataCollection/control';
 import Analysis from './components/Analysis/control';
 import Results from './components/Results/control';
 import UserManagement from './components/UserManagement/control';
+import StudyManagement from './components/StudyManagement/control';
 import Toast from './components/Toast/control';
 import mockData from '../mockData.json';
 import { supabase } from '../lib/supabase';
 import { getCookie, setCookie, deleteCookie } from '../lib/cookies';
 import { Clock, Ban, LogOut } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { shouldCompleteParticipant, getUpdatedParticipantsForMeasurements } from './components/Participants/service';
 
 export default function Home() {
   const router = useRouter();
-  
+
   // Dashboard views
   const [currentView, setCurrentView] = useState('participants');
-  
+
   // App data
   const [participants, setParticipants] = useState([]);
   const [measurements, setMeasurements] = useState([]);
   const [isDemoMode, setIsDemoMode] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [nextId, setNextId] = useState(1009);
+
+  // Studies (multi-study support: each study has its own participants/measurements/goal)
+  const [studies, setStudies] = useState([]);
+  const [currentStudyId, setCurrentStudyId] = useState(null);
+  const currentStudy = studies.find((s) => s.id === currentStudyId) || null;
 
   // User auth profile details
   const [userRole, setUserRole] = useState('team_member');
@@ -54,7 +59,7 @@ export default function Home() {
     deleteCookie('demo-session');
     deleteCookie('user-role');
     deleteCookie('user-status');
-    
+
     try {
       if (!isDemoMode) {
         await supabase.auth.signOut();
@@ -62,16 +67,226 @@ export default function Home() {
     } catch (e) {
       console.warn('Supabase logout warning:', e);
     }
-    
+
     router.push('/login');
     router.refresh();
+  };
+
+  // Fetches participants + measurements for one study, mapping DB/mock shapes
+  // to the frontend's expected camelCase records. Shared by the initial load
+  // and by handleSwitchStudy/handleAddStudy.
+  const loadDataForStudy = async (studyId, demoFlag) => {
+    if (demoFlag) {
+      const filteredParticipants = mockData.participants.filter((p) => p.study_id === studyId);
+      const filteredMeasurements = mockData.measurements.filter((m) => m.study_id === studyId);
+
+      const mappedMeasurements = filteredMeasurements.map((m, idx) => {
+        const participantRecord = filteredParticipants.find(p => p.id === m.participant);
+        const enrollmentDate = participantRecord?.enrollmentDate || null;
+
+        return {
+          id: filteredMeasurements.length - idx,
+          participant: m.participant,
+          goniometer: m.goniometer,
+          aiModel: m.aiModel,
+          notes: m.notes,
+          timestamp: m.timestamp,
+          testDate: m.testDate || m.test_date || null,
+          enrollmentDate,
+          isValid: m.isValid !== false
+        };
+      });
+
+      setParticipants(filteredParticipants);
+      setMeasurements(mappedMeasurements);
+      return;
+    }
+
+    const resP = await fetch(`/api/participants?study_id=${studyId}`);
+    if (!resP.ok) throw new Error('Failed to fetch participants');
+    const pData = await resP.json();
+    if (pData.error) throw new Error(pData.error);
+
+    const resM = await fetch(`/api/measurements?study_id=${studyId}`);
+    if (!resM.ok) throw new Error('Failed to fetch measurements');
+    const mData = await resM.json();
+    if (mData.error) throw new Error(mData.error);
+
+    // Map database records to frontend expected camelCase formats
+    const mappedParticipants = pData.map(p => ({
+      id: p.id,
+      consent: p.consent,
+      status: p.status,
+      age: p.age,
+      gender: p.gender,
+      healthStatus: p.health_status,
+      enrollmentDate: p.enrollment_date || p.enrollmentDate || null
+    }));
+
+    const mappedMeasurements = mData.map(m => {
+      let formattedDate = m.timestamp;
+      try {
+        const d = new Date(m.timestamp);
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const year = d.getFullYear();
+        const hours = d.getHours().toString().padStart(2, '0');
+        const minutes = d.getMinutes().toString().padStart(2, '0');
+        formattedDate = `${day}/${month}/${year} ${hours}:${minutes}`;
+      } catch { }
+
+      // Look up enrollment date from participants
+      const participantRecord = mappedParticipants.find(p => p.id === m.participant_id);
+      const enrollmentDate = participantRecord?.enrollmentDate || null;
+
+      return {
+        id: m.id,
+        participant: m.participant_id,
+        goniometer: `${parseFloat(m.goniometer).toFixed(1)}°`,
+        aiModel: `${parseFloat(m.ai_model).toFixed(1)}°`,
+        notes: m.notes,
+        timestamp: formattedDate,
+        testDate: m.test_date || m.testDate || null,
+        enrollmentDate,
+        isValid: m.is_valid !== false
+      };
+    });
+
+    setParticipants(mappedParticipants);
+    setMeasurements(mappedMeasurements);
+  };
+
+  const handleSwitchStudy = async (studyId) => {
+    setCurrentStudyId(studyId);
+    setIsLoading(true);
+    try {
+      await loadDataForStudy(studyId, isDemoMode);
+    } catch (error) {
+      console.error('Error switching study:', error);
+      triggerToast('Failed to load study: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddStudy = async (name, goal) => {
+    const recruitmentGoal = parseInt(goal) || 50;
+
+    if (isDemoMode) {
+      const newStudy = { id: `demo-${Date.now()}`, name, recruitment_goal: recruitmentGoal };
+      setStudies((prev) => [...prev, newStudy]);
+      setCurrentStudyId(newStudy.id);
+      setParticipants([]);
+      setMeasurements([]);
+      triggerToast(`Study "${name}" created. (Demo)`);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/studies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, recruitmentGoal })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create study');
+
+      setStudies((prev) => [...prev, data]);
+      setCurrentStudyId(data.id);
+      setParticipants([]);
+      setMeasurements([]);
+      triggerToast(`Study "${name}" created.`);
+    } catch (error) {
+      console.error('Error creating study:', error);
+      triggerToast('Failed to create study: ' + error.message);
+    }
+  };
+
+  // Deleting a study permanently deletes all of its participants and
+  // measurements too - confirmation lives in StudyManagement/control.jsx,
+  // this handler just performs the (already-confirmed) deletion.
+  const handleDeleteStudy = async (id) => {
+    const study = studies.find((s) => s.id === id);
+    if (!study) return;
+
+    const remaining = studies.filter((s) => s.id !== id);
+    const wasCurrent = currentStudyId === id;
+    const nextStudyId = wasCurrent ? (remaining.length > 0 ? remaining[0].id : null) : currentStudyId;
+
+    if (isDemoMode) {
+      setStudies(remaining);
+      if (wasCurrent) {
+        setCurrentStudyId(nextStudyId);
+        if (nextStudyId) {
+          await loadDataForStudy(nextStudyId, true);
+        } else {
+          setParticipants([]);
+          setMeasurements([]);
+        }
+      }
+      triggerToast(`Study "${study.name}" deleted. (Demo)`);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/studies?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete study');
+
+      setStudies(remaining);
+      if (wasCurrent) {
+        setCurrentStudyId(nextStudyId);
+        if (nextStudyId) {
+          await loadDataForStudy(nextStudyId, false);
+        } else {
+          setParticipants([]);
+          setMeasurements([]);
+        }
+      }
+      triggerToast(`Study "${study.name}" deleted.`);
+    } catch (error) {
+      console.error('Error deleting study:', error);
+      triggerToast('Failed to delete study: ' + error.message);
+    }
+  };
+
+  const handleUpdateRecruitmentGoal = async (newGoal) => {
+    const goal = parseInt(newGoal);
+    if (isNaN(goal) || goal < 1) {
+      triggerToast('Recruitment goal must be a positive number.');
+      return;
+    }
+
+    if (isDemoMode) {
+      setStudies((prev) => prev.map((s) => (s.id === currentStudyId ? { ...s, recruitment_goal: goal } : s)));
+      triggerToast('Recruitment goal updated. (Demo)');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/studies', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: currentStudyId, recruitmentGoal: goal })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update recruitment goal');
+
+      setStudies((prev) => prev.map((s) => (s.id === currentStudyId ? { ...s, recruitment_goal: goal } : s)));
+      triggerToast('Recruitment goal updated.');
+    } catch (error) {
+      console.error('Error updating recruitment goal:', error);
+      triggerToast('Failed to update recruitment goal: ' + error.message);
+    }
   };
 
   // Check Auth & Fetch Data on Mount
   useEffect(() => {
     const initializeAuthAndData = async () => {
       setIsLoading(true);
-      
+
       const token = getCookie('sb-access-token');
       const demoSessionStr = getCookie('demo-session');
 
@@ -142,95 +357,32 @@ export default function Home() {
         return;
       }
 
-      // 4. Fetch Clinical Trial Data (Only if Active)
+      // 4. Fetch Studies, then this study's participants/measurements (Only if Active)
       try {
+        let studyList;
         if (isDemo) {
-          const mappedMockMeasurements = mockData.measurements.map((m, idx) => {
-            // Look up enrollment date from mock participants
-            const participantRecord = mockData.participants.find(p => p.id === m.participant);
-            const enrollmentDate = participantRecord?.enrollmentDate || null;
-            
-            return {
-              id: mockData.measurements.length - idx,
-              participant: m.participant,
-              goniometer: m.goniometer,
-              aiModel: m.aiModel,
-              notes: m.notes,
-              timestamp: m.timestamp,
-              testDate: m.testDate || m.test_date || null,
-              enrollmentDate: enrollmentDate
-            };
-          });
-          setParticipants(getUpdatedParticipantsForMeasurements(mockData.participants, mappedMockMeasurements));
-          setMeasurements(mappedMockMeasurements);
+          studyList = mockData.studies;
         } else {
-          // Fetch from API
-          const resP = await fetch('/api/participants');
-          if (!resP.ok) throw new Error('Failed to fetch participants');
-          const pData = await resP.json();
-          if (pData.error) throw new Error(pData.error);
+          const resStudies = await fetch('/api/studies');
+          if (!resStudies.ok) throw new Error('Failed to fetch studies');
+          studyList = await resStudies.json();
+          if (studyList.error) throw new Error(studyList.error);
+        }
 
-          const resM = await fetch('/api/measurements');
-          if (!resM.ok) throw new Error('Failed to fetch measurements');
-          const mData = await resM.json();
-          if (mData.error) throw new Error(mData.error);
+        setStudies(studyList);
+        const defaultStudyId = studyList.length > 0 ? studyList[0].id : null;
+        setCurrentStudyId(defaultStudyId);
 
-          // Map database records to frontend expected camelCase formats
-          const mappedParticipants = pData.map(p => ({
-            id: p.id,
-            consent: p.consent,
-            status: p.status,
-            age: p.age,
-            gender: p.gender,
-            healthStatus: p.health_status,
-            enrollmentDate: p.enrollment_date || p.enrollmentDate || null
-          }));
-
-          const mappedMeasurements = mData.map(m => {
-            let formattedDate = m.timestamp;
-            try {
-              const d = new Date(m.timestamp);
-              const day = d.getDate().toString().padStart(2, '0');
-              const month = (d.getMonth() + 1).toString().padStart(2, '0');
-              const year = d.getFullYear();
-              const hours = d.getHours().toString().padStart(2, '0');
-              const minutes = d.getMinutes().toString().padStart(2, '0');
-              formattedDate = `${day}/${month}/${year} ${hours}:${minutes}`;
-            } catch { }
-
-            // Look up enrollment date from participants
-            const participantRecord = mappedParticipants.find(p => p.id === m.participant_id);
-            const enrollmentDate = participantRecord?.enrollmentDate || null;
-
-            return {
-              id: m.id,
-              participant: m.participant_id,
-              goniometer: `${parseFloat(m.goniometer).toFixed(1)}°`,
-              aiModel: `${parseFloat(m.ai_model).toFixed(1)}°`,
-              notes: m.notes,
-              timestamp: formattedDate,
-              testDate: m.test_date || m.testDate || null,
-              enrollmentDate: enrollmentDate
-            };
-          });
-
-          const participantsWithCompletedStatus = getUpdatedParticipantsForMeasurements(mappedParticipants, mappedMeasurements);
-          const newlyCompleted = participantsWithCompletedStatus.filter((p, i) => p.status !== mappedParticipants[i].status);
-          await Promise.all(newlyCompleted.map(p =>
-            fetch('/api/participants', {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: p.id, status: 'Completed' })
-            }).catch(err => console.warn(`Failed to sync completed status for ${p.id}:`, err))
-          ));
-          setParticipants(participantsWithCompletedStatus);
-          setMeasurements(mappedMeasurements);
+        if (defaultStudyId) {
+          await loadDataForStudy(defaultStudyId, isDemo);
         }
       } catch (error) {
         console.warn('API connection error, falling back to Demo Mode:', error);
         setIsDemoMode(true);
-        setParticipants(mockData.participants);
-        setMeasurements(mockData.measurements);
+        const demoStudyId = mockData.studies.length > 0 ? mockData.studies[0].id : null;
+        setStudies(mockData.studies);
+        setCurrentStudyId(demoStudyId);
+        if (demoStudyId) await loadDataForStudy(demoStudyId, true);
       } finally {
         setIsLoading(false);
       }
@@ -241,6 +393,11 @@ export default function Home() {
 
   // Participant Handlers
   const handleAddParticipant = async ({ consent, age, gender, healthStatus, enrollmentDate }) => {
+    if (!currentStudyId) {
+      triggerToast('Select or create a study before adding participants.');
+      return;
+    }
+
     if (isDemoMode) {
       const newId = `P-${nextId}`;
       setNextId((prev) => prev + 1);
@@ -252,6 +409,7 @@ export default function Home() {
         age: parseInt(age) || null,
         gender,
         healthStatus,
+        study_id: currentStudyId,
         enrollmentDate: enrollmentDate || new Date().toISOString().split('T')[0]
       };
       setParticipants([newParticipant, ...participants]);
@@ -272,7 +430,8 @@ export default function Home() {
             age: parseInt(age) || null,
             gender,
             healthStatus,
-            enrollmentDate: enrollmentDate || new Date().toISOString().split('T')[0]
+            enrollmentDate: enrollmentDate || new Date().toISOString().split('T')[0],
+            studyId: currentStudyId
           })
         });
 
@@ -288,6 +447,7 @@ export default function Home() {
           age: parseInt(age) || null,
           gender,
           healthStatus,
+          study_id: currentStudyId,
           enrollmentDate: enrollmentDate || new Date().toISOString().split('T')[0]
         };
 
@@ -312,7 +472,7 @@ export default function Home() {
           const res = await fetch('/api/participants', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, status: 'Dropped' })
+            body: JSON.stringify({ id, status: 'Dropped', studyId: currentStudyId })
           });
 
           if (!res.ok) {
@@ -332,8 +492,48 @@ export default function Home() {
     }
   };
 
+  // Completed is a manual, reversible toggle (Active <-> Completed) available
+  // to any active user - there's no global rule for "how many measurements
+  // counts as done", so the system never guesses; a person always decides.
+  const handleToggleParticipantCompleted = async (id) => {
+    const participant = participants.find((p) => p.id === id);
+    if (!participant) return;
+
+    const nextStatus = participant.status === 'Completed' ? 'Active' : 'Completed';
+
+    if (isDemoMode) {
+      setParticipants(participants.map((p) => (p.id === id ? { ...p, status: nextStatus } : p)));
+      triggerToast(`Participant marked ${nextStatus.toLowerCase()}. (Demo)`);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/participants', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: nextStatus, studyId: currentStudyId })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to update participant');
+      }
+
+      setParticipants(participants.map((p) => (p.id === id ? { ...p, status: nextStatus } : p)));
+      triggerToast(`Participant ${id} marked ${nextStatus.toLowerCase()}.`);
+    } catch (error) {
+      console.error('Error updating participant status:', error);
+      triggerToast('Failed to update participant: ' + error.message);
+    }
+  };
+
   // Measurement Handlers
   const handleLogMeasurement = async ({ participantId, goniometer, aiModel, notes, testDate }) => {
+    if (!currentStudyId) {
+      triggerToast('Select or create a study before logging a measurement.');
+      return;
+    }
+
     const nowObj = new Date();
     const formattedTimestamp = `${nowObj.getDate().toString().padStart(2, '0')}/${(
       nowObj.getMonth() + 1
@@ -361,23 +561,25 @@ export default function Home() {
         notes,
         timestamp: formattedTimestamp,
         testDate: testDate || new Date().toISOString().split('T')[0],
-        enrollmentDate: enrollmentDate
+        enrollmentDate,
+        isValid: true
       };
 
-      const nextMeasurements = [newMeasurement, ...measurements];
-      setMeasurements(nextMeasurements);
-
-      const participant = participants.find(p => p.id === participantId);
-      if (participant && shouldCompleteParticipant(participant, nextMeasurements)) {
-        setParticipants(prev => prev.map(p => p.id === participantId ? { ...p, status: 'Completed' } : p));
-      }
+      setMeasurements([newMeasurement, ...measurements]);
       triggerToast('Measurement logged and saved! (Demo)');
     } else {
       try {
         const res = await fetch('/api/measurements', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ participantId, goniometer, aiModel, notes, testDate: testDate || new Date().toISOString().split('T')[0] })
+          body: JSON.stringify({
+            participantId,
+            goniometer,
+            aiModel,
+            notes,
+            testDate: testDate || new Date().toISOString().split('T')[0],
+            studyId: currentStudyId
+          })
         });
 
         if (!res.ok) {
@@ -389,7 +591,7 @@ export default function Home() {
         // Look up participant's enrollment date
         const participantRecord = participants.find(p => p.id === savedData.participant_id);
         const enrollmentDate = participantRecord?.enrollmentDate || null;
-        
+
         const newMeasurement = {
           id: savedData.id,
           participant: savedData.participant_id,
@@ -398,26 +600,46 @@ export default function Home() {
           notes: savedData.notes,
           timestamp: formattedTimestamp,
           testDate: savedData.test_date || savedData.testDate || testDate || new Date().toISOString().split('T')[0],
-          enrollmentDate: enrollmentDate
+          enrollmentDate,
+          isValid: true
         };
 
-        const nextMeasurements = [newMeasurement, ...measurements];
-        setMeasurements(nextMeasurements);
-
-        const affectedParticipant = participants.find(p => p.id === participantId);
-        if (affectedParticipant && shouldCompleteParticipant(affectedParticipant, nextMeasurements)) {
-          setParticipants(prev => prev.map(p => p.id === participantId ? { ...p, status: 'Completed' } : p));
-          await fetch('/api/participants', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: participantId, status: 'Completed' })
-          }).catch(err => console.warn(`Failed to persist completed status for ${participantId}:`, err));
-        }
+        setMeasurements([newMeasurement, ...measurements]);
         triggerToast('Measurement saved directly to the database!');
       } catch (error) {
         console.error('Error logging measurement:', error);
         triggerToast('Failed to save measurement: ' + error.message);
       }
+    }
+  };
+
+  // Valid -> Invalid is one-way and irreversible (like Drop): once invalid,
+  // there is no UI path back to valid, so this is only ever called with the
+  // measurement going from valid to invalid.
+  const handleMarkMeasurementInvalid = async (id) => {
+    if (isDemoMode) {
+      setMeasurements((prev) => prev.map((m) => (m.id === id ? { ...m, isValid: false } : m)));
+      triggerToast('Measurement marked invalid. (Demo)');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/measurements', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, isValid: false })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to update measurement');
+      }
+
+      setMeasurements((prev) => prev.map((m) => (m.id === id ? { ...m, isValid: false } : m)));
+      triggerToast('Measurement marked invalid.');
+    } catch (error) {
+      console.error('Error updating measurement validity:', error);
+      triggerToast('Failed to update measurement: ' + error.message);
     }
   };
 
@@ -469,7 +691,7 @@ export default function Home() {
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      
+
       // Try different common keys for flexibility
       const pId = (row.participant_id || row.participant || row.participantid || row.participantId || '').toString().trim();
       const goniometerRaw = row.goniometer;
@@ -514,7 +736,8 @@ export default function Home() {
         goniometer: parsedGoniometer,
         aiModel: parsedAiModel,
         notes,
-        testDate: testDateValue || new Date().toISOString().split('T')[0]
+        testDate: testDateValue || new Date().toISOString().split('T')[0],
+        studyId: currentStudyId
       };
 
       try {
@@ -535,7 +758,8 @@ export default function Home() {
             notes,
             timestamp: formattedTimestamp,
             testDate: testDateValue || new Date().toISOString().split('T')[0],
-            enrollmentDate: enrollmentDate
+            enrollmentDate,
+            isValid: true
           });
           successCount++;
         } else {
@@ -558,7 +782,8 @@ export default function Home() {
             aiModel: `${parseFloat(savedData.ai_model).toFixed(1)}°`,
             notes: savedData.notes,
             timestamp: formattedTimestamp,
-            testDate: savedData.test_date || savedData.testDate || testDateValue || new Date().toISOString().split('T')[0]
+            testDate: savedData.test_date || savedData.testDate || testDateValue || new Date().toISOString().split('T')[0],
+            isValid: true
           });
           successCount++;
         }
@@ -569,31 +794,8 @@ export default function Home() {
     }
 
     if (newMeasurements.length > 0) {
-      const nextMeasurements = [...newMeasurements.reverse(), ...measurements];
-      setMeasurements(nextMeasurements);
-
-      const nextParticipants = getUpdatedParticipantsForMeasurements(participants, nextMeasurements);
-      const newlyCompletedIds = nextParticipants
-        .filter((p, i) =>
-          String(p.status).toLowerCase() === 'completed' &&
-          String(participants[i].status).toLowerCase() !== 'completed'
-        )
-        .map(p => p.id);
-
-      if (newlyCompletedIds.length > 0) {
-        setParticipants(nextParticipants);
-        if (!isDemoMode) {
-          await Promise.allSettled(
-            newlyCompletedIds.map(id =>
-              fetch('/api/participants', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, status: 'Completed' })
-              })
-            )
-          );
-        }
-      }
+      // Reverse array to ensure newest IDs are prepended first, maintaining descending order
+      setMeasurements(prev => [...newMeasurements.reverse(), ...prev]);
     }
 
     return { successCount, errorCount, errors };
@@ -632,7 +834,7 @@ export default function Home() {
 
         const result = await processImportedRows(rows);
         setImportSummary(result);
-        
+
         if (result.successCount > 0) {
           triggerToast(`Successfully imported ${result.successCount} measurements!`);
         } else {
@@ -686,7 +888,7 @@ export default function Home() {
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">Awaiting Mentor Approval</h2>
           <p className="text-slate-400 text-sm leading-relaxed mb-6">
-            Your registration was successful. However, access to Validata clinical trials portal requires approval. 
+            Your registration was successful. However, access to Validata clinical trials portal requires approval.
             Please ask a Project Mentor to activate your account <code className="text-indigo-300 font-mono text-xs">{currentUserEmail}</code> in the User Access panel.
           </p>
           <button
@@ -711,7 +913,7 @@ export default function Home() {
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">Account Access Suspended</h2>
           <p className="text-slate-400 text-sm leading-relaxed mb-6">
-            Your access to Validata clinical trials has been suspended by a project supervisor. 
+            Your access to Validata clinical trials has been suspended by a project supervisor.
             Please contact the Project Mentor for support regarding <code className="text-rose-300 font-mono text-xs">{currentUserEmail}</code>.
           </p>
           <button
@@ -734,6 +936,9 @@ export default function Home() {
         userRole={userRole}
         currentUserEmail={currentUserEmail}
         onLogout={handleLogout}
+        studies={studies}
+        currentStudyId={currentStudyId}
+        onSwitchStudy={handleSwitchStudy}
       />
 
       {/* Main Content Area */}
@@ -763,6 +968,10 @@ export default function Home() {
               participants={participants}
               onAddParticipant={handleAddParticipant}
               onDropParticipant={handleDropParticipant}
+              onToggleParticipantCompleted={handleToggleParticipantCompleted}
+              recruitmentGoal={currentStudy?.recruitment_goal ?? null}
+              onUpdateRecruitmentGoal={handleUpdateRecruitmentGoal}
+              userRole={userRole}
             />
           )}
 
@@ -793,13 +1002,22 @@ export default function Home() {
           )}
 
           {currentView === 'results' && (
-            <Results measurements={measurements} />
+            <Results measurements={measurements} onMarkInvalid={handleMarkMeasurementInvalid} />
           )}
 
           {currentView === 'userManagement' && userRole === 'mentor' && (
             <UserManagement
               isDemoMode={isDemoMode}
               currentUserEmail={currentUserEmail}
+            />
+          )}
+
+          {currentView === 'studyManagement' && userRole === 'mentor' && (
+            <StudyManagement
+              studies={studies}
+              currentStudyId={currentStudyId}
+              onAddStudy={handleAddStudy}
+              onDeleteStudy={handleDeleteStudy}
             />
           )}
           </div>

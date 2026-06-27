@@ -1,9 +1,21 @@
 
-import { LogOut, Sun, Moon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LogOut, Sun, Moon, ChevronLeft, ChevronRight, FlaskConical } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 
 // Pure presentational component
-const SidebarDisplay = ({ currentView, onNavigate, navItems, userRole, currentUserEmail, onLogout, isExpanded, onToggleExpanded }) => {
+const SidebarDisplay = ({
+  currentView,
+  onNavigate,
+  navItems,
+  userRole,
+  currentUserEmail,
+  onLogout,
+  isExpanded,
+  onToggleExpanded,
+  studies,
+  currentStudyId,
+  onSwitchStudy
+}) => {
   const { theme, toggleTheme } = useTheme();
   const initial = currentUserEmail ? currentUserEmail.charAt(0).toUpperCase() : 'U';
   const roleName = userRole === 'mentor' ? 'Project Mentor' : 'Team Member';
@@ -11,6 +23,7 @@ const SidebarDisplay = ({ currentView, onNavigate, navItems, userRole, currentUs
   // expanded = full labeled sidebar. Always in-flow (pushes content) — never an
   // overlay, so there's no backdrop/shadowing of the rest of the app.
   const showLabels = isExpanded;
+  const isStudyManagementActive = currentView === 'studyManagement';
 
   return (
     <>
@@ -30,6 +43,36 @@ const SidebarDisplay = ({ currentView, onNavigate, navItems, userRole, currentUs
           >
             {isExpanded ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
           </button>
+        </div>
+
+        {/* Study Switcher - desktop. Creating/deleting studies lives on its
+            own screen (Studies Management, linked from the bottom of this
+            sidebar for mentors) rather than inline here. */}
+        <div className={`p-3 border-b border-slate-700 ${showLabels ? '' : 'flex flex-col items-center'}`}>
+          {showLabels ? (
+            <>
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                <FlaskConical className="w-3.5 h-3.5" /> Study
+              </label>
+              <select
+                value={currentStudyId || ''}
+                onChange={(e) => onSwitchStudy(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+              >
+                {studies.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </>
+          ) : (
+            <button
+              title="Expand to switch study"
+              onClick={onToggleExpanded}
+              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+            >
+              <FlaskConical className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         <nav className="flex-1 p-2 space-y-2 overflow-y-auto">
@@ -52,6 +95,25 @@ const SidebarDisplay = ({ currentView, onNavigate, navItems, userRole, currentUs
             );
           })}
         </nav>
+
+        {/* Studies Management entry point - last item in the sidebar,
+            separate from the main nav list, mentor-only. Creating/deleting
+            studies happens on that screen, not here. */}
+        {userRole === 'mentor' && (
+          <div className="p-2 border-t border-slate-800">
+            <button
+              onClick={() => onNavigate('studyManagement')}
+              title="Studies Management"
+              className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left cursor-pointer ${showLabels ? '' : 'justify-center'} ${isStudyManagementActive
+                  ? 'bg-blue-600 text-white'
+                  : 'hover:bg-slate-800 text-slate-100'
+                }`}
+            >
+              <FlaskConical className="w-5 h-5 shrink-0" />
+              <span className={`whitespace-nowrap ${showLabels ? 'inline' : 'hidden'}`}>Studies Management</span>
+            </button>
+          </div>
+        )}
 
         {/* User Session and Logout Section */}
         <div className={`p-2 bg-slate-950 text-sm flex items-center gap-2 border-t border-slate-800 ${showLabels ? 'justify-between' : 'flex-col'}`}>
@@ -86,13 +148,36 @@ const SidebarDisplay = ({ currentView, onNavigate, navItems, userRole, currentUs
     </aside>
 
     {/* Mobile top bar — theme/logout live here below md, so the bottom tab
-        bar can give all nav items equal width with no scrolling. */}
-    <div className="md:hidden fixed top-0 inset-x-0 z-40 bg-slate-900 text-slate-100 border-b border-slate-700 flex items-center justify-between px-3 py-2">
-      <div className="flex items-center gap-2">
+        bar can give all nav items equal width with no scrolling. Study
+        switcher is a squeezed native <select> rather than the full desktop
+        block, since the bar only has room for the logo plus a couple of
+        icon-sized controls. The Studies Management button sits right next to
+        the switcher (mentor-only) rather than in the bottom tab bar. */}
+    <div className="md:hidden fixed top-0 inset-x-0 z-40 bg-slate-900 text-slate-100 border-b border-slate-700 flex items-center justify-between gap-2 px-3 py-2">
+      <div className="flex items-center gap-2 min-w-0">
         <img src="/favicon.png" alt="Validata Logo" className="w-6 h-6 object-contain shrink-0" />
-        <span className="font-bold tracking-wide">Validata</span>
+        <span className="font-bold tracking-wide shrink-0">Validata</span>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5 min-w-0">
+        <select
+          value={currentStudyId || ''}
+          onChange={(e) => onSwitchStudy(e.target.value)}
+          title="Switch study"
+          className="max-w-[8rem] bg-slate-800 border border-slate-700 rounded-lg py-1.5 pl-2 pr-1 text-xs text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer truncate"
+        >
+          {studies.map((s) => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+        {userRole === 'mentor' && (
+          <button
+            onClick={() => onNavigate('studyManagement')}
+            title="Studies Management"
+            className={`p-2 rounded-lg transition-all cursor-pointer ${isStudyManagementActive ? 'text-blue-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+          >
+            <FlaskConical className="h-5 w-5" />
+          </button>
+        )}
         <button
           onClick={toggleTheme}
           title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
@@ -133,4 +218,3 @@ const SidebarDisplay = ({ currentView, onNavigate, navItems, userRole, currentUs
 };
 
 export default SidebarDisplay;
-

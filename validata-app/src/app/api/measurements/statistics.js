@@ -27,6 +27,57 @@ export const getDifferences = (data) =>
     diff: d.aiAngle - d.goniometerAngle,
   }));
 
+// Each test involves multiple measurements per participant. Average AI and
+// goniometer readings per participant first, then every downstream
+// stat (RMSE, MAE, Bland-Altman, pass rate, histogram, trend) compares those
+// per-participant averages instead of raw individual measurements.
+export const aggregateByParticipant = (data) => {
+  const groups = {};
+
+  data.forEach((d) => {
+    const key = d.participantId || d.sessionId;
+    if (!key) return;
+
+    if (!groups[key]) {
+      groups[key] = { participantId: key, date: d.date, aiSum: 0, goniometerSum: 0, count: 0 };
+    }
+
+    groups[key].aiSum += d.aiAngle;
+    groups[key].goniometerSum += d.goniometerAngle;
+    groups[key].count += 1;
+    if (d.date && (!groups[key].date || d.date < groups[key].date)) {
+      groups[key].date = d.date;
+    }
+  });
+
+  return Object.values(groups).map((g) => ({
+    id: g.participantId,
+    sessionId: g.participantId,
+    participantId: g.participantId,
+    date: g.date,
+    aiAngle: g.aiSum / g.count,
+    goniometerAngle: g.goniometerSum / g.count,
+    measurementCount: g.count,
+  }));
+};
+
+// Descriptive statistics (mean, SD, SE) of the AI-goniometer error, computed
+// across participants' average errors (sample SD, n-1).
+export const calculateDescriptiveStats = (data) => {
+  if (!data.length) return { n: 0, mean: 0, sd: 0, se: 0 };
+
+  const diffs = data.map((d) => d.aiAngle - d.goniometerAngle);
+  const n = diffs.length;
+  const mean = diffs.reduce((a, b) => a + b, 0) / n;
+  const variance = n > 1
+    ? diffs.reduce((acc, d) => acc + (d - mean) ** 2, 0) / (n - 1)
+    : 0;
+  const sd = Math.sqrt(variance);
+  const se = sd / Math.sqrt(n);
+
+  return { n, mean, sd, se };
+};
+
 export const calculateRMSE = (data) => {
   if (!data.length) return 0;
   const mse = data.reduce((acc, d) => acc + (d.aiAngle - d.goniometerAngle) ** 2, 0) / data.length;
@@ -155,14 +206,15 @@ export const getProgressChartData = (participants, measurements) => {
 
 export const getStatusChartData = (participants) => {
   const activeCount = participants.filter((p) => p.status === 'Active').length;
+  const completedCount = participants.filter((p) => p.status === 'Completed').length;
   const droppedCount = participants.filter((p) => p.status === 'Dropped').length;
 
   return {
-    labels: ['Active', 'Dropped'],
+    labels: ['Active', 'Completed', 'Dropped'],
     datasets: [
       {
-        data: [activeCount, droppedCount],
-        backgroundColor: ['#10b981', '#f43f5e'],
+        data: [activeCount, completedCount, droppedCount],
+        backgroundColor: ['#10b981', '#3b82f6', '#f43f5e'],
         hoverOffset: 4,
       },
     ],
@@ -171,5 +223,6 @@ export const getStatusChartData = (participants) => {
 
 export const generateAnalysisText = (participants, measurements) => {
   const activeCount = participants.filter(p => p.status === 'Active').length;
-  return `Analysis performed on ${measurements.length} records from ${participants.length} total participants (${activeCount} active).\n\n• Data Integrity: High level of reliability identified in reports. ID anonymization confirmed.\n• Trends: No significant statistical anomalies found in the primary metrics among active participants.\n• AI Recommendation: Consider increasing measurement frequency for participants with pending measurements for better data resolution.`;
+  const completedCount = participants.filter(p => p.status === 'Completed').length;
+  return `Analysis performed on ${measurements.length} records from ${participants.length} total participants (${activeCount} active, ${completedCount} completed).\n\n• Data Integrity: High level of reliability identified in reports. ID anonymization confirmed.\n• Trends: No significant statistical anomalies found in the primary metrics among active participants.\n• AI Recommendation: Consider increasing measurement frequency for participants with pending measurements for better data resolution.`;
 };

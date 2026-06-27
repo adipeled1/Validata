@@ -28,6 +28,7 @@ const AnalysisControl = ({ participants, measurements, onGenerateReport, isDemoM
              statusData: { labels: [], datasets: [] },
              statsData: [],
              summaryStats: { rmse: 0, mae: 0, meanBias: 0, passRate: 0 },
+             descriptiveStats: { n: 0, mean: 0, sd: 0, se: 0 },
              charts: null
           });
         }
@@ -40,6 +41,7 @@ const AnalysisControl = ({ participants, measurements, onGenerateReport, isDemoM
            statusData: { labels: [], datasets: [] },
            statsData: [],
            summaryStats: { rmse: 0, mae: 0, meanBias: 0, passRate: 0 },
+           descriptiveStats: { n: 0, mean: 0, sd: 0, se: 0 },
            charts: null
         });
         setLastUpdated(new Date());
@@ -91,6 +93,7 @@ const AnalysisControl = ({ participants, measurements, onGenerateReport, isDemoM
         onGenerateReport={onGenerateReport}
         statsData={analysisData?.statsData || []}
         summaryStats={analysisData?.summaryStats || { rmse: 0, mae: 0, meanBias: 0, passRate: 0 }}
+        descriptiveStats={analysisData?.descriptiveStats || { n: 0, mean: 0, sd: 0, se: 0 }}
         charts={analysisData?.charts} // We pass the pre-calculated charts object down
         threshold={localThreshold}
         onThresholdChange={setLocalThreshold}
