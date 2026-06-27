@@ -3,6 +3,8 @@ import SidebarDisplay from './display';
 import { getNavItems } from './service';
 
 // Controller component manages data fetching/logic for the view
+// Note: isExpanded only affects the desktop <aside> rail — mobile renders a
+// separate fixed top bar + bottom nav (see SidebarDisplay) that doesn't use it.
 const SidebarControl = ({ currentView, onNavigate, userRole, currentUserEmail, onLogout }) => {
   const navItems = getNavItems(userRole);
   const [isExpanded, setIsExpanded] = useState(() => {
@@ -11,37 +13,12 @@ const SidebarControl = ({ currentView, onNavigate, userRole, currentUserEmail, o
     const saved = window.localStorage.getItem('validata-sidebar-expanded');
     return saved === null ? true : saved === 'true';
   });
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const mq = window.matchMedia('(max-width: 767px)');
-    const applyForViewport = (matches) => {
-      setIsMobile(matches);
-
-      const saved = window.localStorage.getItem('validata-sidebar-expanded');
-      if (saved === null) {
-        setIsExpanded(!matches);
-      }
-    };
-
-    applyForViewport(mq.matches);
-    const handler = (e) => applyForViewport(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.localStorage.setItem('validata-sidebar-expanded', String(isExpanded));
     }
   }, [isExpanded]);
-
-  const handleNavigate = (viewId) => {
-    onNavigate(viewId);
-    if (isMobile) setIsExpanded(false);
-  };
 
   const handleToggleExpanded = () => {
     setIsExpanded((prev) => !prev);
@@ -50,7 +27,7 @@ const SidebarControl = ({ currentView, onNavigate, userRole, currentUserEmail, o
   return (
     <SidebarDisplay
       currentView={currentView}
-      onNavigate={handleNavigate}
+      onNavigate={onNavigate}
       navItems={navItems}
       userRole={userRole}
       currentUserEmail={currentUserEmail}
