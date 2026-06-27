@@ -4,9 +4,21 @@ import * as XLSX from 'xlsx';
 import { formatDateForDisplay } from './service';
 import HoverTooltip from '../common/HoverTooltip';
 
+const RESULTS_EXPORT_HEADERS = ['Enrollment Date', 'Test Date', 'Participant', 'Goniometer', 'AI/ML Model', 'Notes'];
+
 const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [showToast, setShowToast] = useState(false);
+
+  // Dropped participants' measurements are treated as invalid even if the
+  // stored isValid flag wasn't (re)written - e.g. participants dropped
+  // before the cascading-invalidate behavior existed.
+  const droppedParticipantIds = new Set(
+    participants
+      .filter((p) => String(p.status || '').toLowerCase() === 'dropped')
+      .map((p) => p.id)
+  );
+  const isMeasurementValid = (m) => m.isValid !== false && !droppedParticipantIds.has(m.participant);
 
   const handleExportToExcel = () => {
     setIsExporting(true);
@@ -15,15 +27,8 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
     try {
       // Only valid measurements are exported - invalid rows are dropped
       // entirely (not just flagged), so there's no Valid/Invalid column either.
-      // Also exclude measurements belonging to dropped participants - only
-      // Active/Completed participants' data should be in the report.
       const worksheetData = sortedMeasurements
-        .filter((m) => {
-          if (m.isValid === false) return false;
-          const participantRecord = participants.find((p) => p.id === m.participant);
-          const status = String(participantRecord?.status || '').toLowerCase();
-          return status === 'active' || status === 'completed';
-        })
+        .filter(isMeasurementValid)
         .map(m => ({
           'Enrollment Date': formatDateForDisplay(m.enrollmentDate || m.enrollment_date),
           'Test Date': formatDateForDisplay(m.testDate || m.test_date),
@@ -33,8 +38,9 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
           'Notes': m.notes || '-'
         }));
 
-      // Create workbook and worksheet
-      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+      // header option keeps the title row even when worksheetData is empty -
+      // json_to_sheet would otherwise produce a blank sheet with no columns.
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData, { header: RESULTS_EXPORT_HEADERS });
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Results');
 
@@ -91,7 +97,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
             <p className="text-center py-6 text-slate-500 dark:text-slate-400">No data to display</p>
           ) : (
             sortedMeasurements.map((m, index) => {
-              const isValid = m.isValid !== false;
+              const isValid = isMeasurementValid(m);
               return (
                 <div
                   key={index}
@@ -154,7 +160,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
                 </tr>
               ) : (
                 sortedMeasurements.map((m, index) => {
-                  const isValid = m.isValid !== false;
+                  const isValid = isMeasurementValid(m);
                   return (
                     <tr
                       key={index}

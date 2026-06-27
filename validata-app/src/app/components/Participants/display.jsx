@@ -269,7 +269,7 @@ const ParticipantsDisplay = ({
                       </td>
                       <td className="py-3 px-2">
                         <span
-                          className={`text-xs px-2 py-1 rounded-full ${p.status === 'Active'
+                          className={`w-24 inline-block text-center text-xs px-2 py-1 rounded-full ${p.status === 'Active'
                             ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
                             : normalizedStatus === 'completed'
                               ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
