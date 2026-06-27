@@ -316,3 +316,13 @@ ON public.measurements
 FOR DELETE
 TO authenticated
 USING (public.is_mentor());
+
+-- 12. The pre-existing participants_status_check constraint only allowed
+-- 'Active'/'Dropped' - 'Completed' is now a real status (manual, reversible
+-- toggle), so it must be added to the allowed list.
+ALTER TABLE public.participants
+DROP CONSTRAINT IF EXISTS participants_status_check;
+
+ALTER TABLE public.participants
+ADD CONSTRAINT participants_status_check
+CHECK (status IN ('Active', 'Completed', 'Dropped'));
