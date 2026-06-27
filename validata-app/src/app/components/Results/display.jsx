@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import { formatDateForDisplay } from './service';
 import HoverTooltip from '../common/HoverTooltip';
 
-const ResultsDisplay = ({ sortedMeasurements, onMarkInvalid }) => {
+const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
@@ -15,8 +15,15 @@ const ResultsDisplay = ({ sortedMeasurements, onMarkInvalid }) => {
     try {
       // Only valid measurements are exported - invalid rows are dropped
       // entirely (not just flagged), so there's no Valid/Invalid column either.
+      // Also exclude measurements belonging to dropped participants - only
+      // Active/Completed participants' data should be in the report.
       const worksheetData = sortedMeasurements
-        .filter((m) => m.isValid !== false)
+        .filter((m) => {
+          if (m.isValid === false) return false;
+          const participantRecord = participants.find((p) => p.id === m.participant);
+          const status = String(participantRecord?.status || '').toLowerCase();
+          return status === 'active' || status === 'completed';
+        })
         .map(m => ({
           'Enrollment Date': formatDateForDisplay(m.enrollmentDate || m.enrollment_date),
           'Test Date': formatDateForDisplay(m.testDate || m.test_date),

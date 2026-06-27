@@ -154,6 +154,8 @@ export async function POST(request) {
 
 // PATCH: Toggle a measurement's valid/invalid flag. The goniometer/ai_model
 // values themselves are never edited once written - only this flag changes.
+// Also supports bulk-invalidating every measurement for a participant (used
+// when a participant is dropped from the study) via participantId/studyId.
 export async function PATCH(request) {
   try {
     const session = await verifySession();
@@ -162,10 +164,26 @@ export async function PATCH(request) {
     }
 
     const body = await request.json();
-    const { id, isValid } = body;
+    const { id, isValid, participantId, studyId } = body;
 
     if (session.isDemo) {
-      return Response.json({ id, is_valid: isValid });
+      return Response.json({ id, participantId, is_valid: isValid });
+    }
+
+    if (participantId) {
+      if (!studyId) {
+        return Response.json({ error: 'A study must be selected before updating measurements.' }, { status: 400 });
+      }
+
+      const { data, error } = await session.supabaseClient
+        .from('measurements')
+        .update({ is_valid: isValid })
+        .eq('participant_id', participantId)
+        .eq('study_id', studyId)
+        .select();
+
+      if (error) throw error;
+      return Response.json(data);
     }
 
     const { data, error } = await session.supabaseClient

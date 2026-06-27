@@ -461,10 +461,13 @@ export default function Home() {
   };
 
   const handleDropParticipant = async (id) => {
-    if (window.confirm(`This will permanently drop participant ${id} from the study. This cannot be undone. Continue?`)) {
+    if (window.confirm(`This will permanently drop participant ${id} from the study and mark all of their measurements as invalid. This cannot be undone. Continue?`)) {
       if (isDemoMode) {
         setParticipants(
           participants.map((p) => (p.id === id ? { ...p, status: 'Dropped' } : p))
+        );
+        setMeasurements((prev) =>
+          prev.map((m) => (m.participant === id ? { ...m, isValid: false } : m))
         );
         triggerToast('Participant status updated. (Demo)');
       } else {
@@ -480,10 +483,24 @@ export default function Home() {
             throw new Error(errData.error || 'Failed to drop participant');
           }
 
+          const measRes = await fetch('/api/measurements', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ participantId: id, studyId: currentStudyId, isValid: false })
+          });
+
+          if (!measRes.ok) {
+            const errData = await measRes.json();
+            throw new Error(errData.error || 'Failed to invalidate participant measurements');
+          }
+
           setParticipants(
             participants.map((p) => (p.id === id ? { ...p, status: 'Dropped' } : p))
           );
-          triggerToast(`Participant ${id} dropped successfully.`);
+          setMeasurements((prev) =>
+            prev.map((m) => (m.participant === id ? { ...m, isValid: false } : m))
+          );
+          triggerToast(`Participant ${id} dropped successfully. Their measurements were marked invalid.`);
         } catch (error) {
           console.error('Error updating participant status:', error);
           triggerToast('Failed to update participant: ' + error.message);
@@ -1002,7 +1019,7 @@ export default function Home() {
           )}
 
           {currentView === 'results' && (
-            <Results measurements={measurements} onMarkInvalid={handleMarkMeasurementInvalid} />
+            <Results participants={participants} measurements={measurements} onMarkInvalid={handleMarkMeasurementInvalid} />
           )}
 
           {currentView === 'userManagement' && userRole === 'mentor' && (

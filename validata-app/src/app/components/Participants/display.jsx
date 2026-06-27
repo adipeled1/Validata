@@ -297,7 +297,7 @@ const ParticipantsDisplay = ({
                             >
                               {normalizedStatus === 'completed' ? 'Mark Not Completed' : 'Mark Complete'}
                             </button>
-                            <HoverTooltip text="Permanently removes this participant from active tracking. This action cannot be undone.">
+                            <HoverTooltip text="Permanently removes this participant from active tracking and marks all of their measurements as invalid. This action cannot be undone.">
                               <button
                                 onClick={() => onDrop(p.id)}
                                 className="w-16 text-center text-xs font-semibold px-2.5 py-1.5 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300 hover:bg-rose-200 dark:hover:bg-rose-900/70 transition-colors cursor-pointer"
