@@ -35,6 +35,20 @@ export default function Home() {
   const [currentStudyId, setCurrentStudyId] = useState(null);
   const currentStudy = studies.find((s) => s.id === currentStudyId) || null;
 
+  // Remembers the last-viewed study across reloads, same as the sidebar's
+  // expanded/collapsed state. Falls back to the first study if the saved id
+  // no longer matches one of the fetched studies (e.g. it was deleted).
+  const getSavedStudyId = () => {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem('validata-current-study-id');
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && currentStudyId) {
+      window.localStorage.setItem('validata-current-study-id', currentStudyId);
+    }
+  }, [currentStudyId]);
+
   // User auth profile details
   const [userRole, setUserRole] = useState('team_member');
   const [userStatus, setUserStatus] = useState('pending');
@@ -370,7 +384,9 @@ export default function Home() {
         }
 
         setStudies(studyList);
-        const defaultStudyId = studyList.length > 0 ? studyList[0].id : null;
+        const savedStudyId = getSavedStudyId();
+        const defaultStudyId = studyList.find((s) => s.id === savedStudyId)?.id
+          ?? (studyList.length > 0 ? studyList[0].id : null);
         setCurrentStudyId(defaultStudyId);
 
         if (defaultStudyId) {
@@ -379,7 +395,9 @@ export default function Home() {
       } catch (error) {
         console.warn('API connection error, falling back to Demo Mode:', error);
         setIsDemoMode(true);
-        const demoStudyId = mockData.studies.length > 0 ? mockData.studies[0].id : null;
+        const savedStudyId = getSavedStudyId();
+        const demoStudyId = mockData.studies.find((s) => s.id === savedStudyId)?.id
+          ?? (mockData.studies.length > 0 ? mockData.studies[0].id : null);
         setStudies(mockData.studies);
         setCurrentStudyId(demoStudyId);
         if (demoStudyId) await loadDataForStudy(demoStudyId, true);
