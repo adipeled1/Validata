@@ -1,18 +1,26 @@
-import { useState } from 'react';
-import { FileSpreadsheet, CheckCircle, X } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { FileSpreadsheet, CheckCircle, X, ArrowDownUp, ArrowDown } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { formatDateForDisplay } from './service';
 import HoverTooltip from '../common/HoverTooltip';
 
 const RESULTS_EXPORT_HEADERS = ['Enrollment Date', 'Test Date', 'Participant', 'Goniometer', 'AI/ML Model', 'Notes'];
 
+const toDateStr = (value) => {
+  if (!value) return '';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+};
+
 const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [filterParticipant, setFilterParticipant] = useState('');
+  const [filterEnrollDate, setFilterEnrollDate] = useState('');
+  const [filterTestDate, setFilterTestDate] = useState('');
+  const [sortColumn, setSortColumn] = useState(null);
 
-  // Dropped participants' measurements are treated as invalid even if the
-  // stored isValid flag wasn't (re)written - e.g. participants dropped
-  // before the cascading-invalidate behavior existed.
   const droppedParticipantIds = new Set(
     participants
       .filter((p) => String(p.status || '').toLowerCase() === 'dropped')
@@ -20,13 +28,66 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
   );
   const isMeasurementValid = (m) => m.isValid !== false && !droppedParticipantIds.has(m.participant);
 
+  const uniqueParticipants = useMemo(() => {
+    const names = sortedMeasurements.map((m) => m.participant).filter(Boolean);
+    return [...new Set(names)].sort();
+  }, [sortedMeasurements]);
+
+  const handleSortClick = (col) => {
+    setSortColumn((prev) => (prev === col ? null : col));
+  };
+
+  const displayMeasurements = useMemo(() => {
+    let result = sortedMeasurements.filter((m) => {
+      if (filterParticipant && m.participant !== filterParticipant) return false;
+      const enrollStr = toDateStr(m.enrollmentDate || m.enrollment_date);
+      const testStr = toDateStr(m.testDate || m.test_date);
+      if (filterEnrollDate && enrollStr !== filterEnrollDate) return false;
+      if (filterTestDate && testStr !== filterTestDate) return false;
+      return true;
+    });
+
+    if (sortColumn === 'enrollmentDate') {
+      result = [...result].sort((a, b) => {
+        const da = new Date(a.enrollmentDate || a.enrollment_date || 0).getTime();
+        const db = new Date(b.enrollmentDate || b.enrollment_date || 0).getTime();
+        return db - da;
+      });
+    } else if (sortColumn === 'testDate') {
+      result = [...result].sort((a, b) => {
+        const da = new Date(a.testDate || a.test_date || 0).getTime();
+        const db = new Date(b.testDate || b.test_date || 0).getTime();
+        return db - da;
+      });
+    } else if (sortColumn === 'participant') {
+      result = [...result].sort((a, b) => {
+        const numA = parseInt(String(a.participant || '').replace(/\D/g, ''), 10) || 0;
+        const numB = parseInt(String(b.participant || '').replace(/\D/g, ''), 10) || 0;
+        return numB - numA;
+      });
+    }
+
+    return result;
+  }, [sortedMeasurements, filterParticipant, filterEnrollDate, filterTestDate, sortColumn]);
+
+  const hasActiveFilters = filterParticipant || filterEnrollDate || filterTestDate;
+  const clearFilters = () => {
+    setFilterParticipant('');
+    setFilterEnrollDate('');
+    setFilterTestDate('');
+  };
+
+  const SortIcon = ({ col }) => {
+    if (sortColumn !== col) return <ArrowDownUp className="w-3.5 h-3.5 opacity-40" />;
+    if (col === 'participant') return <ArrowDown className="w-3.5 h-3.5 text-indigo-500" />;
+    return <ArrowDown className="w-3.5 h-3.5 text-indigo-500" />;
+  };
+
   const handleExportToExcel = () => {
     setIsExporting(true);
     setShowToast(true);
 
     try {
-      // Only valid measurements are exported - invalid rows are dropped
-      // entirely (not just flagged), so there's no Valid/Invalid column either.
       const worksheetData = sortedMeasurements
         .filter(isMeasurementValid)
         .map(m => ({
@@ -38,13 +99,9 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
           'Notes': m.notes || '-'
         }));
 
-      // header option keeps the title row even when worksheetData is empty -
-      // json_to_sheet would otherwise produce a blank sheet with no columns.
       const worksheet = XLSX.utils.json_to_sheet(worksheetData, { header: RESULTS_EXPORT_HEADERS });
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Results');
-
-      // Download the Excel file
       XLSX.writeFile(workbook, 'validata-results.xlsx');
     } catch (err) {
       console.error('Failed to export to Excel:', err);
@@ -90,13 +147,59 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
         <h3 className="text-xl font-semibold mb-4 text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-2">
           Research Data View
         </h3>
-        {/* Mobile cards — replaces the table below md; Notes gets a full-width
-            line instead of a cramped cell since it's free text */}
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-3 mb-4 items-end">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Participant</label>
+            <select
+              value={filterParticipant}
+              onChange={(e) => setFilterParticipant(e.target.value)}
+              className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">All participants</option>
+              {uniqueParticipants.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Enrollment Date</label>
+            <input
+              type="date"
+              value={filterEnrollDate}
+              onChange={(e) => setFilterEnrollDate(e.target.value)}
+              className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Test Date</label>
+            <input
+              type="date"
+              value={filterTestDate}
+              onChange={(e) => setFilterTestDate(e.target.value)}
+              className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 underline self-end pb-2"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+
+        {/* Mobile cards */}
         <div className="md:hidden space-y-3">
-          {sortedMeasurements.length === 0 ? (
+          {displayMeasurements.length === 0 ? (
             <p className="text-center py-6 text-slate-500 dark:text-slate-400">No data to display</p>
           ) : (
-            sortedMeasurements.map((m, index) => {
+            displayMeasurements.map((m, index) => {
               const isValid = isMeasurementValid(m);
               return (
                 <div
@@ -118,8 +221,6 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Notes: {m.notes || '-'}</p>
                   <div className="flex items-center justify-end mt-2">
                     {isValid ? (
-                      // No HoverTooltip on mobile: touch has no hover. The
-                      // confirm() dialog carries the irreversibility warning.
                       <button
                         onClick={() => handleMarkInvalidClick(m.id)}
                         className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"
@@ -142,9 +243,24 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-sm border-b border-slate-200 dark:border-slate-800">
-                <th className="py-3 px-3 font-medium">Enrollment Date</th>
-                <th className="py-3 px-3 font-medium">Test Date</th>
-                <th className="py-3 px-3 font-medium">Participant</th>
+                <th
+                  className="py-3 px-3 font-medium cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200"
+                  onClick={() => handleSortClick('enrollmentDate')}
+                >
+                  <span className="flex items-center gap-1.5">Enrollment Date <SortIcon col="enrollmentDate" /></span>
+                </th>
+                <th
+                  className="py-3 px-3 font-medium cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200"
+                  onClick={() => handleSortClick('testDate')}
+                >
+                  <span className="flex items-center gap-1.5">Test Date <SortIcon col="testDate" /></span>
+                </th>
+                <th
+                  className="py-3 px-3 font-medium cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200"
+                  onClick={() => handleSortClick('participant')}
+                >
+                  <span className="flex items-center gap-1.5">Participant <SortIcon col="participant" /></span>
+                </th>
                 <th className="py-3 px-3 font-medium">Goniometer</th>
                 <th className="py-3 px-3 font-medium">AI/ML Model</th>
                 <th className="py-3 px-3 font-medium">Notes</th>
@@ -152,14 +268,14 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
               </tr>
             </thead>
             <tbody>
-              {sortedMeasurements.length === 0 ? (
+              {displayMeasurements.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="text-center py-6 text-slate-500 dark:text-slate-400">
                     No data to display
                   </td>
                 </tr>
               ) : (
-                sortedMeasurements.map((m, index) => {
+                displayMeasurements.map((m, index) => {
                   const isValid = isMeasurementValid(m);
                   return (
                     <tr
