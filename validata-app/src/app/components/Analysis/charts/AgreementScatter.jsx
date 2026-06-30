@@ -4,6 +4,7 @@ import {
 } from 'recharts';
 import { COLORS, CHART_MARGIN, CHART_HEIGHT, getGridColor, getAxisTick, getAxisTextColor } from '../chartConfig';
 import { useTheme } from '../../../../context/ThemeContext';
+import YLabelChart from './YLabelChart';
 
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
@@ -33,27 +34,26 @@ const AgreementScatter = ({ data }) => {
   const axisTextColor = getAxisTextColor(theme);
 
   return (
-    <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-      <ScatterChart margin={CHART_MARGIN}>
-        <CartesianGrid strokeDasharray="3 3" stroke={getGridColor(theme)} />
-        <XAxis type="number" dataKey="goniometerAngle" domain={[minVal, maxVal]} tick={getAxisTick(theme)}>
-          <Label value="Goniometer angle (degrees)" position="insideBottom" offset={-20} fontSize={11} fill={axisTextColor} />
-        </XAxis>
-        <YAxis type="number" dataKey="aiAngle" domain={[minVal, maxVal]} tick={getAxisTick(theme)}>
-          <Label value="AI angle (degrees)" angle={-90} position="insideLeft" offset={20} fontSize={11} fill={axisTextColor} />
-        </YAxis>
-        <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-        {/* y = x diagonal: perfect agreement line */}
-        <ReferenceLine
-          segment={[{ x: minVal, y: minVal }, { x: maxVal, y: maxVal }]}
-          stroke={COLORS.bias}
-          strokeDasharray="4 4"
-          ifOverflow="extendDomain"
-          label={{ value: 'Perfect agreement (y = x)', position: 'insideTopLeft', fontSize: 10, fill: COLORS.bias }}
-        />
-        <Scatter data={data} fill={COLORS.primary} opacity={0.75} />
-      </ScatterChart>
-    </ResponsiveContainer>
+    <YLabelChart label="AI angle (degrees)" color={axisTextColor}>
+      <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+        <ScatterChart margin={{ ...CHART_MARGIN, left: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={getGridColor(theme)} />
+          <XAxis type="number" dataKey="goniometerAngle" domain={[minVal, maxVal]} tick={getAxisTick(theme)}>
+            <Label value="Goniometer angle (degrees)" position="insideBottom" offset={-20} fontSize={11} fill={axisTextColor} />
+          </XAxis>
+          <YAxis type="number" dataKey="aiAngle" domain={[minVal, maxVal]} tick={getAxisTick(theme)} width={35} />
+          <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+          <ReferenceLine
+            segment={[{ x: minVal, y: minVal }, { x: maxVal, y: maxVal }]}
+            stroke={COLORS.bias}
+            strokeDasharray="4 4"
+            ifOverflow="extendDomain"
+            label={{ value: 'Perfect agreement (y = x)', position: 'insideTopLeft', fontSize: 10, fill: COLORS.bias }}
+          />
+          <Scatter data={data} fill={COLORS.primary} opacity={0.75} />
+        </ScatterChart>
+      </ResponsiveContainer>
+    </YLabelChart>
   );
 };
 

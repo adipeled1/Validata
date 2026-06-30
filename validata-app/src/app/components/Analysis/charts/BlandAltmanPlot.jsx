@@ -4,6 +4,7 @@ import {
 } from 'recharts';
 import { COLORS, CHART_MARGIN, CHART_HEIGHT, getGridColor, getAxisTick, getAxisTextColor } from '../chartConfig';
 import { useTheme } from '../../../../context/ThemeContext';
+import YLabelChart from './YLabelChart';
 
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
@@ -31,42 +32,38 @@ const BlandAltmanPlot = ({ data }) => {
   const axisTextColor = getAxisTextColor(theme);
 
   return (
-    <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-      <ScatterChart margin={CHART_MARGIN}>
-        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-        <XAxis type="number" dataKey="mean" tick={getAxisTick(theme)}>
-          <Label value="Mean of AI & Goniometer (degrees)" position="insideBottom" offset={-20} fontSize={11} fill={axisTextColor} />
-        </XAxis>
-        <YAxis type="number" dataKey="diff" tick={getAxisTick(theme)}>
-          <Label value="AI − Goniometer (degrees)" angle={-90} position="insideLeft" offset={20} fontSize={11} fill={axisTextColor} />
-        </YAxis>
-        <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-        {/* Zero reference */}
-        <ReferenceLine y={0} stroke={gridColor} strokeWidth={1} />
-        {/* Mean bias */}
-        <ReferenceLine
-          y={meanDiff}
-          stroke={COLORS.bias}
-          strokeWidth={2}
-          label={{ value: `Bias: ${meanDiff.toFixed(2)}°`, position: 'insideTopRight', fontSize: 10, fill: COLORS.bias }}
-        />
-        {/* Upper limit of agreement */}
-        <ReferenceLine
-          y={upperLimit}
-          stroke={COLORS.limit}
-          strokeDasharray="4 4"
-          label={{ value: `+1.96 SD: ${upperLimit.toFixed(2)}°`, position: 'insideTopRight', fontSize: 10, fill: COLORS.limit }}
-        />
-        {/* Lower limit of agreement */}
-        <ReferenceLine
-          y={lowerLimit}
-          stroke={COLORS.limit}
-          strokeDasharray="4 4"
-          label={{ value: `−1.96 SD: ${lowerLimit.toFixed(2)}°`, position: 'insideBottomRight', fontSize: 10, fill: COLORS.limit }}
-        />
-        <Scatter data={plotData} fill={COLORS.primary} opacity={0.75} />
-      </ScatterChart>
-    </ResponsiveContainer>
+    <YLabelChart label="AI − Goniometer (degrees)" color={axisTextColor}>
+      <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+        <ScatterChart margin={{ ...CHART_MARGIN, left: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+          <XAxis type="number" dataKey="mean" tick={getAxisTick(theme)}>
+            <Label value="Mean of AI & Goniometer (degrees)" position="insideBottom" offset={-20} fontSize={11} fill={axisTextColor} />
+          </XAxis>
+          <YAxis type="number" dataKey="diff" tick={getAxisTick(theme)} width={35} />
+          <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+          <ReferenceLine y={0} stroke={gridColor} strokeWidth={1} />
+          <ReferenceLine
+            y={meanDiff}
+            stroke={COLORS.bias}
+            strokeWidth={2}
+            label={{ value: `Bias: ${meanDiff.toFixed(2)}°`, position: 'insideTopRight', fontSize: 10, fill: COLORS.bias }}
+          />
+          <ReferenceLine
+            y={upperLimit}
+            stroke={COLORS.limit}
+            strokeDasharray="4 4"
+            label={{ value: `+1.96 SD: ${upperLimit.toFixed(2)}°`, position: 'insideTopRight', fontSize: 10, fill: COLORS.limit }}
+          />
+          <ReferenceLine
+            y={lowerLimit}
+            stroke={COLORS.limit}
+            strokeDasharray="4 4"
+            label={{ value: `−1.96 SD: ${lowerLimit.toFixed(2)}°`, position: 'insideBottomRight', fontSize: 10, fill: COLORS.limit }}
+          />
+          <Scatter data={plotData} fill={COLORS.primary} opacity={0.75} />
+        </ScatterChart>
+      </ResponsiveContainer>
+    </YLabelChart>
   );
 };
 

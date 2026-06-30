@@ -4,6 +4,7 @@ import {
 } from 'recharts';
 import { COLORS, CHART_MARGIN, CHART_HEIGHT, getGridColor, getAxisTick, getAxisTextColor } from '../chartConfig';
 import { useTheme } from '../../../../context/ThemeContext';
+import YLabelChart from './YLabelChart';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -37,29 +38,29 @@ const PerformanceTrend = ({ data }) => {
   const axisTextColor = getAxisTextColor(theme);
 
   return (
-    <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-      <LineChart data={sessions} margin={CHART_MARGIN}>
-        <CartesianGrid strokeDasharray="3 3" stroke={getGridColor(theme)} />
-        <XAxis dataKey="sessionId" tick={getAxisTick(theme)}>
-          <Label value="Session" position="insideBottom" offset={-20} fontSize={11} fill={axisTextColor} />
-        </XAxis>
-        <YAxis tick={getAxisTick(theme)}>
-          <Label value="Error (degrees)" angle={-90} position="insideLeft" offset={20} fontSize={11} fill={axisTextColor} />
-        </YAxis>
-        <Tooltip content={<CustomTooltip />} />
-        <Legend wrapperStyle={{ fontSize: 12, paddingTop: 24, color: axisTextColor }} formatter={(v) => v.toUpperCase()} />
-        <Line
-          type="monotone" dataKey="rmse" name="rmse"
-          stroke={COLORS.rmse} strokeWidth={2}
-          dot={{ r: 4, fill: COLORS.rmse }} activeDot={{ r: 6 }}
-        />
-        <Line
-          type="monotone" dataKey="mae" name="mae"
-          stroke={COLORS.mae} strokeWidth={2}
-          dot={{ r: 4, fill: COLORS.mae }} activeDot={{ r: 6 }}
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <YLabelChart label="Error (degrees)" color={axisTextColor}>
+      <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+        <LineChart data={sessions} margin={{ ...CHART_MARGIN, left: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={getGridColor(theme)} />
+          <XAxis dataKey="sessionId" tick={getAxisTick(theme)}>
+            <Label value="Session" position="insideBottom" offset={-20} fontSize={11} fill={axisTextColor} />
+          </XAxis>
+          <YAxis tick={getAxisTick(theme)} width={35} />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend wrapperStyle={{ fontSize: 12, paddingTop: 24, color: axisTextColor }} formatter={(v) => v.toUpperCase()} />
+          <Line
+            type="monotone" dataKey="rmse" name="rmse"
+            stroke={COLORS.rmse} strokeWidth={2}
+            dot={{ r: 4, fill: COLORS.rmse }} activeDot={{ r: 6 }}
+          />
+          <Line
+            type="monotone" dataKey="mae" name="mae"
+            stroke={COLORS.mae} strokeWidth={2}
+            dot={{ r: 4, fill: COLORS.mae }} activeDot={{ r: 6 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </YLabelChart>
   );
 };
 
