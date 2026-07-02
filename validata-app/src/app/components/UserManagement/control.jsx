@@ -38,7 +38,11 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail }) => {
     }
   };
 
+  // TODO(architecture-plan Phase 2/3): this client-side fetch-on-mount will
+  // be replaced by a Server Component initial load + Server Action refresh,
+  // which removes this pattern entirely rather than patching it here.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUsers();
   }, [isDemoMode]);
 

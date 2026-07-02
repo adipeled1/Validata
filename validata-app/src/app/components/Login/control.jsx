@@ -4,7 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import LoginDisplay from './display';
 import { signInWithSupabase, signUpWithSupabase, performDemoLogin } from './service';
+import { createClient } from '../../../lib/supabase/client';
 import { deleteCookie } from '../../../lib/cookies';
+
+const supabase = createClient();
 
 export default function LoginControl() {
   const router = useRouter();
@@ -16,17 +19,18 @@ export default function LoginControl() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   
-  // Connection state
-  const [isSupabaseConfigured, setIsSupabaseConfigured] = useState(true);
+  // Connection state - NEXT_PUBLIC_ env vars are inlined at build time, so
+  // this never changes during the component's lifetime and doesn't need to
+  // be state/an effect.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const isSupabaseConfigured = !(supabaseUrl.includes('placeholder.supabase.co') || !supabaseUrl);
 
   useEffect(() => {
-    // Check if Supabase URL is a placeholder or missing
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const isPlaceholder = url.includes('placeholder.supabase.co') || !url;
-    setIsSupabaseConfigured(!isPlaceholder);
-    
-    // Clear any leftover tokens when landing on login page
-    deleteCookie('sb-access-token');
+    // Clear any leftover session when landing on login page. The real
+    // Supabase session lives in its own @supabase/ssr-managed cookies (not a
+    // fixed name we can just delete), so sign out properly; our own
+    // role/status cache cookies can be cleared directly.
+    supabase.auth.signOut().catch(() => {});
     deleteCookie('demo-session');
     deleteCookie('user-role');
     deleteCookie('user-status');
@@ -48,15 +52,15 @@ export default function LoginControl() {
       setTimeout(() => {
         // Fallback demo logins if user tries to login with demo credentials manually
         if (email === 'mentor@demo.com' && password === 'demo123') {
-          performDemoLogin('mentor');
+          performDemoLogin('mentor', email);
           setSuccessMessage('Demo logged in successfully!');
           setTimeout(() => { router.push('/'); router.refresh(); }, 1000);
         } else if (email === 'team@demo.com' && password === 'demo123') {
-          performDemoLogin('team_member');
+          performDemoLogin('team_member', email);
           setSuccessMessage('Demo logged in successfully!');
           setTimeout(() => { router.push('/'); router.refresh(); }, 1000);
         } else {
-          setErrorMessage('Invalid credentials. (Note: Supabase is not configured. Use the Quick Login buttons below or mentor@demo.com / demo123).');
+          setErrorMessage('Invalid credentials. (Note: Supabase is not configured. Use mentor@demo.com / demo123 or team@demo.com / demo123).');
           setIsLoading(false);
         }
       }, 800);

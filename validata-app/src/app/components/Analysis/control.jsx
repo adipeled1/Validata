@@ -4,7 +4,7 @@ import AIChatControl from '../AIChat/control';
 import { fetchAnalysisData } from './service';
 
 // Controller component manages local state and fetches processed data from the API
-const AnalysisControl = ({ participants, measurements, onGenerateReport, isDemoMode, threshold = 5 }) => {
+const AnalysisControl = ({ participants, measurements, isDemoMode, threshold = 5 }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState(null);
   
@@ -14,8 +14,12 @@ const AnalysisControl = ({ participants, measurements, onGenerateReport, isDemoM
   const [localThreshold, setLocalThreshold] = useState(threshold);
 
   // Fetch pre-computed charts and stats from the API
+  // TODO(architecture-plan Phase 1/2): this client-side fetch-on-mount will
+  // be replaced by a Server Component initial load + Context, which removes
+  // this pattern entirely rather than patching it here.
   useEffect(() => {
     // We fetch even in demo mode because the server handles demo data calculation too
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAnalysisData(null); // Set to null to indicate loading
 
     fetchAnalysisData(localThreshold, participants, measurements)
@@ -24,8 +28,8 @@ const AnalysisControl = ({ participants, measurements, onGenerateReport, isDemoM
           setAnalysisData(data);
         } else {
           setAnalysisData({
-             progressData: { labels: [], datasets: [] },
-             statusData: { labels: [], datasets: [] },
+             progressData: [],
+             statusData: [],
              statsData: [],
              summaryStats: { rmse: 0, mae: 0, meanBias: 0, passRate: 0 },
              descriptiveStats: { n: 0, mean: 0, sd: 0, se: 0 },
@@ -37,8 +41,8 @@ const AnalysisControl = ({ participants, measurements, onGenerateReport, isDemoM
       .catch((err) => {
         console.error('Error fetching analysis data:', err);
         setAnalysisData({
-           progressData: { labels: [], datasets: [] },
-           statusData: { labels: [], datasets: [] },
+           progressData: [],
+           statusData: [],
            statsData: [],
            summaryStats: { rmse: 0, mae: 0, meanBias: 0, passRate: 0 },
            descriptiveStats: { n: 0, mean: 0, sd: 0, se: 0 },
@@ -47,25 +51,6 @@ const AnalysisControl = ({ participants, measurements, onGenerateReport, isDemoM
         setLastUpdated(new Date());
       });
   }, [localThreshold, isDemoMode]); // Re-fetch if threshold or mode changes
-
-  const progressOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-    },
-    scales: {
-      y: { beginAtZero: true, ticks: { stepSize: 1 } },
-    },
-  };
-
-  const statusOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'bottom' },
-    },
-  };
 
   const handleRunAnalysis = () => {
     setIsAnalyzing(true);
@@ -83,14 +68,11 @@ const AnalysisControl = ({ participants, measurements, onGenerateReport, isDemoM
   return (
     <>
       <AnalysisDisplay
-        progressData={analysisData?.progressData || { labels: [], datasets: [] }}
-        progressOptions={progressOptions}
-        statusData={analysisData?.statusData || { labels: [], datasets: [] }}
-        statusOptions={statusOptions}
+        progressData={analysisData?.progressData || []}
+        statusData={analysisData?.statusData || []}
         isAnalyzing={isAnalyzing}
         aiResult={aiResult}
         onRunAnalysis={handleRunAnalysis}
-        onGenerateReport={onGenerateReport}
         statsData={analysisData?.statsData || []}
         summaryStats={analysisData?.summaryStats || { rmse: 0, mae: 0, meanBias: 0, passRate: 0 }}
         descriptiveStats={analysisData?.descriptiveStats || { n: 0, mean: 0, sd: 0, se: 0 }}

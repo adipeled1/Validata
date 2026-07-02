@@ -1,22 +1,49 @@
+"use client";
 
+import { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { LogOut, Sun, Moon, ChevronLeft, ChevronRight, FlaskConical } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
+import { getNavItems, ROUTE_BY_VIEW } from './constants';
 
-// Pure presentational component
-const SidebarDisplay = ({
-  currentView,
-  onNavigate,
-  navItems,
+// Note: isExpanded only affects the desktop <aside> rail — mobile renders a
+// separate fixed top bar + bottom nav below that doesn't use it.
+const Sidebar = ({
   userRole,
   currentUserEmail,
   onLogout,
-  isExpanded,
-  onToggleExpanded,
-  studies,
+  studies = [],
   currentStudyId,
   onSwitchStudy
 }) => {
+  const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+
+  const navItems = getNavItems(userRole);
+  const currentView = Object.keys(ROUTE_BY_VIEW).find((view) => ROUTE_BY_VIEW[view] === pathname) ?? null;
+  const onNavigate = (view) => {
+    const route = ROUTE_BY_VIEW[view];
+    if (route) router.push(route);
+  };
+
+  const [isExpanded, setIsExpanded] = useState(() => {
+    if (typeof window === 'undefined') return true;
+
+    const saved = window.localStorage.getItem('validata-sidebar-expanded');
+    return saved === null ? true : saved === 'true';
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('validata-sidebar-expanded', String(isExpanded));
+    }
+  }, [isExpanded]);
+
+  const handleToggleExpanded = () => {
+    setIsExpanded((prev) => !prev);
+  };
+
   const initial = currentUserEmail ? currentUserEmail.charAt(0).toUpperCase() : 'U';
   const roleName = userRole === 'mentor' ? 'Project Mentor' : 'Team Member';
   // Same collapse/expand toggle on every screen size: collapsed = slim icon-only rail,
@@ -36,7 +63,7 @@ const SidebarDisplay = ({
             <h1 className={`text-2xl font-bold tracking-wide whitespace-nowrap ${showLabels ? 'inline' : 'hidden'}`}>Validata</h1>
           </div>
           <button
-            onClick={onToggleExpanded}
+            onClick={handleToggleExpanded}
             title={isExpanded ? 'Collapse navigation' : 'Expand navigation'}
             aria-expanded={isExpanded}
             className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer shrink-0"
@@ -67,7 +94,7 @@ const SidebarDisplay = ({
           ) : (
             <button
               title="Expand to switch study"
-              onClick={onToggleExpanded}
+              onClick={handleToggleExpanded}
               className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
             >
               <FlaskConical className="w-5 h-5" />
@@ -217,4 +244,4 @@ const SidebarDisplay = ({
   );
 };
 
-export default SidebarDisplay;
+export default Sidebar;

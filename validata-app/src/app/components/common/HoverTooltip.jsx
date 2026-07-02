@@ -17,6 +17,9 @@ const HoverTooltip = ({ text, children, className = '' }) => {
   const [mounted, setMounted] = useState(false);
   const [coords, setCoords] = useState(null);
 
+  // Portal target (document.body) only exists client-side; SSR must render
+  // `mounted=false` to match the server output, then flip true post-hydrate.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useLayoutEffect(() => setMounted(true), []);
 
   const show = () => {

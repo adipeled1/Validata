@@ -1,5 +1,7 @@
-import { supabase } from '../../../lib/supabase';
+import { createClient } from '../../../lib/supabase/client';
 import { setCookie } from '../../../lib/cookies';
+
+const supabase = createClient();
 
 export const signInWithSupabase = async (email, password) => {
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -43,8 +45,9 @@ export const signInWithSupabase = async (email, password) => {
     status = profile.status;
   }
 
-  // Save session tokens and profile state in cookies
-  setCookie('sb-access-token', session.access_token, 7);
+  // @supabase/ssr already persisted the session itself (in its own cookies,
+  // kept fresh by src/proxy.js); these are just our own role/status cache
+  // for the proxy.js status gate and SessionContext's profile-fetch fallback.
   setCookie('user-role', role, 7);
   setCookie('user-status', status, 7);
 
@@ -61,8 +64,10 @@ export const signUpWithSupabase = async (email, password) => {
   return { success: true };
 };
 
-export const performDemoLogin = (role) => {
-  setCookie('demo-session', 'true', 7);
+export const performDemoLogin = (role, email) => {
+  // page.js and auth-server.js both parse this cookie as JSON ({ email, role,
+  // status }) to build the demo session - it must not be a bare string.
+  setCookie('demo-session', JSON.stringify({ email, role, status: 'active' }), 7);
   setCookie('user-role', role, 7);
   setCookie('user-status', 'active', 7);
   return { success: true };

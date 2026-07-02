@@ -1,13 +1,21 @@
-import { Users, Heart, ShieldAlert, Activity } from 'lucide-react';
+"use client";
 
-const ParticipantsViewDisplay = ({
-  participants,
-  searchTerm,
-  onSearchChange,
-  statusFilter,
-  onStatusFilterChange,
-  stats
-}) => {
+import { useState } from 'react';
+import { Users, Heart, ShieldAlert, Activity } from 'lucide-react';
+import { getParticipantStats } from './utils';
+
+const ParticipantsView = ({ participants = [] }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+
+  const filteredParticipants = participants.filter((p) => {
+    const matchesSearch = p.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'All' || p.healthStatus === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const stats = getParticipantStats(participants);
+
   return (
     <section className="app-section">
       <header className="mb-8">
@@ -59,7 +67,7 @@ const ParticipantsViewDisplay = ({
               type="text"
               placeholder="Search by ID..."
               value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
             />
           </div>
@@ -68,7 +76,7 @@ const ParticipantsViewDisplay = ({
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Health Status:</span>
             <select
               value={statusFilter}
-              onChange={(e) => onStatusFilterChange(e.target.value)}
+              onChange={(e) => setStatusFilter(e.target.value)}
               className="border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
             >
               <option value="All">All Statuses</option>
@@ -80,10 +88,10 @@ const ParticipantsViewDisplay = ({
 
         {/* Mobile cards — replaces the table below md */}
         <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-          {participants.length === 0 ? (
+          {filteredParticipants.length === 0 ? (
             <p className="text-center py-10 text-slate-500 dark:text-slate-400">No participants match the criteria</p>
           ) : (
-            participants.map((p) => (
+            filteredParticipants.map((p) => (
               <div key={p.id} className="p-4">
                 <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-100 mb-2">
                   <Activity className="w-4 h-4 text-blue-500 dark:text-blue-400" />
@@ -123,14 +131,14 @@ const ParticipantsViewDisplay = ({
               </tr>
             </thead>
             <tbody>
-              {participants.length === 0 ? (
+              {filteredParticipants.length === 0 ? (
                 <tr>
                   <td colSpan="4" className="text-center py-10 text-slate-500 dark:text-slate-400">
                     No participants match the criteria
                   </td>
                 </tr>
               ) : (
-                participants.map((p) => (
+                filteredParticipants.map((p) => (
                   <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
                     <td className="py-4 px-6 font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                       <Activity className="w-4 h-4 text-blue-500 dark:text-blue-400" />
@@ -162,4 +170,4 @@ const ParticipantsViewDisplay = ({
   );
 };
 
-export default ParticipantsViewDisplay;
+export default ParticipantsView;

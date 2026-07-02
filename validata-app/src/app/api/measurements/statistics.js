@@ -191,17 +191,10 @@ export const getProgressChartData = (participants, measurements) => {
   const measuredCount = participantIds.filter((id) => measurementsByParticipant[id] > 0).length;
   const pendingCount = participantIds.length - measuredCount;
 
-  return {
-    labels: ['Measured', 'Pending'],
-    datasets: [
-      {
-        label: 'Participants',
-        data: [measuredCount, pendingCount],
-        backgroundColor: ['#4f46e5', '#94a3b8'],
-        borderRadius: 4,
-      },
-    ],
-  };
+  return [
+    { name: 'Measured', value: measuredCount, fill: '#4f46e5' },
+    { name: 'Pending', value: pendingCount, fill: '#94a3b8' },
+  ];
 };
 
 export const getStatusChartData = (participants) => {
@@ -209,16 +202,11 @@ export const getStatusChartData = (participants) => {
   const completedCount = participants.filter((p) => p.status === 'Completed').length;
   const droppedCount = participants.filter((p) => p.status === 'Dropped').length;
 
-  return {
-    labels: ['Active', 'Completed', 'Dropped'],
-    datasets: [
-      {
-        data: [activeCount, completedCount, droppedCount],
-        backgroundColor: ['#10b981', '#3b82f6', '#f43f5e'],
-        hoverOffset: 4,
-      },
-    ],
-  };
+  return [
+    { name: 'Active', value: activeCount, fill: '#10b981' },
+    { name: 'Completed', value: completedCount, fill: '#3b82f6' },
+    { name: 'Dropped', value: droppedCount, fill: '#f43f5e' },
+  ];
 };
 
 export const generateAnalysisText = (participants, measurements) => {

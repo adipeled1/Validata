@@ -1,4 +1,5 @@
 import { verifySession } from '@/lib/auth-server';
+import { updateProfileSchema, formatValidationError } from '@/lib/schemas';
 
 // GET: Fetch profiles
 export async function GET(request) {
@@ -90,7 +91,11 @@ export async function PATCH(request) {
     }
 
     const body = await request.json();
-    const { id, role, status } = body;
+    const parsed = updateProfileSchema.safeParse(body);
+    if (!parsed.success) {
+      return Response.json({ error: formatValidationError(parsed.error) }, { status: 400 });
+    }
+    const { id, role, status } = parsed.data;
 
     if (session.isDemo) {
       return Response.json({ id, role, status });

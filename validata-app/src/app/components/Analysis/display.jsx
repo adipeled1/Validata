@@ -1,25 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Download, Sparkles, AlertCircle } from 'lucide-react';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend
-} from 'chart.js';
-import { Bar, Doughnut } from 'react-chartjs-2';
 import ChartCard from './ChartCard';
 import AgreementScatter from './charts/AgreementScatter';
 import BlandAltmanPlot from './charts/BlandAltmanPlot';
 import ErrorHistogram from './charts/ErrorHistogram';
 import PerformanceTrend from './charts/PerformanceTrend';
 import ThresholdDonut from './charts/ThresholdDonut';
-
-// Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
+import MeasurementProgressBar from './charts/MeasurementProgressBar';
+import ParticipantStatusDonut from './charts/ParticipantStatusDonut';
 
 const INFO_SCATTER =
   'Each dot is one measurement. Points on the dashed diagonal line mean the AI agreed perfectly with the goniometer. The further a dot is from the line, the larger the error.';
@@ -42,9 +30,7 @@ const INFO_DESCRIPTIVE =
 // Pure presentational component
 const AnalysisDisplay = ({
   progressData,
-  progressOptions,
   statusData,
-  statusOptions,
   isAnalyzing,
   aiResult,
   statsData,
@@ -68,9 +54,15 @@ const AnalysisDisplay = ({
   const [showToast, setShowToast] = useState(false);
   const [thresholdInput, setThresholdInput] = useState(String(threshold));
 
-  React.useEffect(() => {
+  // Resets the input text to match `threshold` whenever it changes from
+  // outside (e.g. programmatic reset), without wiping what the user is
+  // actively typing. Adjusting state during render (rather than in an
+  // effect) for a prop change is the documented React pattern for this.
+  const [prevThreshold, setPrevThreshold] = useState(threshold);
+  if (threshold !== prevThreshold) {
+    setPrevThreshold(threshold);
     setThresholdInput(String(threshold));
-  }, [threshold]);
+  }
 
   const handleGenerateReport = async () => {
     setIsGenerating(true);
@@ -154,7 +146,7 @@ const AnalysisDisplay = ({
         <div className="pdf-chart bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
           <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Measurement Progress</h3>
           <div className="relative h-64">
-            <Bar data={progressData} options={progressOptions} />
+            <MeasurementProgressBar data={progressData} />
           </div>
         </div>
         {/* Chart 2: Participant Status */}
@@ -163,7 +155,7 @@ const AnalysisDisplay = ({
             Participant Status Distribution
           </h3>
           <div className="relative h-64">
-            <Doughnut data={statusData} options={statusOptions} />
+            <ParticipantStatusDonut data={statusData} />
           </div>
         </div>
       </div>

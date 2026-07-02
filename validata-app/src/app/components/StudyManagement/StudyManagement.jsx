@@ -1,22 +1,43 @@
+"use client";
+
+import { useState } from 'react';
 import { FlaskConical, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 import HoverTooltip from '../common/HoverTooltip';
 
-const StudyManagementDisplay = ({
-  studies,
-  currentStudyId,
-  newStudyName,
-  onNewStudyNameChange,
-  newStudyGoal,
-  onNewStudyGoalChange,
-  onCreateStudy,
-  onDeleteStudy
-}) => {
+const StudyManagement = ({ studies, currentStudyId, onAddStudy, onDeleteStudy }) => {
+  const [newStudyName, setNewStudyName] = useState('');
+  const [newStudyGoal, setNewStudyGoal] = useState('');
+
+  const handleCreateStudy = (e) => {
+    e.preventDefault();
+    if (!newStudyName.trim()) return;
+    onAddStudy(newStudyName.trim(), newStudyGoal);
+    setNewStudyName('');
+    setNewStudyGoal('');
+  };
+
+  const handleDeleteStudy = (id) => {
+    const study = studies.find((s) => s.id === id);
+    if (!study) return;
+
+    // The delete button is disabled in the UI when this is the only study,
+    // but guard here too in case it's ever triggered another way.
+    if (studies.length <= 1) {
+      window.alert('Cannot delete the only study. Create another study first, then delete this one.');
+      return;
+    }
+
+    if (window.confirm(`Delete study "${study.name}"? This permanently deletes all of its participants and measurements. This cannot be undone.`)) {
+      onDeleteStudy(id);
+    }
+  };
+
   return (
     <section className="app-section">
       <header className="mb-8">
         <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Studies Management</h2>
         <p className="text-slate-500 dark:text-slate-400 mt-1">
-          Create or permanently remove studies. Each study's participants, measurements, and recruitment goal are fully isolated from the others.
+          Create or permanently remove studies. Each study&apos;s participants, measurements, and recruitment goal are fully isolated from the others.
         </p>
       </header>
 
@@ -26,7 +47,7 @@ const StudyManagementDisplay = ({
           <h3 className="text-xl font-semibold mb-4 text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-2">
             Create New Study
           </h3>
-          <form onSubmit={onCreateStudy} className="space-y-4">
+          <form onSubmit={handleCreateStudy} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Study Name
@@ -36,7 +57,7 @@ const StudyManagementDisplay = ({
                 required
                 placeholder="e.g. braude's_research_3"
                 value={newStudyName}
-                onChange={(e) => onNewStudyNameChange(e.target.value)}
+                onChange={(e) => setNewStudyName(e.target.value)}
                 className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
               />
             </div>
@@ -49,7 +70,7 @@ const StudyManagementDisplay = ({
                 min="1"
                 placeholder="e.g. 50"
                 value={newStudyGoal}
-                onChange={(e) => onNewStudyGoalChange(e.target.value)}
+                onChange={(e) => setNewStudyGoal(e.target.value)}
                 className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
               />
             </div>
@@ -102,7 +123,7 @@ const StudyManagementDisplay = ({
                   }
                 >
                   <button
-                    onClick={() => onDeleteStudy(s.id)}
+                    onClick={() => handleDeleteStudy(s.id)}
                     disabled={studies.length <= 1}
                     className={`p-2 rounded-lg transition-colors shrink-0 ${
                       studies.length <= 1
@@ -122,4 +143,4 @@ const StudyManagementDisplay = ({
   );
 };
 
-export default StudyManagementDisplay;
+export default StudyManagement;

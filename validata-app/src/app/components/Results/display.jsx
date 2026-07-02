@@ -77,9 +77,9 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
     setFilterTestDate('');
   };
 
-  const SortIcon = ({ col }) => {
+  // Plain function (not a component) so it doesn't get remounted on every render.
+  const renderSortIcon = (col) => {
     if (sortColumn !== col) return <ArrowDownUp className="w-3.5 h-3.5 opacity-40" />;
-    if (col === 'participant') return <ArrowDown className="w-3.5 h-3.5 text-indigo-500" />;
     return <ArrowDown className="w-3.5 h-3.5 text-indigo-500" />;
   };
 
@@ -247,19 +247,19 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
                   className="py-3 px-3 font-medium cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200"
                   onClick={() => handleSortClick('enrollmentDate')}
                 >
-                  <span className="flex items-center gap-1.5">Enrollment Date <SortIcon col="enrollmentDate" /></span>
+                  <span className="flex items-center gap-1.5">Enrollment Date {renderSortIcon('enrollmentDate')}</span>
                 </th>
                 <th
                   className="py-3 px-3 font-medium cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200"
                   onClick={() => handleSortClick('testDate')}
                 >
-                  <span className="flex items-center gap-1.5">Test Date <SortIcon col="testDate" /></span>
+                  <span className="flex items-center gap-1.5">Test Date {renderSortIcon('testDate')}</span>
                 </th>
                 <th
                   className="py-3 px-3 font-medium cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200"
                   onClick={() => handleSortClick('participant')}
                 >
-                  <span className="flex items-center gap-1.5">Participant <SortIcon col="participant" /></span>
+                  <span className="flex items-center gap-1.5">Participant {renderSortIcon('participant')}</span>
                 </th>
                 <th className="py-3 px-3 font-medium">Goniometer</th>
                 <th className="py-3 px-3 font-medium">AI/ML Model</th>

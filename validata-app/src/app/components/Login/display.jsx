@@ -44,7 +44,7 @@ export default function LoginDisplay({
             <Database className="h-4 w-4 shrink-0 mt-0.5" />
             <div>
               <span className="font-semibold block">Supabase is not configured.</span>
-              Using Demo Mode fallback. You can login using the Quick Login buttons.
+              Using Demo Mode fallback. Sign in with mentor@demo.com or team@demo.com (password: demo123).
             </div>
           </div>
         )}
