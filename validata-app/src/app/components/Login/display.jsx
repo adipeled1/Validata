@@ -97,12 +97,13 @@ export default function LoginDisplay({
         {/* Main Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-300">Email Address</label>
+            <label htmlFor="login-email" className="text-xs font-medium text-slate-300">Email Address</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
                 <Mail className="h-4 w-4" />
               </span>
               <input
+                id="login-email"
                 type="email"
                 required
                 className="w-full bg-slate-950/50 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-100 placeholder-slate-600 rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition-all"
@@ -114,12 +115,13 @@ export default function LoginDisplay({
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-300">Password</label>
+            <label htmlFor="login-password" className="text-xs font-medium text-slate-300">Password</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
                 <Lock className="h-4 w-4" />
               </span>
               <input
+                id="login-password"
                 type={showPassword ? 'text' : 'password'}
                 required
                 className="w-full bg-slate-950/50 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-100 placeholder-slate-600 rounded-xl py-2.5 pl-10 pr-10 text-sm outline-none transition-all"

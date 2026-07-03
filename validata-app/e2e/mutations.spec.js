@@ -7,18 +7,17 @@ import { test, expect } from '@playwright/test';
 test.describe('Additional mutations (demo mode)', () => {
   test('drop participant and mark a measurement invalid', async ({ page }) => {
     await page.goto('/login');
-    await page.getByPlaceholder('you@company.com').fill('mentor@demo.com');
-    await page.getByPlaceholder('••••••••').fill('demo123');
+    await page.getByLabel('Email Address').fill('mentor@demo.com');
+    await page.getByLabel('Password').fill('demo123');
     await page.locator('button[type="submit"]', { hasText: 'Sign In' }).click();
     await expect(page.getByRole('heading', { name: 'Participant Management' })).toBeVisible({ timeout: 10_000 });
 
     // Add a participant
     const addParticipantButton = page.getByRole('button', { name: /add participant/i });
     const registerForm = page.locator('form', { has: addParticipantButton });
-    await page.getByPlaceholder('e.g. 35').fill('40');
-    const registerCombos = registerForm.getByRole('combobox');
-    await registerCombos.nth(0).selectOption('Male');
-    await registerCombos.nth(1).selectOption('Healthy');
+    await registerForm.getByLabel('Age').fill('40');
+    await registerForm.getByLabel('Gender').selectOption('Male');
+    await registerForm.getByLabel('Health Status').selectOption('Healthy');
     await page.getByRole('checkbox').check();
     await addParticipantButton.click();
 
@@ -30,9 +29,9 @@ test.describe('Additional mutations (demo mode)', () => {
     await page.getByRole('button', { name: 'Data Collection' }).click();
     const logMeasurementButton = page.getByRole('button', { name: /log measurement/i });
     const logForm = page.locator('form', { has: logMeasurementButton });
-    await logForm.getByRole('combobox').selectOption(participantId);
-    await page.getByPlaceholder('e.g. 45°').fill('30');
-    await page.getByPlaceholder('e.g. 44.8°').fill('29.5');
+    await logForm.getByLabel(/participant/i).selectOption(participantId);
+    await logForm.getByLabel('Goniometer').fill('30');
+    await logForm.getByLabel('AI/ML Model').fill('29.5');
     await logMeasurementButton.click();
     await expect(page.getByText(/measurement logged/i)).toBeVisible();
 
@@ -57,8 +56,8 @@ test.describe('Additional mutations (demo mode)', () => {
 
   test('create and delete a study', async ({ page }) => {
     await page.goto('/login');
-    await page.getByPlaceholder('you@company.com').fill('mentor@demo.com');
-    await page.getByPlaceholder('••••••••').fill('demo123');
+    await page.getByLabel('Email Address').fill('mentor@demo.com');
+    await page.getByLabel('Password').fill('demo123');
     await page.locator('button[type="submit"]', { hasText: 'Sign In' }).click();
     await expect(page.getByRole('heading', { name: 'Participant Management' })).toBeVisible({ timeout: 10_000 });
 
@@ -68,7 +67,7 @@ test.describe('Additional mutations (demo mode)', () => {
     const studyName = `E2E Study ${Date.now()}`;
     const createButton = page.getByRole('button', { name: /create study/i });
     const createForm = page.locator('form', { has: createButton });
-    await createForm.getByPlaceholder("e.g. braude's_research_3").fill(studyName);
+    await createForm.getByLabel('Study Name').fill(studyName);
     await createButton.click();
 
     // The new study's name also appears in the sidebar's study-switcher

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { LogOut, Sun, Moon, ChevronLeft, ChevronRight, FlaskConical } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { getNavItems, ROUTE_BY_VIEW } from './constants';
@@ -59,7 +60,10 @@ const Sidebar = ({
     >
         <div className={`p-3 border-b border-slate-700 flex items-center gap-2 ${showLabels ? 'flex-row justify-between' : 'flex-col'}`}>
           <div className={`flex items-center gap-3 overflow-hidden ${showLabels ? '' : 'flex-col'}`}>
-            <img src="/favicon.png" alt="Validata Logo" className="w-8 h-8 object-contain drop-shadow-md shrink-0" />
+            {/* unoptimized: a small fixed-size local icon doesn't need Next's
+                on-demand resizing, and it avoids a flaky dev-server image
+                optimizer round-trip for this file */}
+            <Image src="/favicon.png" alt="Validata Logo" width={32} height={32} unoptimized className="w-8 h-8 object-contain drop-shadow-md shrink-0" />
             <h1 className={`text-2xl font-bold tracking-wide whitespace-nowrap ${showLabels ? 'inline' : 'hidden'}`}>Validata</h1>
           </div>
           <button
@@ -78,10 +82,11 @@ const Sidebar = ({
         <div className={`p-3 border-b border-slate-700 ${showLabels ? '' : 'flex flex-col items-center'}`}>
           {showLabels ? (
             <>
-              <label className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label htmlFor="sidebar-study-switcher" className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                 <FlaskConical className="w-3.5 h-3.5" /> Study
               </label>
               <select
+                id="sidebar-study-switcher"
                 value={currentStudyId || ''}
                 onChange={(e) => onSwitchStudy(e.target.value)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
@@ -182,7 +187,7 @@ const Sidebar = ({
         the switcher (mentor-only) rather than in the bottom tab bar. */}
     <div className="md:hidden fixed top-0 inset-x-0 z-40 bg-slate-900 text-slate-100 border-b border-slate-700 flex items-center justify-between gap-2 px-3 py-2">
       <div className="flex items-center gap-2 min-w-0">
-        <img src="/favicon.png" alt="Validata Logo" className="w-6 h-6 object-contain shrink-0" />
+        <Image src="/favicon.png" alt="Validata Logo" width={24} height={24} unoptimized className="w-6 h-6 object-contain shrink-0" />
         <span className="font-bold tracking-wide shrink-0">Validata</span>
       </div>
       <div className="flex items-center gap-1.5 min-w-0">
@@ -190,6 +195,7 @@ const Sidebar = ({
           value={currentStudyId || ''}
           onChange={(e) => onSwitchStudy(e.target.value)}
           title="Switch study"
+          aria-label="Switch study"
           className="max-w-[8rem] bg-slate-800 border border-slate-700 rounded-lg py-1.5 pl-2 pr-1 text-xs text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer truncate"
         >
           {studies.map((s) => (

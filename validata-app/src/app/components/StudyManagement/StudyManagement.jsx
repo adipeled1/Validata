@@ -49,10 +49,11 @@ const StudyManagement = ({ studies, currentStudyId, onAddStudy, onDeleteStudy })
           </h3>
           <form onSubmit={handleCreateStudy} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label htmlFor="new-study-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Study Name
               </label>
               <input
+                id="new-study-name"
                 type="text"
                 required
                 placeholder="e.g. braude's_research_3"
@@ -62,10 +63,11 @@ const StudyManagement = ({ studies, currentStudyId, onAddStudy, onDeleteStudy })
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label htmlFor="new-study-goal" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Recruitment Goal (optional)
               </label>
               <input
+                id="new-study-goal"
                 type="number"
                 min="1"
                 placeholder="e.g. 50"

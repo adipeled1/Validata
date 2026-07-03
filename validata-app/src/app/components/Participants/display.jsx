@@ -95,10 +95,11 @@ const ParticipantsDisplay = ({
 
             {/* Age Input */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label htmlFor="participant-age" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Age
               </label>
               <input
+                id="participant-age"
                 type="number"
                 required
                 min="18"
@@ -112,10 +113,11 @@ const ParticipantsDisplay = ({
 
             {/* Gender Select */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label htmlFor="participant-gender" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Gender
               </label>
               <select
+                id="participant-gender"
                 required
                 value={gender}
                 onChange={(e) => onGenderChange(e.target.value)}
@@ -128,10 +130,11 @@ const ParticipantsDisplay = ({
 
             {/* Health Status Select */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label htmlFor="participant-health-status" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Health Status
               </label>
               <select
+                id="participant-health-status"
                 required
                 value={healthStatus}
                 onChange={(e) => onHealthStatusChange(e.target.value)}

@@ -151,8 +151,9 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-4 items-end">
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Participant</label>
+            <label htmlFor="results-filter-participant" className="text-xs font-medium text-slate-500 dark:text-slate-400">Participant</label>
             <select
+              id="results-filter-participant"
               value={filterParticipant}
               onChange={(e) => setFilterParticipant(e.target.value)}
               className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -165,8 +166,9 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Enrollment Date</label>
+            <label htmlFor="results-filter-enroll-date" className="text-xs font-medium text-slate-500 dark:text-slate-400">Enrollment Date</label>
             <input
+              id="results-filter-enroll-date"
               type="date"
               value={filterEnrollDate}
               onChange={(e) => setFilterEnrollDate(e.target.value)}
@@ -175,8 +177,9 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Test Date</label>
+            <label htmlFor="results-filter-test-date" className="text-xs font-medium text-slate-500 dark:text-slate-400">Test Date</label>
             <input
+              id="results-filter-test-date"
               type="date"
               value={filterTestDate}
               onChange={(e) => setFilterTestDate(e.target.value)}

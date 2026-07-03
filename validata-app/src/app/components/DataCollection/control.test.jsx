@@ -21,9 +21,9 @@ describe('DataCollectionControl (log measurement golden path)', () => {
       />
     );
 
-    await user.selectOptions(screen.getByRole('combobox'), 'P-1001');
-    await user.type(screen.getByPlaceholderText('e.g. 45°'), '45');
-    await user.type(screen.getByPlaceholderText('e.g. 44.8°'), '44.9');
+    await user.selectOptions(screen.getByLabelText(/participant/i), 'P-1001');
+    await user.type(screen.getByLabelText('Goniometer'), '45');
+    await user.type(screen.getByLabelText('AI/ML Model'), '44.9');
     await user.click(screen.getByRole('button', { name: /log measurement/i }));
 
     expect(onLogMeasurement).toHaveBeenCalledTimes(1);

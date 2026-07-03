@@ -50,10 +50,11 @@ const DataCollectionDisplay = ({
           </h3>
           <form onSubmit={onSubmitLog} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label htmlFor="log-participant" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Participant (Active Only)
               </label>
               <select
+                id="log-participant"
                 required
                 value={participantId}
                 onChange={(e) => onParticipantChange(e.target.value)}
@@ -72,10 +73,11 @@ const DataCollectionDisplay = ({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                <label htmlFor="log-goniometer" className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
                   Goniometer
                 </label>
                 <input
+                  id="log-goniometer"
                   type="text"
                   placeholder="e.g. 45°"
                   value={goniometer}
@@ -84,10 +86,11 @@ const DataCollectionDisplay = ({
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                <label htmlFor="log-ai-model" className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
                   AI/ML Model
                 </label>
                 <input
+                  id="log-ai-model"
                   type="text"
                   placeholder="e.g. 44.8°"
                   value={aiModel}
@@ -98,10 +101,11 @@ const DataCollectionDisplay = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label htmlFor="log-test-date" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Test Date
               </label>
               <input
+                id="log-test-date"
                 type="date"
                 value={testDate}
                 onChange={(e) => onTestDateChange(e.target.value)}
@@ -110,10 +114,11 @@ const DataCollectionDisplay = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label htmlFor="log-notes" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Researcher Notes
               </label>
               <textarea
+                id="log-notes"
                 rows="2"
                 value={notes}
                 onChange={(e) => onNotesChange(e.target.value)}

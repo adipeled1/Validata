@@ -20,11 +20,9 @@ describe('ParticipantsControl (add participant golden path)', () => {
       />
     );
 
-    const [genderSelect, healthStatusSelect] = screen.getAllByRole('combobox');
-
-    await user.type(screen.getByPlaceholderText('e.g. 35'), '35');
-    await user.selectOptions(genderSelect, 'Female');
-    await user.selectOptions(healthStatusSelect, 'Healthy');
+    await user.type(screen.getByLabelText('Age'), '35');
+    await user.selectOptions(screen.getByLabelText('Gender'), 'Female');
+    await user.selectOptions(screen.getByLabelText('Health Status'), 'Healthy');
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: /add participant/i }));
 
