@@ -50,7 +50,7 @@ We are students at Braude College of Engineering. The features listed above refl
 
 This project is provided as-is, without warranty of any kind, express or implied. The contributors make no representation that this software meets any regulatory requirement. Use at your own risk.
 
-This project is licensed under the [Apache 2.0 License](../LICENSE).
+This project is licensed under the [Apache 2.0 License](LICENSE).
 
 ---
 
