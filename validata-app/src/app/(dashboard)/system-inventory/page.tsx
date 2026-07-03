@@ -1,0 +1,126 @@
+"use client";
+
+import { useSession } from '../../../context/SessionContext';
+
+// ICH E6(R3) META-04: System inventory register.
+// Lists all system components, their versions, and validation status.
+// Accessible to mentor and sponsor_admin only.
+const ADMIN_ROLES = ['mentor', 'sponsor_admin'];
+
+const SYSTEM_COMPONENTS = [
+  {
+    name: 'Validata EDC Application',
+    type: 'Custom Software',
+    version: 'See git SHA in deployment',
+    vendor: 'Internal Development',
+    gampCategory: '5 — Custom Application',
+    validationStatus: 'IQ complete; OQ in progress',
+    notes: 'See docs/validation_master_plan.md for current test protocol status',
+  },
+  {
+    name: 'Next.js Framework',
+    type: 'Development Framework',
+    version: '16.x',
+    vendor: 'Vercel Inc.',
+    gampCategory: '3 — Non-configured Software',
+    validationStatus: 'Vendor-qualified (part of EDC system validation)',
+    notes: '',
+  },
+  {
+    name: 'Supabase (PostgreSQL)',
+    type: 'Database Platform',
+    version: 'PostgreSQL 15',
+    vendor: 'Supabase Inc.',
+    gampCategory: '4 — Configurable Software',
+    validationStatus: 'Vendor SOC 2 Type II certified; PITR enabled',
+    notes: 'RLS policies documented in supabase_setup.sql',
+  },
+  {
+    name: 'Vercel (Hosting)',
+    type: 'Infrastructure',
+    version: 'N/A (PaaS)',
+    vendor: 'Vercel Inc.',
+    gampCategory: '3 — Non-configured Software',
+    validationStatus: 'Vendor SOC 2 Type II certified; HTTPS enforced',
+    notes: 'Demo mode disabled via NEXT_PUBLIC_DEMO_ENABLED=false in production',
+  },
+  {
+    name: 'Supabase Auth',
+    type: 'Authentication Service',
+    version: 'Bundled with Supabase platform',
+    vendor: 'Supabase Inc.',
+    gampCategory: '4 — Configurable Software',
+    validationStatus: 'Vendor-managed; email/password with JWT sessions',
+    notes: 'Demo mode bypass gated by NEXT_PUBLIC_DEMO_ENABLED env var',
+  },
+  {
+    name: 'Google AI (Gemini)',
+    type: 'External AI Service',
+    version: 'API — version per GOOGLE_AI_API_KEY',
+    vendor: 'Google LLC',
+    gampCategory: 'N/A — External analysis tool',
+    validationStatus: 'Not validated for GCP; used for informational AI summarization only — not for regulatory decisions',
+    notes: 'AI results must not be used as primary evidence in regulatory submissions',
+  },
+  {
+    name: 'Zod Schema Validation',
+    type: 'Input Validation Library',
+    version: 'v3.x',
+    vendor: 'Open Source (MIT)',
+    gampCategory: '3 — Non-configured Software',
+    validationStatus: 'Vendor-tested; validated as part of EDC OQ',
+    notes: 'All API input boundaries validated via Zod schemas in src/lib/schemas.ts',
+  },
+] as const;
+
+export default function SystemInventoryPage() {
+  const { userRole } = useSession();
+
+  if (!ADMIN_ROLES.includes(userRole)) {
+    return <p className="p-6 text-gray-500">You do not have access to the system inventory register.</p>;
+  }
+
+  return (
+    <div className="p-6 space-y-4">
+      <h1 className="text-xl font-semibold text-gray-900">System Inventory Register</h1>
+      <p className="text-sm text-gray-500">
+        Records all system components used in the Validata EDC platform, their GAMP category, and
+        validation status. Required by ICH E6(R3) Appendix C (META-04). This register must be reviewed
+        and signed off by the sponsor at each CSV review cycle.
+      </p>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="bg-gray-50 border-b text-left text-xs text-gray-500 uppercase tracking-wide">
+              <th className="px-3 py-2">Component</th>
+              <th className="px-3 py-2">Type</th>
+              <th className="px-3 py-2">Version</th>
+              <th className="px-3 py-2">Vendor</th>
+              <th className="px-3 py-2">GAMP Category</th>
+              <th className="px-3 py-2">Validation Status</th>
+              <th className="px-3 py-2">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {SYSTEM_COMPONENTS.map((c) => (
+              <tr key={c.name} className="border-b hover:bg-gray-50">
+                <td className="px-3 py-2 font-medium">{c.name}</td>
+                <td className="px-3 py-2 text-xs">{c.type}</td>
+                <td className="px-3 py-2 font-mono text-xs">{c.version}</td>
+                <td className="px-3 py-2 text-xs">{c.vendor}</td>
+                <td className="px-3 py-2 text-xs">{c.gampCategory}</td>
+                <td className="px-3 py-2 text-xs">{c.validationStatus}</td>
+                <td className="px-3 py-2 text-xs text-gray-500">{c.notes}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="text-xs text-gray-400 mt-4">
+        Last reviewed: 2026-07-03. Next review due: per change control or annual CSV review cycle.
+      </p>
+    </div>
+  );
+}

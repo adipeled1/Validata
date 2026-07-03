@@ -16,6 +16,12 @@ export type UpdateStudyGoalInput = {
   recruitmentGoal: string | number;
 };
 
+export type SoftDeleteStudyInput = {
+  id: string;
+  // ICH E6(R3) RET-02: reason for deletion must be documented
+  reason?: string;
+};
+
 // session.supabaseClient is only null in demo mode (see resolveSession in
 // auth-server.ts) - the `!` below is safe once the `session.isDemo` branch
 // has already returned.
@@ -25,9 +31,13 @@ export async function listStudies(session: ResolvedSession) {
     return mockData.studies;
   }
 
+  // ICH E6(R3) RET-01: only return non-deleted studies; soft-deleted rows
+  // are hidden by the RLS policy (deleted_at IS NULL) and this filter is a
+  // belt-and-suspenders guard at the query layer.
   const { data, error } = await session.supabaseClient!
     .from('studies')
     .select('*')
+    .is('deleted_at', null)
     .order('created_at', { ascending: true });
 
   if (error) throw error;
@@ -49,7 +59,11 @@ export async function createStudy(session: ResolvedSession, { name, recruitmentG
 
   const { data, error } = await session.supabaseClient!
     .from('studies')
-    .insert({ name, recruitment_goal: parseInt(String(recruitmentGoal)) || 50 })
+    .insert({
+      name,
+      recruitment_goal: parseInt(String(recruitmentGoal)) || 50,
+      created_by: session.user.id,
+    })
     .select();
 
   if (error) throw error;
@@ -71,11 +85,15 @@ export async function updateStudyGoal(session: ResolvedSession, { id, recruitmen
   return data[0];
 }
 
-// Permanently deletes a study and all of its participants and measurements.
-// Deletes child rows explicitly rather than relying solely on a DB-side
-// cascade, so this works the same way regardless of which version of the FK
-// constraint is in place.
-export async function deleteStudy(session: ResolvedSession, id: string) {
+// ICH E6(R3) RET-01, RET-02: studies are NEVER hard-deleted.
+// This function performs a soft-delete (sets deleted_at and deleted_by).
+// The data remains in the database and is still retrievable by the service
+// role for retention and inspection purposes. A controlled destruction
+// workflow (Phase 2 task 2.9) is required for physical deletion.
+export async function softDeleteStudy(
+  session: ResolvedSession,
+  { id, reason }: SoftDeleteStudyInput
+) {
   if (!id) {
     throw new Error('Study id is required.');
   }
@@ -84,23 +102,31 @@ export async function deleteStudy(session: ResolvedSession, id: string) {
     return { id };
   }
 
-  const { error: measurementsError } = await session.supabaseClient!
-    .from('measurements')
-    .delete()
-    .eq('study_id', id);
-  if (measurementsError) throw measurementsError;
-
-  const { error: participantsError } = await session.supabaseClient!
-    .from('participants')
-    .delete()
-    .eq('study_id', id);
-  if (participantsError) throw participantsError;
-
-  const { error: studyError } = await session.supabaseClient!
+  // Check retention hold before allowing soft-delete
+  const { data: study, error: fetchError } = await session.supabaseClient!
     .from('studies')
-    .delete()
-    .eq('id', id);
-  if (studyError) throw studyError;
+    .select('retention_hold, name')
+    .eq('id', id)
+    .single();
 
-  return { id };
+  if (fetchError) throw fetchError;
+
+  if (study?.retention_hold) {
+    throw new Error(
+      `Study "${study.name}" has an active retention hold and cannot be deleted. ` +
+      'Contact the sponsor administrator to release the hold.'
+    );
+  }
+
+  const { data, error } = await session.supabaseClient!
+    .from('studies')
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: session.user.id,
+    })
+    .eq('id', id)
+    .select();
+
+  if (error) throw error;
+  return data[0];
 }

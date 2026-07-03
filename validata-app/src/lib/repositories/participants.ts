@@ -7,7 +7,7 @@ import type { ResolvedSession } from '@/lib/auth-server';
 // each duplicate this logic independently.
 
 export type CreateParticipantInput = {
-  id: string;
+  id?: string;
   consent: boolean;
   status?: string;
   age?: string | number | null;
@@ -21,6 +21,8 @@ export type UpdateParticipantStatusInput = {
   id: string;
   status: string;
   studyId: string;
+  // ICH E6(R3) COR-01: reason is required for Drop; optional for Completed toggle
+  reason?: string;
 };
 
 // session.supabaseClient is only null in demo mode (see resolveSession in
@@ -46,35 +48,56 @@ export async function listParticipants(session: ResolvedSession, studyId?: strin
   return data;
 }
 
-export async function createParticipant(session: ResolvedSession, { id, consent, status, age, gender, healthStatus, enrollmentDate, studyId }: CreateParticipantInput) {
+export async function createParticipant(
+  session: ResolvedSession,
+  { id, consent, status, age, gender, healthStatus, enrollmentDate, studyId }: CreateParticipantInput
+) {
   if (!studyId) {
     throw new Error('A study must be selected before adding a participant.');
   }
 
   if (session.isDemo) {
     return {
-      id,
+      id: id || `P-${Date.now()}`,
       consent,
       status: status || 'Active',
       age: parseInt(String(age)) || null,
       gender,
       health_status: healthStatus,
       study_id: studyId,
-      enrollment_date: enrollmentDate || new Date().toISOString().split('T')[0]
+      enrollment_date: enrollmentDate || new Date().toISOString().split('T')[0],
+      created_by: null,
     };
+  }
+
+  let participantId = id;
+  if (!participantId) {
+    const { data: existing } = await session.supabaseClient!
+      .from('participants')
+      .select('id')
+      .eq('study_id', studyId);
+
+    const maxNum = (existing ?? []).reduce((max: number, p: { id: string }) => {
+      const num = parseInt(p.id?.split('-')[1]) || 0;
+      return Math.max(max, num);
+    }, 1000);
+
+    participantId = `P-${maxNum + 1}`;
   }
 
   const { data, error } = await session.supabaseClient!
     .from('participants')
     .insert({
-      id,
+      id: participantId,
       consent,
       status: status || 'Active',
       age: parseInt(String(age)) || null,
       gender,
       health_status: healthStatus,
       study_id: studyId,
-      enrollment_date: enrollmentDate || new Date().toISOString().split('T')[0]
+      enrollment_date: enrollmentDate || new Date().toISOString().split('T')[0],
+      // ICH E6(R3) INT-02: store who enrolled this participant
+      created_by: session.user.id,
     })
     .select();
 
@@ -82,8 +105,13 @@ export async function createParticipant(session: ResolvedSession, { id, consent,
   return data[0];
 }
 
-// Update participant status (e.g. drop, complete/un-complete)
-export async function updateParticipantStatus(session: ResolvedSession, { id, status, studyId }: UpdateParticipantStatusInput) {
+// Update participant status (e.g. drop, complete/un-complete).
+// ICH E6(R3) COR-01: reason is captured for status changes and flows to
+// the audit_log trigger via the status_reason column.
+export async function updateParticipantStatus(
+  session: ResolvedSession,
+  { id, status, studyId, reason }: UpdateParticipantStatusInput
+) {
   if (!studyId) {
     throw new Error('A study must be selected before updating a participant.');
   }
@@ -97,7 +125,10 @@ export async function updateParticipantStatus(session: ResolvedSession, { id, st
   // update every study's matching row instead of just the current one.
   const { data, error } = await session.supabaseClient!
     .from('participants')
-    .update({ status })
+    .update({
+      status,
+      ...(reason ? { status_reason: reason } : {}),
+    })
     .eq('id', id)
     .eq('study_id', studyId)
     .select();

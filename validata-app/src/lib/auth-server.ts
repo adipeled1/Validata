@@ -3,7 +3,7 @@ import { createClient } from './supabase/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type Profile = {
-  role: 'mentor' | 'team_member';
+  role: string; // expanded role set defined in schemas.ts roleSchema
   status: 'pending' | 'active' | 'suspended';
 };
 
@@ -21,6 +21,11 @@ export type SessionError = {
 
 export type Session = ResolvedSession | SessionError;
 
+// ICH E6(R3) SEC-01 / AUTH-01: Demo Mode must be disabled in production
+// deployments. Set NEXT_PUBLIC_DEMO_ENABLED=false in Vercel production env
+// vars. When absent or set to 'true', demo mode is available (dev/staging only).
+const DEMO_ENABLED = process.env.NEXT_PUBLIC_DEMO_ENABLED !== 'false';
+
 // Resolves who's making the request (demo or real Supabase user) and their
 // profile, without judging whether their account status is allowed to
 // proceed - that gate differs by caller (API routes reject non-active users
@@ -30,7 +35,9 @@ async function resolveSession(): Promise<Session> {
   const cookieStore = await cookies();
   const demoSessionCookie = cookieStore.get('demo-session')?.value;
 
-  if (demoSessionCookie) {
+  // ICH E6(R3) SEC-01: reject the demo cookie when demo mode is disabled in
+  // production so a tampered cookie cannot bypass real authentication.
+  if (demoSessionCookie && DEMO_ENABLED) {
     try {
       const sessionData = JSON.parse(demoSessionCookie);
       return {
@@ -39,13 +46,13 @@ async function resolveSession(): Promise<Session> {
         isDemo: true,
         supabaseClient: null
       };
-    } catch (e) {
+    } catch {
       // Failed to parse, proceed to real auth checks
     }
   }
 
   // The session lives in cookies managed by @supabase/ssr (kept fresh by
-  // src/proxy.js on every request), so no bearer token needs passing here.
+  // src/proxy.ts on every request), so no bearer token needs passing here.
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
@@ -60,7 +67,7 @@ async function resolveSession(): Promise<Session> {
     .single();
 
   if (profileError || !profile) {
-    // If user exists in Auth but has no profile, let's create a pending profile
+    // If user exists in Auth but has no profile, create a pending profile
     const { data: newProfile, error: createError } = await supabase
       .from('profiles')
       .insert({
@@ -111,4 +118,20 @@ export async function verifySession(): Promise<Session> {
 // renders a status screen for them instead of dashboard content.
 export async function getDashboardSession(): Promise<Session> {
   return resolveSession();
+}
+
+// ICH E6(R3) AUTH-02: role helpers used by API routes and Server Actions
+// to enforce function-based access control beyond the basic active/pending gate.
+export function isMentor(session: ResolvedSession): boolean {
+  return session.profile.role === 'mentor' || session.profile.role === 'sponsor_admin';
+}
+
+export function canEditData(session: ResolvedSession): boolean {
+  return ['mentor', 'sponsor_admin', 'investigator', 'site_coordinator', 'data_manager'].includes(
+    session.profile.role
+  );
+}
+
+export function canReadOnly(session: ResolvedSession): boolean {
+  return canEditData(session) || ['monitor', 'auditor', 'irb_reviewer'].includes(session.profile.role);
 }
