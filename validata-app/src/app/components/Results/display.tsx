@@ -92,9 +92,8 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
   };
 
   const handleMarkInvalidClick = (id: any) => {
-    if (window.confirm('Mark this measurement invalid? This cannot be undone.')) {
-      onMarkInvalid(id);
-    }
+    // ICH E6(R3) COR-01: delegate to parent — reason modal is owned by ResultsControl.
+    onMarkInvalid(id);
   };
 
   const columns = [

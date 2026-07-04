@@ -1,11 +1,84 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { useSession } from '../../../context/SessionContext';
+import { useStudy } from '../../../context/StudyContext';
+import { Download } from 'lucide-react';
 
-const COMPLIANCE_ROLES = ['monitor', 'auditor', 'mentor', 'sponsor_admin'];
+const COMPLIANCE_ROLES = ['monitor', 'auditor', 'mentor', 'sponsor_admin', 'investigator'];
+
+const colHeaderStyle: React.CSSProperties = {
+  padding: '0 10px 6px',
+  fontSize: '10px',
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+  color: 'var(--text-col-header)',
+  borderBottom: '1px solid var(--border)',
+  textAlign: 'left',
+  whiteSpace: 'nowrap',
+};
+
+const cellStyle: React.CSSProperties = {
+  padding: '0 10px',
+  height: '32px',
+  fontSize: '11px',
+  color: 'var(--text-primary)',
+  verticalAlign: 'middle',
+  whiteSpace: 'nowrap',
+};
+
+interface Signature {
+  id: number;
+  signed_at: string;
+  signer_email: string;
+  record_type: string;
+  record_id: string;
+  milestone: string;
+  meaning: string;
+}
 
 export default function SignaturesPage() {
-  const { userRole } = useSession();
+  const { userRole, isDemoMode } = useSession();
+  const { currentStudyId } = useStudy();
+
+  const [signatures, setSignatures] = useState<Signature[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!currentStudyId) return;
+    setLoading(true);
+    setError('');
+    fetch(`/api/signatures?studyId=${currentStudyId}`)
+      .then((r) => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then((data: Signature[]) => setSignatures(data ?? []))
+      .catch((e) => setError(String(e)))
+      .finally(() => setLoading(false));
+  }, [currentStudyId]);
+
+  const handleExportCSV = () => {
+    const header = 'Signed At (UTC),Signer,Record Type,Record ID,Milestone,Meaning\n';
+    const rows = signatures
+      .map((s) =>
+        [
+          new Date(s.signed_at).toISOString(),
+          s.signer_email,
+          s.record_type,
+          s.record_id,
+          s.milestone,
+          `"${(s.meaning ?? '').replace(/"/g, '""')}"`,
+        ].join(',')
+      )
+      .join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `signatures-${currentStudyId ?? 'study'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   if (!COMPLIANCE_ROLES.includes(userRole)) {
     return (
@@ -17,30 +90,107 @@ export default function SignaturesPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      <div>
-        <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
-          COMPLIANCE / Electronic Signatures
+      {/* Page header */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+            COMPLIANCE / Electronic Signatures
+          </div>
+          <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
+            Electronic Signatures
+          </h1>
+          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+            Immutable record of all data endorsements. ICH E6(R3) SIG-01 — read-only.
+          </div>
         </div>
-        <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
-          Electronic Signatures
-        </h1>
+        <button
+          onClick={handleExportCSV}
+          disabled={signatures.length === 0}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '5px 10px',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-secondary)',
+            fontSize: '11px',
+            cursor: signatures.length === 0 ? 'not-allowed' : 'pointer',
+            opacity: signatures.length === 0 ? 0.5 : 1,
+          }}
+        >
+          <Download size={12} /> Export CSV
+        </button>
       </div>
-      <div
-        style={{
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border)',
-          padding: '24px',
-          color: 'var(--text-secondary)',
-          fontSize: '12px',
-          lineHeight: 1.6,
-        }}
-      >
-        <p>
-          Signature registry — coming soon. All data endorsement records are stored in the signatures table.
-        </p>
-        <p style={{ marginTop: '8px', color: 'var(--text-muted)' }}>
-          ICH E6(R3) requires permanent, immutable records of all electronic signatures. This page will display all endorsements for the current study, with export to PDF (signature manifest).
-        </p>
+
+      {isDemoMode && (
+        <div style={{ padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border)', fontSize: '11px', color: 'var(--status-warning)' }}>
+          Demo mode — no signatures exist in the demo environment. Connect to a real Supabase instance to see records.
+        </div>
+      )}
+
+      {error && (
+        <div style={{ padding: '8px 12px', background: 'rgba(248,113,113,0.08)', border: '1px solid var(--status-dropped)', fontSize: '11px', color: 'var(--status-dropped)' }}>
+          Failed to load signatures: {error}
+        </div>
+      )}
+
+      {/* Signatures table */}
+      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+        {loading ? (
+          <div style={{ padding: '32px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
+            Loading…
+          </div>
+        ) : signatures.length === 0 ? (
+          <div style={{ padding: '32px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
+            No electronic signatures recorded for this study yet.
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={colHeaderStyle}>Signed At (UTC)</th>
+                  <th style={colHeaderStyle}>Signer</th>
+                  <th style={colHeaderStyle}>Record Type</th>
+                  <th style={colHeaderStyle}>Record ID</th>
+                  <th style={colHeaderStyle}>Milestone</th>
+                  <th style={colHeaderStyle}>Meaning</th>
+                </tr>
+              </thead>
+              <tbody>
+                {signatures.map((sig, i) => (
+                  <tr
+                    key={sig.id}
+                    style={{
+                      background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
+                      borderBottom: '1px solid var(--border)',
+                    }}
+                  >
+                    <td style={{ ...cellStyle, fontFamily: 'var(--font-data)', color: 'var(--text-timestamp)' }}>
+                      {new Date(sig.signed_at).toISOString().replace('T', ' ').substring(0, 19)} UTC
+                    </td>
+                    <td style={{ ...cellStyle, fontFamily: 'var(--font-data)', color: 'var(--text-actor)', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {sig.signer_email}
+                    </td>
+                    <td style={{ ...cellStyle, color: 'var(--text-secondary)' }}>
+                      {sig.record_type}
+                    </td>
+                    <td style={{ ...cellStyle, fontFamily: 'var(--font-data)', color: 'var(--text-id)' }}>
+                      {sig.record_id}
+                    </td>
+                    <td style={{ ...cellStyle, color: 'var(--status-sign)' }}>
+                      {sig.milestone}
+                    </td>
+                    <td style={{ ...cellStyle, color: 'var(--text-secondary)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {sig.meaning}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

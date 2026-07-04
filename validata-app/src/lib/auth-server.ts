@@ -4,7 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type Profile = {
   role: string; // expanded role set defined in schemas.ts roleSchema
-  status: 'pending' | 'active' | 'suspended';
+  status: 'candidate' | 'pending' | 'active' | 'suspended';
 };
 
 export type ResolvedSession = {
@@ -67,14 +67,15 @@ async function resolveSession(): Promise<Session> {
     .single();
 
   if (profileError || !profile) {
-    // If user exists in Auth but has no profile, create a pending profile
+    // If user exists in Auth but has no profile, create a candidate profile
     const { data: newProfile, error: createError } = await supabase
       .from('profiles')
       .insert({
         id: user.id,
         email: user.email,
         role: 'team_member',
-        status: 'pending'
+        status: 'candidate',
+        candidate_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       })
       .select()
       .single();
@@ -114,7 +115,7 @@ export async function verifySession(): Promise<Session> {
 
 // For the dashboard layout (Server Component): resolves the session once,
 // server-side, so the client doesn't need its own separate auth check.
-// Pending/suspended users are still resolved successfully here - the layout
+// Candidate/pending/suspended users are still resolved successfully here - the layout
 // renders a status screen for them instead of dashboard content.
 export async function getDashboardSession(): Promise<Session> {
   return resolveSession();

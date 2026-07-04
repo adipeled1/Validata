@@ -87,6 +87,73 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  if (userStatus === 'candidate') {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg-editor)',
+          padding: '24px',
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '440px',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            padding: '32px',
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ color: 'var(--status-pending)', marginBottom: '16px' }}>
+            <Clock size={32} />
+          </div>
+          <h2
+            style={{
+              fontSize: 'var(--font-size-h1)',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              marginBottom: '8px',
+            }}
+          >
+            Registration Under Review
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '12px', lineHeight: 1.6, marginBottom: '20px' }}>
+            Your registration is pending mentor approval for{' '}
+            <code style={{ fontFamily: 'var(--font-data)', color: 'var(--accent-soft)' }}>
+              {currentUserEmail}
+            </code>
+            . If not confirmed within 30 days, your account will be automatically removed.
+          </p>
+          <button
+            onClick={handleLogout}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 16px',
+              background: 'var(--bg-surface-hover)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)',
+              color: 'var(--text-primary)',
+              fontSize: '13px',
+              cursor: 'pointer',
+              width: '100%',
+              justifyContent: 'center',
+            }}
+          >
+            <LogOut size={14} /> Sign Out
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (userStatus === 'pending') {
     return (
       <div

@@ -42,7 +42,7 @@ describe('mapMeasurements', () => {
     expect(m.goniometer).toBe('45.0°');
     expect(m.aiModel).toBe('44.9°');
     expect(m.isValid).toBe(true);
-    expect(m.timestamp).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/);
+    expect(m.timestamp).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2} UTC$/);
   });
 
   it('treats is_valid: false as invalid, defaults missing is_valid to valid', () => {

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import AnalysisDisplay from './display';
-import AIChatControl from '../AIChat/control';
 import EndorseDataModal from '../common/EndorseDataModal';
 import { fetchAnalysisData } from './service';
 
@@ -118,7 +117,6 @@ const AnalysisControl = ({
         isLoadingCharts={isLoadingCharts}
         lastUpdated={lastUpdated}
       />
-      <AIChatControl participants={participants} measurements={measurements} />
     </>
   );
 };

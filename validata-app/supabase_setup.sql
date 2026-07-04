@@ -1252,3 +1252,127 @@ DROP TRIGGER IF EXISTS audit_ip_dispensations ON public.ip_dispensations;
 CREATE TRIGGER audit_ip_dispensations
     AFTER INSERT ON public.ip_dispensations
     FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
+
+-- ============================================================
+-- Migration: Candidate State + Study Access Control
+-- ============================================================
+
+-- 26. Update profiles status check to include 'candidate'
+ALTER TABLE public.profiles
+  DROP CONSTRAINT IF EXISTS profiles_status_check;
+ALTER TABLE public.profiles
+  ADD CONSTRAINT profiles_status_check
+  CHECK (status IN ('candidate', 'pending', 'active', 'suspended'));
+
+-- 27. Add candidate_expires_at column
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS candidate_expires_at TIMESTAMPTZ;
+
+-- 28. Update the signup trigger to create candidates, not pending users
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, role, status, candidate_expires_at)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    'team_member',
+    'candidate',
+    NOW() + INTERVAL '30 days'
+  );
+  RETURN NEW;
+END;
+$$;
+
+-- 29. Cleanup function: hard-deletes expired candidates
+CREATE OR REPLACE FUNCTION public.cleanup_expired_candidates()
+RETURNS INTEGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  deleted_count INTEGER;
+BEGIN
+  DELETE FROM auth.users
+  WHERE id IN (
+    SELECT id FROM public.profiles
+    WHERE status = 'candidate'
+      AND candidate_expires_at < NOW()
+  );
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RETURN deleted_count;
+END;
+$$;
+
+-- 30. Profile status change audit — skips candidate pre-activation rows
+CREATE OR REPLACE FUNCTION public.log_profile_status_change()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  -- Skip audit for pre-activation state (candidates were never real users)
+  IF OLD.status = 'candidate' THEN
+    RETURN NEW;
+  END IF;
+  INSERT INTO public.audit_log (
+    study_id, table_name, record_id, action, actor_id,
+    old_value, new_value, reason, created_at
+  ) VALUES (
+    NULL,
+    'profiles',
+    NEW.id::TEXT,
+    'STATUS_CHANGE',
+    auth.uid(),
+    jsonb_build_object('status', OLD.status, 'role', OLD.role),
+    jsonb_build_object('status', NEW.status, 'role', NEW.role),
+    NEW.change_reason,
+    NOW()
+  );
+  RETURN NEW;
+END;
+$$;
+
+-- 31. Study Members table
+CREATE TABLE IF NOT EXISTS public.study_members (
+  study_id     UUID NOT NULL REFERENCES public.studies(id) ON DELETE CASCADE,
+  user_id      UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  study_role   TEXT NOT NULL,
+  granted_by   UUID REFERENCES auth.users(id),
+  granted_at   TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (study_id, user_id)
+);
+
+-- RLS for study_members
+ALTER TABLE public.study_members ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "study_members_read" ON public.study_members;
+CREATE POLICY "study_members_read" ON public.study_members
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND status = 'active'
+            AND role IN ('mentor', 'sponsor_admin', 'investigator', 'site_coordinator',
+                         'data_manager', 'monitor', 'auditor', 'irb_reviewer'))
+  );
+
+DROP POLICY IF EXISTS "study_members_write" ON public.study_members;
+CREATE POLICY "study_members_write" ON public.study_members
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND status = 'active'
+            AND role IN ('mentor', 'sponsor_admin'))
+  );
+
+-- Audit trigger for study_members
+CREATE OR REPLACE FUNCTION public.audit_study_members()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    INSERT INTO public.audit_log (study_id, table_name, record_id, action, actor_id, new_value, created_at)
+    VALUES (NEW.study_id, 'study_members', NEW.user_id::TEXT, 'INSERT', auth.uid(),
+            jsonb_build_object('user_id', NEW.user_id, 'study_role', NEW.study_role), NOW());
+  ELSIF TG_OP = 'DELETE' THEN
+    INSERT INTO public.audit_log (study_id, table_name, record_id, action, actor_id, old_value, created_at)
+    VALUES (OLD.study_id, 'study_members', OLD.user_id::TEXT, 'DELETE', auth.uid(),
+            jsonb_build_object('user_id', OLD.user_id, 'study_role', OLD.study_role), NOW());
+  END IF;
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+DROP TRIGGER IF EXISTS study_members_audit ON public.study_members;
+CREATE TRIGGER study_members_audit
+  AFTER INSERT OR DELETE ON public.study_members
+  FOR EACH ROW EXECUTE FUNCTION public.audit_study_members();

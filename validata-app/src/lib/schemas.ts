@@ -75,7 +75,7 @@ export const deleteStudySchema = z.string().min(1);
 export const updateProfileSchema = z.object({
   id: z.string().min(1),
   role: roleSchema.optional(),
-  status: z.enum(['pending', 'active', 'suspended']).optional(),
+  status: z.enum(['candidate', 'pending', 'active', 'suspended']).optional(),
   // ICH E6(R3) COR-01: reason for role/status change captured and stored in the audit trail
   reason: z.string().optional(),
 });

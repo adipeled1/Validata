@@ -10,6 +10,12 @@ export async function GET(request: Request): Promise<Response> {
       return Response.json({ error: session.error }, { status: session.status });
     }
 
+    // Lazy cleanup: hard-delete expired candidates on every admin load
+    // Fire-and-forget — don't await so it doesn't delay the response
+    if (!session.isDemo && session.supabaseClient) {
+      void Promise.resolve(session.supabaseClient.rpc('cleanup_expired_candidates')).catch(() => {});
+    }
+
     const { searchParams } = new URL(request.url);
     const fetchCurrentOnly = searchParams.get('current') === 'true';
 
