@@ -275,8 +275,9 @@ const ParticipantsDisplay = ({
           </div>
 
           <div>
-            <label style={labelStyle}>Age</label>
+            <label htmlFor="panel-age" style={labelStyle}>Age</label>
             <input
+              id="panel-age"
               type="number"
               required
               min="18"
@@ -289,8 +290,9 @@ const ParticipantsDisplay = ({
           </div>
 
           <div>
-            <label style={labelStyle}>Gender</label>
+            <label htmlFor="panel-gender" style={labelStyle}>Gender</label>
             <select
+              id="panel-gender"
               required
               value={gender}
               onChange={(e) => onGenderChange(e.target.value)}
@@ -302,8 +304,9 @@ const ParticipantsDisplay = ({
           </div>
 
           <div>
-            <label style={labelStyle}>Health Status</label>
+            <label htmlFor="panel-health-status" style={labelStyle}>Health Status</label>
             <select
+              id="panel-health-status"
               required
               value={healthStatus}
               onChange={(e) => onHealthStatusChange(e.target.value)}

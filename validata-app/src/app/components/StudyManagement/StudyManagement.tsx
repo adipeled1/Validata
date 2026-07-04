@@ -207,6 +207,7 @@ const StudyManagement = ({ studies, currentStudyId, onAddStudy, onDeleteStudy }:
                 }
               >
                 <button
+                  data-testid={`delete-study-${s.id}`}
                   onClick={() => handleDeleteStudy(s.id)}
                   disabled={studies.length <= 1}
                   style={{

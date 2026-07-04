@@ -21,8 +21,9 @@ test.describe('Golden paths (demo mode)', () => {
     await page.getByLabel('Age').fill('29');
     await page.getByLabel('Gender').selectOption('Female');
     await page.getByLabel('Health Status').selectOption('Healthy');
-    // Submit the panel form using the "Add Participant" submit button inside the panel.
-    await page.getByRole('button', { name: 'Add Participant' }).click();
+    // Submit the panel form. Use exact:true to distinguish the submit button
+    // ("Add Participant") from the header open-panel button ("+ Add Participant").
+    await page.getByRole('button', { name: 'Add Participant', exact: true }).click();
 
     // Read the ID out of the success toast.
     const toast = page.getByText(/registered successfully/i);

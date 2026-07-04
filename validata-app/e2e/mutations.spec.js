@@ -18,7 +18,7 @@ test.describe('Additional mutations (demo mode)', () => {
     await page.getByLabel('Age').fill('40');
     await page.getByLabel('Gender').selectOption('Male');
     await page.getByLabel('Health Status').selectOption('Healthy');
-    await page.getByRole('button', { name: 'Add Participant' }).click();
+    await page.getByRole('button', { name: 'Add Participant', exact: true }).click();
 
     const toast = page.getByText(/registered successfully/i);
     await expect(toast).toBeVisible();
@@ -58,7 +58,8 @@ test.describe('Additional mutations (demo mode)', () => {
     // Demo mode shows a generic status-updated toast (only the real-Supabase
     // path says "dropped successfully" - see StudyContext.js's dropParticipant).
     await expect(page.getByText(/participant status updated/i)).toBeVisible();
-    await expect(participantRow.getByText('Dropped')).toBeVisible();
+    // DataGrid renders "Dropped" in both the status and actions cells; .first() picks either.
+    await expect(participantRow.getByText('Dropped').first()).toBeVisible();
   });
 
   test('create and delete a study', async ({ page }) => {
@@ -68,7 +69,10 @@ test.describe('Additional mutations (demo mode)', () => {
     await page.locator('button[type="submit"]', { hasText: 'Sign In' }).click();
     await expect(page.getByRole('heading', { name: 'Participant Registry' })).toBeVisible({ timeout: 10_000 });
 
-    // Sidebar label is "Study Management"; page heading is "Studies Management".
+    // Study Management is in the Administration ActivityBar section.
+    // Click the Administration icon (title="Administration") to open that section,
+    // then click the nav item.
+    await page.getByTitle('Administration').click();
     await page.getByRole('button', { name: 'Study Management' }).click();
     await expect(page.getByRole('heading', { name: 'Studies Management' })).toBeVisible();
 
@@ -78,20 +82,19 @@ test.describe('Additional mutations (demo mode)', () => {
     await createForm.getByLabel('Study Name').fill(studyName);
     await createButton.click();
 
-    // Study name now appears in a <span> inside the studies list.
-    const studyNameEl = page.locator('span', { hasText: studyName });
-    await expect(studyNameEl).toBeVisible();
+    // The study list renders each name as <span title="...">. Use the title
+    // attribute to scope precisely to the list item (name also appears in the
+    // sidebar switcher and status bar, so generic text selectors are ambiguous).
+    await expect(page.locator(`span[title="${studyName}"]`)).toBeVisible();
 
-    // The study row is a flex div containing the name span and a trash icon button.
-    // StudyManagement still uses window.confirm for the delete dialog.
-    const studyRow = page.locator('div').filter({
-      has: page.locator('span', { hasText: studyName }),
-    }).filter({ has: page.getByRole('button') }).last();
-
+    // The new study is the last item in the list. Its trash button (data-testid="delete-study-*")
+    // is the last enabled delete button in the studies section.
+    // Scope to the "All Studies" container to avoid matching other parts of the shell.
+    const studiesList = page.getByText('All Studies', { exact: true }).locator('xpath=ancestor::div[2]');
     page.on('dialog', (dialog) => dialog.accept());
-    await studyRow.getByRole('button').click();
+    await studiesList.locator('[data-testid^="delete-study"]:not([disabled])').last().click();
 
-    // After deletion, the study name should no longer be in the list.
-    await expect(page.locator('span', { hasText: studyName })).toHaveCount(0);
+    // After deletion, the named span should no longer be in the list.
+    await expect(page.locator(`span[title="${studyName}"]`)).toHaveCount(0);
   });
 });
