@@ -14,8 +14,6 @@ interface SidebarProps {
   onSwitchStudy: (id: string) => void;
 }
 
-const INITIAL_SECTION: ActivitySection = 'participants';
-
 const Sidebar = ({
   userRole,
   studies = [],
@@ -23,31 +21,24 @@ const Sidebar = ({
   onSwitchStudy,
 }: SidebarProps) => {
   const pathname = usePathname();
-  const [openSection, setOpenSection] = useState<ActivitySection | null>(INITIAL_SECTION);
-
-  const handleSectionChange = (section: ActivitySection) => {
-    // Toggle: clicking the active section collapses the sidebar
-    setOpenSection((prev) => (prev === section ? null : section));
-  };
+  const [activeSection, setActiveSection] = useState<ActivitySection>('participants');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'row', height: '100%', flexShrink: 0 }}>
       <ActivityBar
         userRole={userRole}
         currentPath={pathname}
-        onSectionChange={handleSectionChange}
-        openSection={openSection}
+        onSectionChange={setActiveSection}
+        openSection={activeSection}
       />
-      {openSection && (
-        <PrimarySidebar
-          userRole={userRole}
-          currentPath={pathname}
-          openSection={openSection}
-          studies={studies}
-          currentStudyId={currentStudyId ?? null}
-          onSwitchStudy={onSwitchStudy}
-        />
-      )}
+      <PrimarySidebar
+        userRole={userRole}
+        currentPath={pathname}
+        scrollToSection={activeSection}
+        studies={studies}
+        currentStudyId={currentStudyId ?? null}
+        onSwitchStudy={onSwitchStudy}
+      />
     </div>
   );
 };

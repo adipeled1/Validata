@@ -1,6 +1,7 @@
 "use client";
 
-import { Sun, Moon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Sun, Moon, PanelBottomOpen, PanelBottomClose } from 'lucide-react';
 
 interface StatusBarProps {
   userRole: string;
@@ -11,6 +12,8 @@ interface StatusBarProps {
   lastSync?: string | null;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
+  isPanelOpen?: boolean;
+  onTogglePanel?: () => void;
 }
 
 const ROLE_NAMES: Record<string, string> = {
@@ -31,6 +34,18 @@ function Sep() {
   );
 }
 
+const clickableSegmentStyle: React.CSSProperties = {
+  background: 'transparent',
+  border: 'none',
+  color: 'inherit',
+  fontSize: 'inherit',
+  fontFamily: 'inherit',
+  cursor: 'pointer',
+  padding: 0,
+  display: 'inline',
+  whiteSpace: 'nowrap',
+};
+
 export default function StatusBar({
   userRole,
   currentUserEmail,
@@ -40,9 +55,15 @@ export default function StatusBar({
   lastSync,
   theme,
   onToggleTheme,
+  isPanelOpen,
+  onTogglePanel,
 }: StatusBarProps) {
+  const router = useRouter();
   const roleName = ROLE_NAMES[userRole] || userRole;
   const isLocked = lockState === 'locked';
+
+  const ADMIN_ROLES = ['sponsor_admin', 'mentor'];
+  const canAdmin = ADMIN_ROLES.includes(userRole);
 
   return (
     <div
@@ -67,26 +88,58 @@ export default function StatusBar({
       <span>
         Study:{' '}
         {studyName ? (
-          <span style={{ fontWeight: 500 }}>{studyName}</span>
+          canAdmin ? (
+            <button
+              style={{ ...clickableSegmentStyle, fontWeight: 500, opacity: 0.9 }}
+              onClick={() => router.push('/study-access-control')}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.textDecoration = 'underline')}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.textDecoration = 'none')}
+              title="Study Access Control"
+            >
+              {studyName}
+            </button>
+          ) : (
+            <span style={{ fontWeight: 500 }}>{studyName}</span>
+          )
         ) : (
           <span style={{ color: 'var(--statusbar-sep)' }}>—</span>
         )}
         {isDemoMode && (
-          <span
-            style={{ color: '#f59e0b', fontWeight: 600, marginLeft: '4px' }}
-          >
-            (DEMO)
-          </span>
+          <span style={{ color: '#f59e0b', fontWeight: 600, marginLeft: '4px' }}>(DEMO)</span>
         )}
       </span>
       <Sep />
       <span>{currentUserEmail || '—'}</span>
       <Sep />
-      <span>{roleName}</span>
+      {canAdmin ? (
+        <button
+          style={clickableSegmentStyle}
+          onClick={() => router.push('/user-management')}
+          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.textDecoration = 'underline')}
+          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.textDecoration = 'none')}
+          title="User Registry"
+        >
+          {roleName}
+        </button>
+      ) : (
+        <span>{roleName}</span>
+      )}
       <Sep />
-      <span style={{ color: isLocked ? 'var(--status-dropped)' : undefined }}>
-        {isLocked ? '🔐 Locked' : '🔓 Unlocked'}
-      </span>
+      {canAdmin ? (
+        <button
+          style={{ ...clickableSegmentStyle, color: isLocked ? 'var(--status-dropped)' : 'inherit' }}
+          onClick={() => router.push('/study-lock-control')}
+          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.textDecoration = 'underline')}
+          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.textDecoration = 'none')}
+          title="Study Lock Control"
+        >
+          {isLocked ? '🔐 Locked' : '🔓 Unlocked'}
+        </button>
+      ) : (
+        <span style={{ color: isLocked ? 'var(--status-dropped)' : undefined }}>
+          {isLocked ? '🔐 Locked' : '🔓 Unlocked'}
+        </span>
+      )}
 
       {/* Spacer */}
       <div style={{ flex: 1 }} />
@@ -94,14 +147,34 @@ export default function StatusBar({
       {/* Right side */}
       {lastSync && (
         <>
-          <span style={{ color: 'var(--statusbar-sep)' }}>
-            Last sync: {lastSync} UTC
-          </span>
+          <span style={{ color: 'var(--statusbar-sep)' }}>Last sync: {lastSync} UTC</span>
           <Sep />
         </>
       )}
       <span style={{ fontWeight: 600, letterSpacing: '0.03em' }}>ICH E6(R3) ✓</span>
       <Sep />
+      {onTogglePanel && (
+        <>
+          <button
+            onClick={onTogglePanel}
+            title={isPanelOpen ? 'Close Panel (Ctrl+`)' : 'Open Panel (Ctrl+`)'}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: isPanelOpen ? 'var(--statusbar-fg)' : 'rgba(255,255,255,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0 2px',
+            }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--statusbar-fg)')}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = isPanelOpen ? 'var(--statusbar-fg)' : 'rgba(255,255,255,0.5)')}
+          >
+            {isPanelOpen ? <PanelBottomClose size={13} /> : <PanelBottomOpen size={13} />}
+          </button>
+          <Sep />
+        </>
+      )}
       <button
         onClick={onToggleTheme}
         title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}

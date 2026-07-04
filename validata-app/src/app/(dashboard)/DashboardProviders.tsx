@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { Clock, Ban, LogOut } from 'lucide-react';
 import { SessionProvider, useSession } from '../../context/SessionContext';
 import { StudyProvider, useStudy } from '../../context/StudyContext';
+import { TabProvider, useTabs } from '../../context/TabContext';
 import { useTheme } from '../../context/ThemeContext';
 import Sidebar from '../components/Sidebar/Sidebar';
 import Toast from '../components/Toast/Toast';
 import MenuBar from '../components/Shell/MenuBar';
+import TabBar from '../components/Shell/TabBar';
 import StatusBar from '../components/Shell/StatusBar';
 import BottomPanel from '../components/Shell/BottomPanel';
 import CommandPalette from '../components/Shell/CommandPalette';
@@ -33,25 +35,29 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   } = useStudy();
   const { theme, toggleTheme } = useTheme();
 
-  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
+  const { activeTabId, closeTab } = useTabs();
 
-  // Ctrl+K → command palette
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         setIsCommandOpen((v) => !v);
       }
-      // Ctrl+` → bottom panel
       if ((e.ctrlKey || e.metaKey) && e.key === '`') {
         e.preventDefault();
         setIsPanelOpen((v) => !v);
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
+        e.preventDefault();
+        if (activeTabId) closeTab(activeTabId);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [activeTabId, closeTab]);
 
   const isLoading = sessionLoading || (userStatus === 'active' && studyLoading);
 
@@ -326,6 +332,9 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             position: 'relative',
           }}
         >
+          {/* Tab bar (34px) */}
+          <TabBar />
+
           <Toast message={toastMessage} show={showToast} onHide={hideToast} />
 
           {/* Page content */}
@@ -350,6 +359,8 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         studyName={studyName}
         theme={theme}
         onToggleTheme={toggleTheme}
+        isPanelOpen={isPanelOpen}
+        onTogglePanel={() => setIsPanelOpen((v) => !v)}
       />
 
       {/* Command palette */}
@@ -390,7 +401,9 @@ export default function DashboardProviders({
         initialParticipants={initialParticipants}
         initialMeasurements={initialMeasurements}
       >
-        <DashboardShell>{children}</DashboardShell>
+        <TabProvider>
+          <DashboardShell>{children}</DashboardShell>
+        </TabProvider>
       </StudyProvider>
     </SessionProvider>
   );

@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
+import { useRef, useEffect } from 'react';
+import { useTabs } from '../../../context/TabContext';
 import type { ActivitySection } from './ActivityBar';
 
 interface Study {
@@ -11,7 +12,7 @@ interface Study {
 interface PrimarySidebarProps {
   userRole: string;
   currentPath: string;
-  openSection: ActivitySection | null;
+  scrollToSection: ActivitySection | null;
   studies: Study[];
   currentStudyId: string | null;
   onSwitchStudy: (id: string) => void;
@@ -22,11 +23,12 @@ const COMPLIANCE_ROLES = ['monitor', 'auditor', 'mentor', 'sponsor_admin'];
 
 type NavEntry = { label: string; path: string; highlight?: boolean };
 
-function SectionHeader({ label }: { label: string }) {
+function SectionHeader({ label, sectionRef }: { label: string; sectionRef?: React.Ref<HTMLDivElement> }) {
   return (
     <div
+      ref={sectionRef}
       style={{
-        padding: '8px 10px 4px',
+        padding: '10px 10px 4px',
         fontSize: '10px',
         textTransform: 'uppercase',
         letterSpacing: '0.1em',
@@ -52,12 +54,12 @@ function NavItem({
   badge?: number;
   highlight?: boolean;
 }) {
-  const router = useRouter();
+  const { openTab } = useTabs();
   const isActive = currentPath === path;
 
   return (
     <button
-      onClick={() => router.push(path)}
+      onClick={() => openTab(path, label)}
       style={{
         width: '100%',
         height: '24px',
@@ -80,15 +82,10 @@ function NavItem({
         textOverflow: 'ellipsis',
       }}
       onMouseEnter={(e) => {
-        if (!isActive) {
-          (e.currentTarget as HTMLButtonElement).style.background =
-            'var(--bg-surface-alt)';
-        }
+        if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-surface-alt)';
       }}
       onMouseLeave={(e) => {
-        if (!isActive) {
-          (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-        }
+        if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
       }}
     >
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
@@ -130,134 +127,49 @@ function NavGroup({ items, currentPath }: { items: NavEntry[]; currentPath: stri
   );
 }
 
+function Divider() {
+  return (
+    <div
+      style={{
+        height: '1px',
+        background: 'var(--border)',
+        margin: '4px 0',
+      }}
+    />
+  );
+}
+
 export default function PrimarySidebar({
   userRole,
   currentPath,
-  openSection,
+  scrollToSection,
   studies,
   currentStudyId,
   onSwitchStudy,
 }: PrimarySidebarProps) {
-  if (!openSection) return null;
-
-  const renderContent = () => {
-    switch (openSection) {
-      case 'study':
-        return (
-          <>
-            <SectionHeader label="Study Context" />
-            <div style={{ padding: '4px 10px 8px' }}>
-              <select
-                value={currentStudyId || ''}
-                onChange={(e) => onSwitchStudy(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: 'var(--bg-input)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius)',
-                  color: 'var(--text-primary)',
-                  fontSize: '12px',
-                  padding: '4px 6px',
-                  cursor: 'pointer',
-                  outline: 'none',
-                }}
-              >
-                {studies.map((s) => (
-                  <option key={s.id} value={s.id} style={{ background: 'var(--bg-input)' }}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </>
-        );
-
-      case 'participants':
-        return (
-          <>
-            <SectionHeader label="Participants & Data" />
-            <NavGroup
-              currentPath={currentPath}
-              items={[
-                { label: 'Participant Registry', path: '/participants' },
-                { label: 'Participant Viewer', path: '/participants-view' },
-                { label: 'Data Collection', path: '/data-collection' },
-                { label: 'Results Table', path: '/results' },
-              ]}
-            />
-          </>
-        );
-
-      case 'analysis':
-        return (
-          <>
-            <SectionHeader label="Analysis & Results" />
-            <NavGroup
-              currentPath={currentPath}
-              items={[
-                { label: 'Study Overview', path: '/study-overview' },
-                { label: 'Analysis & Reporting', path: '/analysis' },
-              ]}
-            />
-          </>
-        );
-
-      case 'queries':
-        return (
-          <>
-            <SectionHeader label="Query Management" />
-            <NavItem label="Queries" path="/queries" currentPath={currentPath} />
-          </>
-        );
-
-      case 'compliance':
-        if (!COMPLIANCE_ROLES.includes(userRole)) return null;
-        return (
-          <>
-            <SectionHeader label="Compliance" />
-            <NavGroup
-              currentPath={currentPath}
-              items={[
-                { label: 'Audit Trail', path: '/audit-log' },
-                { label: 'Electronic Signatures', path: '/signatures' },
-                { label: 'Consent Records', path: '/consent-records' },
-                { label: 'Adverse Events', path: '/adverse-events' },
-              ]}
-            />
-          </>
-        );
-
-      case 'administration':
-        if (!ADMIN_ROLES.includes(userRole)) return null;
-        return (
-          <>
-            <SectionHeader label="Administration" />
-            <NavGroup
-              currentPath={currentPath}
-              items={[
-                { label: 'Study Management', path: '/study-management' },
-                { label: 'Study Access Control', path: '/study-access-control', highlight: true },
-                { label: 'User Registry', path: '/user-management' },
-                { label: 'Delegation Log', path: '/delegation-log' },
-                { label: 'Study Lock Control', path: '/study-lock-control' },
-              ]}
-            />
-          </>
-        );
-
-      case 'system':
-        if (userRole !== 'mentor') return null;
-        return (
-          <>
-            <SectionHeader label="System" />
-            <NavItem label="System Inventory" path="/system-inventory" currentPath={currentPath} />
-          </>
-        );
-
-      default:
-        return null;
-    }
+  const refs: Record<ActivitySection, React.RefObject<HTMLDivElement>> = {
+    study: useRef<HTMLDivElement>(null),
+    participants: useRef<HTMLDivElement>(null),
+    analysis: useRef<HTMLDivElement>(null),
+    queries: useRef<HTMLDivElement>(null),
+    compliance: useRef<HTMLDivElement>(null),
+    administration: useRef<HTMLDivElement>(null),
+    system: useRef<HTMLDivElement>(null),
   };
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!scrollToSection) return;
+    const el = refs[scrollToSection]?.current;
+    if (el && scrollContainerRef.current) {
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [scrollToSection]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const showCompliance = COMPLIANCE_ROLES.includes(userRole);
+  const showAdmin = ADMIN_ROLES.includes(userRole);
+  const showSystem = userRole === 'mentor';
 
   return (
     <div
@@ -271,8 +183,122 @@ export default function PrimarySidebar({
         flexShrink: 0,
       }}
     >
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingTop: '4px' }}>
-        {renderContent()}
+      <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingTop: '4px' }}>
+
+        {/* Study Context */}
+        <div ref={refs.study}>
+          <SectionHeader label="Study Context" />
+          <div style={{ padding: '4px 10px 8px' }}>
+            <select
+              value={currentStudyId || ''}
+              onChange={(e) => onSwitchStudy(e.target.value)}
+              style={{
+                width: '100%',
+                background: 'var(--bg-input)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius)',
+                color: 'var(--text-primary)',
+                fontSize: '12px',
+                padding: '4px 6px',
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+            >
+              {studies.map((s) => (
+                <option key={s.id} value={s.id} style={{ background: 'var(--bg-input)' }}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <Divider />
+
+        {/* Participants & Data */}
+        <div ref={refs.participants}>
+          <SectionHeader label="Participants & Data" />
+          <NavGroup
+            currentPath={currentPath}
+            items={[
+              { label: 'Participant Registry', path: '/participants' },
+              { label: 'Participant Viewer', path: '/participants-view' },
+              { label: 'Data Collection', path: '/data-collection' },
+              { label: 'Results Table', path: '/results' },
+            ]}
+          />
+        </div>
+
+        <Divider />
+
+        {/* Analysis & Results */}
+        <div ref={refs.analysis}>
+          <SectionHeader label="Analysis & Results" />
+          <NavGroup
+            currentPath={currentPath}
+            items={[
+              { label: 'Study Overview', path: '/study-overview' },
+              { label: 'Analysis & Reporting', path: '/analysis' },
+            ]}
+          />
+        </div>
+
+        <Divider />
+
+        {/* Query Management */}
+        <div ref={refs.queries}>
+          <SectionHeader label="Query Management" />
+          <NavItem label="Queries" path="/queries" currentPath={currentPath} />
+        </div>
+
+        {showCompliance && (
+          <>
+            <Divider />
+            <div ref={refs.compliance}>
+              <SectionHeader label="Compliance" />
+              <NavGroup
+                currentPath={currentPath}
+                items={[
+                  { label: 'Audit Trail', path: '/audit-log' },
+                  { label: 'Electronic Signatures', path: '/signatures' },
+                  { label: 'Consent Records', path: '/consent-records' },
+                  { label: 'Adverse Events', path: '/adverse-events' },
+                ]}
+              />
+            </div>
+          </>
+        )}
+
+        {showAdmin && (
+          <>
+            <Divider />
+            <div ref={refs.administration}>
+              <SectionHeader label="Administration" />
+              <NavGroup
+                currentPath={currentPath}
+                items={[
+                  { label: 'Study Management', path: '/study-management' },
+                  { label: 'Study Access Control', path: '/study-access-control', highlight: true },
+                  { label: 'User Registry', path: '/user-management' },
+                  { label: 'Delegation Log', path: '/delegation-log' },
+                  { label: 'Study Lock Control', path: '/study-lock-control' },
+                ]}
+              />
+            </div>
+          </>
+        )}
+
+        {showSystem && (
+          <>
+            <Divider />
+            <div ref={refs.system}>
+              <SectionHeader label="System" />
+              <NavItem label="System Inventory" path="/system-inventory" currentPath={currentPath} />
+            </div>
+          </>
+        )}
+
+        <div style={{ height: '8px' }} />
       </div>
     </div>
   );

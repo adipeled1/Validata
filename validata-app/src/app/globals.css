@@ -2,10 +2,15 @@
 @config "../../tailwind.config.js";
 
 /* ── CSS Reset ─────────────────────────────────────────────────────────── */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* Must be in @layer base so Tailwind's @layer utilities can override it.   */
+/* Unlayered rules have higher cascade priority than any layer, which would */
+/* cause * { padding: 0 } to override p-8, mb-4, etc. from utilities.      */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 }
 
 /* ── Design Tokens: Dark Theme (VS2026 Purple — default) ────────────────── */
