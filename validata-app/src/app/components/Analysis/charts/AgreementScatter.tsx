@@ -12,11 +12,11 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (!d) return null;
   const diff = (d.aiAngle - d.goniometerAngle).toFixed(2);
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 shadow-md text-xs space-y-1">
-      <p className="font-semibold text-slate-700 dark:text-slate-300">{d.participantId || 'Unknown'}</p>
-      <p className="text-slate-600 dark:text-slate-300">Goniometer: <span className="font-medium">{d.goniometerAngle?.toFixed(1)}°</span></p>
-      <p style={{ color: COLORS.primary }}>AI model: <span className="font-medium">{d.aiAngle?.toFixed(1)}°</span></p>
-      <p className={`${Math.abs(Number(diff)) > 5 ? 'text-rose-500 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400'}`}>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: '11px', lineHeight: 1.5 }}>
+      <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>{d.participantId || 'Unknown'}</p>
+      <p style={{ color: 'var(--text-secondary)' }}>Goniometer: <strong>{d.goniometerAngle?.toFixed(1)}°</strong></p>
+      <p style={{ color: COLORS.primary }}>AI model: <strong>{d.aiAngle?.toFixed(1)}°</strong></p>
+      <p style={{ color: Math.abs(Number(diff)) > 5 ? COLORS.fail : 'var(--text-muted)' }}>
         Difference: {Number(diff) > 0 ? '+' : ''}{diff}°
       </p>
     </div>

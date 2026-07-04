@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 import Analysis from '../../components/Analysis/control';
@@ -13,8 +15,15 @@ const READABLE_ROLES = [
 ];
 
 export default function AnalysisPage() {
+  const router = useRouter();
   const { isDemoMode, userRole, currentUserEmail } = useSession();
   const { participants, measurements, currentStudyId } = useStudy();
+
+  useEffect(() => {
+    if (!READABLE_ROLES.includes(userRole)) {
+      router.replace('/participants');
+    }
+  }, [userRole, router]);
 
   if (!READABLE_ROLES.includes(userRole)) {
     return null;

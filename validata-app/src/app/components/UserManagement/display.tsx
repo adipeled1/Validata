@@ -19,6 +19,32 @@ interface UserManagementDisplayProps {
   onRefresh: () => void;
 }
 
+const colHeaderStyle: React.CSSProperties = {
+  padding: '0 10px 6px',
+  fontSize: '10px',
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+  color: 'var(--text-col-header)',
+  borderBottom: '1px solid var(--border)',
+  textAlign: 'left',
+};
+
+const cellStyle: React.CSSProperties = {
+  padding: '0 10px',
+  height: '32px',
+  fontSize: '12px',
+  fontFamily: 'var(--font-ui)',
+  color: 'var(--text-primary)',
+  verticalAlign: 'middle',
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  active: 'var(--status-active)',
+  pending: 'var(--status-pending)',
+  suspended: 'var(--status-dropped)',
+};
+
 const UserManagementDisplay = ({
   users,
   isLoading,
@@ -27,182 +53,209 @@ const UserManagementDisplay = ({
   onRoleChange,
   onStatusChange,
   onDelete,
-  onRefresh
+  onRefresh,
 }: UserManagementDisplayProps) => {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden font-sans">
-
-      {/* Header */}
-      <div className="p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Page header */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">User Access Control</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+            ADMINISTRATION / User Management
+          </div>
+          <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
+            User Access Control
+          </h1>
+          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
             Manage system access, roles, and approval status for all researchers.
-          </p>
+          </div>
         </div>
         <button
           onClick={onRefresh}
-          className="inline-flex items-center justify-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors active:scale-95 cursor-pointer"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '5px 10px',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-secondary)',
+            fontSize: '11px',
+            cursor: 'pointer',
+            borderRadius: 'var(--radius)',
+          }}
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh List
+          <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
+          Refresh
         </button>
       </div>
 
-      {/* Main Content */}
-      <div className="p-6">
+      {/* Error */}
+      {error && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '8px',
+          padding: '10px 12px',
+          background: 'rgba(248, 113, 113, 0.08)',
+          border: '1px solid var(--status-dropped)',
+          borderRadius: 'var(--radius)',
+          fontSize: '12px',
+          color: 'var(--status-dropped)',
+        }}>
+          <AlertCircle size={14} style={{ flexShrink: 0, marginTop: '1px' }} />
+          <div><strong>Failed to load users</strong> — {error}</div>
+        </div>
+      )}
 
-        {/* Error State */}
-        {error && (
-          <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900 rounded-xl flex items-start gap-3 text-sm text-rose-800 dark:text-rose-300">
-            <AlertCircle className="h-5 w-5 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" />
-            <div>
-              <span className="font-semibold block mb-0.5">Failed to load users</span>
-              {error}
-            </div>
-          </div>
-        )}
-
-        {/* Loading Spinner */}
+      {/* Table */}
+      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
         {isLoading ? (
-          <div className="py-20 flex flex-col items-center justify-center gap-3">
-            <div className="h-9 w-9 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Fetching registered profiles...</p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '48px' }}>
+            <div style={{ width: '24px', height: '24px', border: '3px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Fetching registered profiles…</div>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         ) : users.length === 0 ? (
-          <div className="py-20 text-center">
-            <ShieldAlert className="h-12 w-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
-            <p className="text-slate-600 dark:text-slate-300 font-semibold text-lg">No profiles found</p>
-            <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">No other users have registered on this platform yet.</p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '48px', color: 'var(--text-muted)' }}>
+            <ShieldAlert size={32} />
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>No profiles found</div>
+            <div style={{ fontSize: '11px' }}>No other users have registered on this platform yet.</div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 font-medium">
-                  <th className="pb-3 font-semibold text-slate-600 dark:text-slate-300">Email address</th>
-                  <th className="pb-3 font-semibold text-slate-600 dark:text-slate-300">Role</th>
-                  <th className="pb-3 font-semibold text-slate-600 dark:text-slate-300">Status</th>
-                  <th className="pb-3 font-semibold text-slate-600 dark:text-slate-300 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {users.map((user) => {
-                  const isSelf = user.email === currentUserEmail;
-                  return (
-                    <tr key={user.id} className="hover:bg-slate-50/40 dark:hover:bg-slate-800/60 transition-colors">
-                      {/* Email */}
-                      <td className="py-4 pr-4 font-medium text-slate-800 dark:text-slate-100">
-                        <div className="flex items-center gap-2.5">
-                          <span className="block truncate max-w-xs">{user.email}</span>
-                          {isSelf && (
-                            <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 uppercase">
-                              You
-                            </span>
-                          )}
-                        </div>
-                      </td>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={colHeaderStyle}>Email</th>
+                <th style={colHeaderStyle}>Role</th>
+                <th style={colHeaderStyle}>Status</th>
+                <th style={{ ...colHeaderStyle, textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user, i) => {
+                const isSelf = user.email === currentUserEmail;
+                return (
+                  <tr
+                    key={user.id}
+                    style={{
+                      background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
+                      borderBottom: '1px solid var(--border)',
+                    }}
+                  >
+                    {/* Email */}
+                    <td style={cellStyle}>
+                      <span style={{ fontFamily: 'var(--font-data)', fontSize: '11px' }}>{user.email}</span>
+                      {isSelf && (
+                        <span style={{
+                          marginLeft: '6px',
+                          fontSize: '9px',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          padding: '1px 4px',
+                          background: 'var(--bg-surface-alt)',
+                          border: '1px solid var(--border)',
+                          color: 'var(--text-muted)',
+                          letterSpacing: '0.05em',
+                        }}>
+                          YOU
+                        </span>
+                      )}
+                    </td>
 
-                      {/* Role Badge */}
-                      <td className="py-4 pr-4">
-                        {user.role === 'mentor' ? (
-                          <span className="inline-flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                            <Shield className="h-3 w-3" />
-                            Mentor
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-900 text-cyan-700 dark:text-cyan-300 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                            Team Member
-                          </span>
-                        )}
-                      </td>
+                    {/* Role */}
+                    <td style={cellStyle}>
+                      <span style={{
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        color: user.role === 'mentor' ? 'var(--accent-soft)' : 'var(--text-secondary)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}>
+                        {user.role === 'mentor' && <Shield size={10} />}
+                        {user.role === 'mentor' ? 'Mentor' : 'Team Member'}
+                      </span>
+                    </td>
 
-                      {/* Status Badge */}
-                      <td className="py-4 pr-4">
-                        {user.status === 'active' && (
-                          <span className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                            Active
-                          </span>
-                        )}
+                    {/* Status */}
+                    <td style={cellStyle}>
+                      <span style={{
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        color: STATUS_COLOR[user.status] ?? 'var(--text-muted)',
+                        textTransform: 'uppercase',
+                      }}>
+                        {user.status === 'pending' ? 'Pending Approval' : user.status}
+                      </span>
+                    </td>
+
+                    {/* Actions */}
+                    <td style={{ ...cellStyle, textAlign: 'right' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+
+                        {/* Approve */}
                         {user.status === 'pending' && (
-                          <span className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-300 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                            Pending Approval
-                          </span>
+                          <button
+                            onClick={() => onStatusChange(user.id, 'active')}
+                            title="Approve account"
+                            style={{ background: 'transparent', border: 'none', color: 'var(--status-active)', cursor: 'pointer', padding: '3px', display: 'flex' }}
+                          >
+                            <UserCheck size={14} />
+                          </button>
                         )}
-                        {user.status === 'suspended' && (
-                          <span className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                            Suspended
-                          </span>
+
+                        {/* Role toggle */}
+                        {!isSelf && (
+                          <button
+                            onClick={() => onRoleChange(user.id, user.role === 'mentor' ? 'team_member' : 'mentor')}
+                            title={`Switch to ${user.role === 'mentor' ? 'Team Member' : 'Mentor'}`}
+                            style={{ background: 'transparent', border: 'none', color: 'var(--accent-soft)', cursor: 'pointer', padding: '3px', display: 'flex' }}
+                          >
+                            <Shield size={14} />
+                          </button>
                         )}
-                      </td>
 
-                      {/* Actions */}
-                      <td className="py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        {/* Suspend */}
+                        {!isSelf && user.status === 'active' && (
+                          <button
+                            onClick={() => onStatusChange(user.id, 'suspended')}
+                            title="Suspend access"
+                            style={{ background: 'transparent', border: 'none', color: 'var(--status-pending)', cursor: 'pointer', padding: '3px', display: 'flex' }}
+                          >
+                            <UserMinus size={14} />
+                          </button>
+                        )}
 
-                          {/* Approve (Pending -> Active) */}
-                          {user.status === 'pending' && (
-                            <button
-                              onClick={() => onStatusChange(user.id, 'active')}
-                              title="Approve researcher account"
-                              className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <UserCheck className="h-4 w-4" />
-                            </button>
-                          )}
+                        {/* Unsuspend */}
+                        {!isSelf && user.status === 'suspended' && (
+                          <button
+                            onClick={() => onStatusChange(user.id, 'active')}
+                            title="Activate access"
+                            style={{ background: 'transparent', border: 'none', color: 'var(--status-active)', cursor: 'pointer', padding: '3px', display: 'flex' }}
+                          >
+                            <UserCheck size={14} />
+                          </button>
+                        )}
 
-                          {/* Role Toggle (Mentor <-> Team Member) */}
-                          {!isSelf && (
-                            <button
-                              onClick={() => onRoleChange(user.id, user.role === 'mentor' ? 'team_member' : 'mentor')}
-                              title={`Switch role to ${user.role === 'mentor' ? 'Team Member' : 'Mentor'}`}
-                              className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Shield className="h-4 w-4" />
-                            </button>
-                          )}
-
-                          {/* Suspend / Unsuspend */}
-                          {!isSelf && user.status === 'active' && (
-                            <button
-                              onClick={() => onStatusChange(user.id, 'suspended')}
-                              title="Suspend researcher access"
-                              className="p-1.5 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <UserMinus className="h-4 w-4" />
-                            </button>
-                          )}
-                          {!isSelf && user.status === 'suspended' && (
-                            <button
-                              onClick={() => onStatusChange(user.id, 'active')}
-                              title="Activate researcher access"
-                              className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <UserCheck className="h-4 w-4" />
-                            </button>
-                          )}
-
-                          {/* Delete Account */}
-                          {!isSelf && (
-                            <button
-                              onClick={() => onDelete(user.id)}
-                              title="Delete researcher profile"
-                              className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
-
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        {/* Delete */}
+                        {!isSelf && (
+                          <button
+                            onClick={() => onDelete(user.id)}
+                            title="Delete profile"
+                            style={{ background: 'transparent', border: 'none', color: 'var(--status-dropped)', cursor: 'pointer', padding: '3px', display: 'flex' }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
-
       </div>
     </div>
   );

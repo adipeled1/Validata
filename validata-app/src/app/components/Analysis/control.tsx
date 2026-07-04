@@ -24,8 +24,6 @@ const AnalysisControl = ({
   currentUserEmail,
   userRole,
 }: AnalysisControlProps) => {
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [aiResult, setAiResult] = useState<string | null>(null);
   const [showEndorseModal, setShowEndorseModal] = useState(false);
   const [lastSignedAt, setLastSignedAt] = useState<string | null>(null);
 
@@ -74,18 +72,7 @@ const AnalysisControl = ({
         });
         setLastUpdated(new Date());
       });
-  }, [localThreshold, isDemoMode]); // Re-fetch if threshold or mode changes
-
-  const handleRunAnalysis = () => {
-    setIsAnalyzing(true);
-    setAiResult(null);
-
-    // Simulate AI generation delay, then use the result from the server
-    setTimeout(() => {
-      setAiResult(analysisData?.aiResult || 'Analysis complete. No anomalies detected.');
-      setIsAnalyzing(false);
-    }, 2500);
-  };
+  }, [localThreshold, isDemoMode, participants, measurements]);
 
   const isLoadingCharts = analysisData === null;
 
@@ -104,15 +91,15 @@ const AnalysisControl = ({
       )}
 
       {canSign && (
-        <div className="flex items-center justify-end gap-3 mb-2 px-4">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginBottom: '8px' }}>
           {lastSignedAt && (
-            <span className="text-xs text-green-700 bg-green-50 border border-green-200 rounded px-2 py-1">
+            <span style={{ fontSize: '11px', color: 'var(--status-active)', background: 'rgba(78, 201, 176, 0.1)', border: '1px solid var(--status-active)', padding: '3px 8px' }}>
               Endorsed {new Date(lastSignedAt).toUTCString()}
             </span>
           )}
           <button
             onClick={() => setShowEndorseModal(true)}
-            className="px-4 py-2 text-sm rounded bg-blue-600 text-white font-medium hover:bg-blue-700"
+            style={{ padding: '5px 14px', fontSize: '12px', fontWeight: 600, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer' }}
           >
             Endorse Data
           </button>
@@ -122,9 +109,6 @@ const AnalysisControl = ({
       <AnalysisDisplay
         progressData={analysisData?.progressData || []}
         statusData={analysisData?.statusData || []}
-        isAnalyzing={isAnalyzing}
-        aiResult={aiResult}
-        onRunAnalysis={handleRunAnalysis}
         statsData={analysisData?.statsData || []}
         summaryStats={analysisData?.summaryStats || { rmse: 0, mae: 0, meanBias: 0, passRate: 0 }}
         descriptiveStats={analysisData?.descriptiveStats || { n: 0, mean: 0, sd: 0, se: 0 }}

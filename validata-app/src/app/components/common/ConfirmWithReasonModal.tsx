@@ -27,34 +27,77 @@ export default function ConfirmWithReasonModal({
   const canSubmit = !reasonRequired || reason.trim().length > 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
-        <h2 className="text-lg font-semibold mb-2">{title}</h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{body}</p>
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 999,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(0,0,0,0.5)',
+    }}>
+      <div style={{
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border)',
+        padding: '20px 24px',
+        width: '100%',
+        maxWidth: '420px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+      }}>
+        <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+          {title}
+        </h2>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: 1.5 }}>
+          {body}
+        </p>
 
-        <label className="block text-sm font-medium mb-1">
+        <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '4px' }}>
           {reasonLabel}
-          {reasonRequired && <span className="text-red-500 ml-1">*</span>}
+          {reasonRequired && <span style={{ color: 'var(--status-dropped)', marginLeft: '4px' }}>*</span>}
         </label>
         <textarea
-          className="w-full border rounded-lg p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600"
           rows={3}
           placeholder={reasonRequired ? 'Required' : 'Optional'}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
+          style={{
+            width: '100%',
+            background: 'var(--bg-input)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-primary)',
+            fontSize: '12px',
+            padding: '5px 8px',
+            fontFamily: 'var(--font-ui)',
+            outline: 'none',
+            resize: 'vertical',
+            boxSizing: 'border-box',
+          }}
         />
 
-        <div className="flex justify-end gap-2 mt-4">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '14px' }}>
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-800"
+            style={{
+              padding: '5px 14px',
+              fontSize: '12px',
+              background: 'var(--bg-surface-hover)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              borderRadius: 'var(--radius)',
+            }}
           >
             Cancel
           </button>
           <button
             onClick={() => canSubmit && onConfirm(reason.trim())}
             disabled={!canSubmit}
-            className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              padding: '5px 14px',
+              fontSize: '12px',
+              background: canSubmit ? 'var(--status-dropped)' : 'var(--bg-surface-alt)',
+              color: canSubmit ? '#fff' : 'var(--text-ghost)',
+              border: 'none',
+              cursor: canSubmit ? 'pointer' : 'not-allowed',
+              borderRadius: 'var(--radius)',
+              fontWeight: 600,
+            }}
           >
             {confirmLabel}
           </button>

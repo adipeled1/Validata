@@ -16,7 +16,7 @@ import {
   Cell
 } from 'recharts';
 
-const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
+const COLORS = ['#9d7fea', '#f0a500', '#4ec9b0', '#f14c4c', '#569cd6'];
 
 interface AIChatDisplayProps {
   isOpen: boolean;
@@ -48,16 +48,19 @@ export default function AIChatDisplay({
       const { chartType, title, data, dataKeys, xAxisKey } = toolCall.args;
 
       const renderChart = () => {
+        const axisStyle = { fill: 'var(--text-muted)', fontSize: 11 };
+        const gridStyle = { stroke: 'var(--border)', strokeDasharray: '3 3' };
+
         if (chartType === 'bar') {
           return (
             <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey={xAxisKey} tick={{ fontSize: 12 }} angle={-45} textAnchor="end" />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-              <Legend wrapperStyle={{ fontSize: 12, paddingTop: '10px' }} />
+              <CartesianGrid strokeDasharray={gridStyle.strokeDasharray} vertical={false} stroke={gridStyle.stroke} />
+              <XAxis dataKey={xAxisKey} tick={axisStyle} angle={-45} textAnchor="end" />
+              <YAxis tick={axisStyle} />
+              <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', fontSize: 11 }} />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: '10px' }} />
               {dataKeys.map((key: string, index: number) => (
-                <Bar key={key} dataKey={key} fill={COLORS[index % COLORS.length]} radius={[4, 4, 0, 0]} maxBarSize={40} />
+                <Bar key={key} dataKey={key} fill={COLORS[index % COLORS.length]} radius={[2, 2, 0, 0]} maxBarSize={40} />
               ))}
             </BarChart>
           );
@@ -65,13 +68,13 @@ export default function AIChatDisplay({
         if (chartType === 'line') {
           return (
             <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey={xAxisKey} tick={{ fontSize: 12 }} angle={-45} textAnchor="end" />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-              <Legend wrapperStyle={{ fontSize: 12, paddingTop: '10px' }} />
+              <CartesianGrid strokeDasharray={gridStyle.strokeDasharray} vertical={false} stroke={gridStyle.stroke} />
+              <XAxis dataKey={xAxisKey} tick={axisStyle} angle={-45} textAnchor="end" />
+              <YAxis tick={axisStyle} />
+              <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', fontSize: 11 }} />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: '10px' }} />
               {dataKeys.map((key: string, index: number) => (
-                <Line type="monotone" key={key} dataKey={key} stroke={COLORS[index % COLORS.length]} strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
+                <Line type="monotone" key={key} dataKey={key} stroke={COLORS[index % COLORS.length]} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
               ))}
             </LineChart>
           );
@@ -79,8 +82,8 @@ export default function AIChatDisplay({
         if (chartType === 'pie') {
           return (
             <PieChart>
-              <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', fontSize: 11 }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
               <Pie
                 data={data}
                 dataKey={dataKeys[0]}
@@ -88,8 +91,7 @@ export default function AIChatDisplay({
                 cx="50%"
                 cy="50%"
                 outerRadius={80}
-                fill="#8884d8"
-                label={({name, percent}: any) => `${name} ${(percent * 100).toFixed(0)}%`}
+                label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}
               >
                 {data.map((_entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -98,16 +100,32 @@ export default function AIChatDisplay({
             </PieChart>
           );
         }
-        return <div className="text-sm text-slate-500 dark:text-slate-400">Unsupported chart type.</div>;
+        return <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Unsupported chart type.</div>;
       };
 
       return (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 mt-2 w-full max-w-full overflow-hidden">
-          <div className="flex items-center gap-2 mb-4 text-indigo-600 dark:text-indigo-400 border-b border-slate-100 dark:border-slate-800 pb-2">
-            <BarChart2 className="w-5 h-5" />
-            <h4 className="font-semibold text-sm truncate">{title}</h4>
+        <div style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+          padding: '12px',
+          marginTop: '8px',
+          width: '100%',
+          maxWidth: '100%',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            marginBottom: '10px',
+            color: 'var(--accent-soft)',
+            borderBottom: '1px solid var(--border)',
+            paddingBottom: '6px',
+          }}>
+            <BarChart2 size={14} />
+            <span style={{ fontSize: '11px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
           </div>
-          <div className="h-64 w-full">
+          <div style={{ height: '200px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
               {renderChart()}
             </ResponsiveContainer>
@@ -120,86 +138,154 @@ export default function AIChatDisplay({
 
   return (
     <>
+      {/* FAB trigger */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute bottom-20 right-4 md:bottom-8 md:right-8 z-50 w-14 h-14 bg-gradient-to-tr from-purple-600 to-indigo-600 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-purple-500/30 group"
+        style={{
+          position: 'absolute',
+          bottom: '16px',
+          right: '16px',
+          zIndex: 50,
+          width: '44px',
+          height: '44px',
+          background: 'var(--accent)',
+          border: 'none',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+        }}
         aria-label="Open AI Analyst Chat"
       >
-        <div className="relative">
-          <Bot className="w-7 h-7 text-white" />
-          <Sparkles className="w-3 h-3 text-amber-300 absolute -top-1 -right-1 animate-pulse" />
+        <div style={{ position: 'relative' }}>
+          <Bot size={20} style={{ color: '#fff' }} />
+          <Sparkles size={10} style={{ color: '#f0a500', position: 'absolute', top: '-4px', right: '-4px' }} />
         </div>
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 md:absolute md:inset-auto md:bottom-24 md:right-8 md:left-8 w-auto h-[100dvh] md:h-[600px] max-h-[100dvh] md:max-h-[80vh] bg-white dark:bg-slate-900 rounded-none md:rounded-2xl shadow-2xl border-0 md:border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-10 duration-300">
+        <div style={{
+          position: 'absolute',
+          bottom: '68px',
+          right: '16px',
+          left: '16px',
+          height: '520px',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          zIndex: 50,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        }}>
           {/* Header */}
-          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 text-white flex justify-between items-center shadow-md">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 p-2 rounded-full backdrop-blur-sm">
-                <Bot className="w-5 h-5" />
-              </div>
+          <div style={{
+            background: 'var(--accent)',
+            padding: '10px 14px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Bot size={16} style={{ color: '#fff' }} />
               <div>
-                <h3 className="font-semibold">Validata AI Analyst</h3>
-                <p className="text-xs text-indigo-100 opacity-90">Gemini Powered Assistant</p>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>Validata AI Analyst</div>
+                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)' }}>Gemini Powered Assistant</div>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1 hover:bg-white/20 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
+              style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', display: 'flex', padding: '2px' }}
               aria-label="Close chat"
             >
-              <X className="w-5 h-5" />
+              <X size={16} />
             </button>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 dark:bg-slate-800/50">
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            background: 'var(--bg-panel)',
+          }}>
             {error && (
-              <div className="bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 p-4 rounded-xl border border-red-200 dark:border-red-900 text-sm mb-4">
-                <strong>Error:</strong> {error.message || 'Something went wrong while connecting to AI.'}
+              <div style={{
+                padding: '8px 12px',
+                background: 'rgba(248, 113, 113, 0.08)',
+                border: '1px solid var(--status-dropped)',
+                fontSize: '11px',
+                color: 'var(--status-dropped)',
+              }}>
+                <strong>Error:</strong> {error.message || 'Something went wrong.'}
               </div>
             )}
             {messages.length === 0 && !error && (
-              <div className="flex flex-col items-center justify-center h-full text-center space-y-4 text-slate-500 dark:text-slate-400">
-                <div className="bg-indigo-100 dark:bg-indigo-900/40 p-4 rounded-full text-indigo-500 dark:text-indigo-400 mb-2">
-                  <Bot className="w-8 h-8" />
-                </div>
-                <p className="font-medium text-slate-700 dark:text-slate-300">How can I help analyze your data?</p>
-                <p className="text-sm max-w-[250px]">
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                gap: '8px',
+                color: 'var(--text-muted)',
+                textAlign: 'center',
+              }}>
+                <Bot size={32} style={{ color: 'var(--accent-soft)' }} />
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>How can I help analyze your data?</div>
+                <div style={{ fontSize: '11px', maxWidth: '220px' }}>
                   Try asking for a comparison of AI Model vs Goniometer measurements, or summary statistics.
-                </p>
+                </div>
               </div>
             )}
 
             {messages.map((m) => (
-              <div key={m.id} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div key={m.id} style={{ display: 'flex', gap: '8px', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
                 {m.role !== 'user' && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center flex-shrink-0 text-white shadow-sm mt-1">
-                    <Bot className="w-4 h-4" />
+                  <div style={{
+                    width: '24px', height: '24px', borderRadius: '50%',
+                    background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <Bot size={12} style={{ color: '#fff' }} />
                   </div>
                 )}
 
-                <div className={`flex flex-col max-w-[85%] ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '85%', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
                   {m.content && (
-                    <div
-                      className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
-                        m.role === 'user'
-                          ? 'bg-indigo-600 text-white rounded-tr-sm'
-                          : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-tl-sm'
-                      }`}
-                    >
+                    <div style={{
+                      padding: '7px 11px',
+                      fontSize: '12px',
+                      lineHeight: 1.5,
+                      background: m.role === 'user' ? 'var(--accent)' : 'var(--bg-surface)',
+                      color: m.role === 'user' ? '#fff' : 'var(--text-primary)',
+                      border: m.role === 'user' ? 'none' : '1px solid var(--border)',
+                    }}>
                       {m.content}
                     </div>
                   )}
 
                   {m.toolInvocations?.map((toolInvocation: any) => (
-                    <div key={toolInvocation.toolCallId} className="w-full mt-2">
+                    <div key={toolInvocation.toolCallId} style={{ width: '100%', marginTop: '4px' }}>
                       {toolInvocation.state === 'result' ? (
                         renderToolCall(toolInvocation)
                       ) : (
-                        <div className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-xs px-3 py-2 rounded-lg flex items-center gap-2 border border-slate-200 dark:border-slate-700">
-                          <Loader2 className="w-3 h-3 animate-spin" />
+                        <div style={{
+                          background: 'var(--bg-surface-alt)',
+                          border: '1px solid var(--border)',
+                          fontSize: '11px',
+                          color: 'var(--text-muted)',
+                          padding: '5px 10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}>
+                          <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
                           Generating analysis...
                         </div>
                       )}
@@ -208,29 +294,60 @@ export default function AIChatDisplay({
                 </div>
 
                 {m.role === 'user' && (
-                  <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0 text-slate-600 dark:text-slate-300 shadow-sm mt-1">
-                    <User className="w-4 h-4" />
+                  <div style={{
+                    width: '24px', height: '24px', borderRadius: '50%',
+                    background: 'var(--bg-surface-alt)', border: '1px solid var(--border)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <User size={12} style={{ color: 'var(--text-secondary)' }} />
                   </div>
                 )}
               </div>
             ))}
+
             {isLoading && messages[messages.length - 1]?.role === 'user' && (
-               <div className="flex gap-3 justify-start">
-                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center flex-shrink-0 text-white shadow-sm mt-1">
-                   <Bot className="w-4 h-4" />
-                 </div>
-                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm flex gap-1 items-center">
-                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{animationDelay: '0ms'}}></div>
-                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{animationDelay: '150ms'}}></div>
-                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{animationDelay: '300ms'}}></div>
-                 </div>
-               </div>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
+                <div style={{
+                  width: '24px', height: '24px', borderRadius: '50%',
+                  background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <Bot size={12} style={{ color: '#fff' }} />
+                </div>
+                <div style={{
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border)',
+                  padding: '8px 12px',
+                  display: 'flex',
+                  gap: '4px',
+                  alignItems: 'center',
+                }}>
+                  {[0, 150, 300].map((delay) => (
+                    <div
+                      key={delay}
+                      style={{
+                        width: '5px', height: '5px', borderRadius: '50%',
+                        background: 'var(--accent-soft)',
+                        animation: `bounce 1s ${delay}ms infinite`,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
             )}
+            <style>{`
+              @keyframes spin { to { transform: rotate(360deg); } }
+              @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-4px); } }
+            `}</style>
             <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
-          <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+          <div style={{
+            padding: '10px 12px',
+            background: 'var(--bg-surface)',
+            borderTop: '1px solid var(--border)',
+            flexShrink: 0,
+          }}>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -238,22 +355,42 @@ export default function AIChatDisplay({
                 append({ role: 'user', content: input });
                 setInput('');
               }}
-              className="flex gap-2"
+              style={{ display: 'flex', gap: '8px' }}
             >
               <input
                 value={input}
                 onChange={handleInputChange}
                 placeholder="Ask about your data..."
-                className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-base md:text-sm rounded-full px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 transition-colors border border-transparent"
                 disabled={isLoading}
+                style={{
+                  flex: 1,
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-primary)',
+                  fontSize: '12px',
+                  padding: '5px 10px',
+                  fontFamily: 'var(--font-ui)',
+                  outline: 'none',
+                }}
               />
               <button
                 type="submit"
                 disabled={isLoading || !input?.trim()}
-                className="w-11 h-11 md:w-10 md:h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  background: 'var(--accent)',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: isLoading || !input?.trim() ? 'not-allowed' : 'pointer',
+                  opacity: isLoading || !input?.trim() ? 0.5 : 1,
+                  flexShrink: 0,
+                }}
                 aria-label="Send message"
               >
-                <Send className="w-4 h-4 ml-0.5" />
+                <Send size={14} style={{ color: '#fff' }} />
               </button>
             </form>
           </div>

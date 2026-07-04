@@ -6,17 +6,48 @@ import { AlertTriangle } from 'lucide-react';
 // route (or its Server Components) instead of crashing the whole app.
 export default function DashboardError({ error, reset }: { error: Error; reset: () => void }) {
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-4 py-24 text-center">
-      <div className="inline-flex items-center justify-center p-3 bg-rose-100 dark:bg-rose-950/40 rounded-full text-rose-600 dark:text-rose-400">
-        <AlertTriangle className="h-6 w-6" />
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      width: '100%',
+      gap: '16px',
+      padding: '48px',
+      textAlign: 'center',
+    }}>
+      <div style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '12px',
+        background: 'rgba(248, 113, 113, 0.12)',
+        color: 'var(--status-dropped)',
+        borderRadius: '50%',
+      }}>
+        <AlertTriangle size={24} />
       </div>
       <div>
-        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Something went wrong</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{error?.message || 'An unexpected error occurred.'}</p>
+        <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          Something went wrong
+        </h2>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+          {error?.message || 'An unexpected error occurred.'}
+        </p>
       </div>
       <button
         onClick={reset}
-        className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors"
+        style={{
+          padding: '6px 16px',
+          background: 'var(--accent)',
+          color: '#fff',
+          border: 'none',
+          fontSize: '12px',
+          fontWeight: 600,
+          cursor: 'pointer',
+          borderRadius: 'var(--radius)',
+        }}
       >
         Try again
       </button>

@@ -16,9 +16,8 @@ Validata/
 ├── README.md                  ← you are here (overview)
 ├── FEATURES.md                ← full feature and technical description
 ├── DISCLAIMER.md              ← ICH / compliance / open-source disclaimer
-├── road_to_compliance_plan.md ← ICH E6(R3) gap analysis document
-├── compliance_todo.md         ← implementation tracking checklist
-├── ich_compliance_report.md   ← per-task implementation report
+├── LICENSE
+├── docs/                      ← all technical documentation (see docs/README.md)
 └── validata-app/              ← Next.js application
     ├── src/
     │   ├── app/
@@ -28,11 +27,7 @@ Validata/
     │   ├── lib/               — auth, repositories, schemas, mappers
     │   └── context/           — React context (session, study)
     ├── supabase_setup.sql     — full database schema (run once on new project)
-    └── docs/
-        ├── supabase_bootstrap.md       — step-by-step new project setup
-        ├── validation_master_plan.md   — VMP skeleton (student reference)
-        ├── disaster_recovery_runbook.md
-        └── csv_periodic_review.md
+    └── docs/                  — app-level guides (bootstrap, VMP, DR runbook)
 ```
 
 ---
@@ -69,6 +64,8 @@ NEXT_PUBLIC_DEMO_ENABLED=true
 For the full Supabase project setup, follow [`validata-app/docs/supabase_bootstrap.md`](validata-app/docs/supabase_bootstrap.md).
 
 For a full description of every feature, see [`FEATURES.md`](FEATURES.md).
+
+For system explainers (how each part works), see [`docs/`](docs/README.md).
 
 ---
 

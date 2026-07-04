@@ -11,6 +11,29 @@ interface StudyManagementProps {
   onDeleteStudy: (id: string) => void;
 }
 
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  background: 'var(--bg-input)',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius)',
+  color: 'var(--text-primary)',
+  fontSize: '12px',
+  padding: '5px 8px',
+  fontFamily: 'var(--font-ui)',
+  outline: 'none',
+  boxSizing: 'border-box',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: '10px',
+  fontWeight: 600,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.08em',
+  color: 'var(--text-muted)',
+  marginBottom: '4px',
+};
+
 const StudyManagement = ({ studies, currentStudyId, onAddStudy, onDeleteStudy }: StudyManagementProps) => {
   const [newStudyName, setNewStudyName] = useState('');
   const [newStudyGoal, setNewStudyGoal] = useState('');
@@ -27,8 +50,6 @@ const StudyManagement = ({ studies, currentStudyId, onAddStudy, onDeleteStudy }:
     const study = studies.find((s) => s.id === id);
     if (!study) return;
 
-    // The delete button is disabled in the UI when this is the only study,
-    // but guard here too in case it's ever triggered another way.
     if (studies.length <= 1) {
       window.alert('Cannot delete the only study. Create another study first, then delete this one.');
       return;
@@ -40,39 +61,42 @@ const StudyManagement = ({ studies, currentStudyId, onAddStudy, onDeleteStudy }:
   };
 
   return (
-    <section className="app-section">
-      <header className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Studies Management</h2>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">
-          Create or permanently remove studies. Each study&apos;s participants, measurements, and recruitment goal are fully isolated from the others.
-        </p>
-      </header>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Page header */}
+      <div>
+        <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+          ADMINISTRATION / Study Management
+        </div>
+        <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
+          Studies Management
+        </h1>
+        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+          Create or permanently remove studies. Each study&apos;s participants, measurements, and recruitment goal are fully isolated.
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Create Study Form */}
-        <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 h-fit">
-          <h3 className="text-xl font-semibold mb-4 text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-2">
+      {/* Two-column layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '12px', alignItems: 'start' }}>
+        {/* Create form */}
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '6px' }}>
             Create New Study
-          </h3>
-          <form onSubmit={handleCreateStudy} className="space-y-4">
+          </div>
+          <form onSubmit={handleCreateStudy} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
-              <label htmlFor="new-study-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Study Name
-              </label>
+              <label htmlFor="new-study-name" style={labelStyle}>Study Name</label>
               <input
                 id="new-study-name"
                 type="text"
                 required
-                placeholder="e.g. braude's_research_3"
+                placeholder="e.g. braude_research_3"
                 value={newStudyName}
                 onChange={(e) => setNewStudyName(e.target.value)}
-                className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                style={inputStyle}
               />
             </div>
             <div>
-              <label htmlFor="new-study-goal" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Recruitment Goal (optional)
-              </label>
+              <label htmlFor="new-study-goal" style={labelStyle}>Recruitment Goal (optional)</label>
               <input
                 id="new-study-goal"
                 type="number"
@@ -80,75 +104,129 @@ const StudyManagement = ({ studies, currentStudyId, onAddStudy, onDeleteStudy }:
                 placeholder="e.g. 50"
                 value={newStudyGoal}
                 onChange={(e) => setNewStudyGoal(e.target.value)}
-                className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                style={inputStyle}
               />
             </div>
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '6px 0',
+                background: 'var(--status-active)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 'var(--radius)',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
             >
-              <Plus className="w-4 h-4" /> Create Study
+              <Plus size={13} /> Create Study
             </button>
           </form>
         </div>
 
-        {/* Studies List */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-          <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2 mb-4">
-            <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">All Studies</h3>
-            <span className="text-sm bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 py-1 px-3 rounded-full">
+        {/* Studies list */}
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 12px',
+            borderBottom: '1px solid var(--border)',
+          }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
+              All Studies
+            </span>
+            <span style={{
+              fontSize: '10px',
+              fontWeight: 600,
+              padding: '2px 8px',
+              background: 'var(--bg-surface-alt)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-muted)',
+            }}>
               Total: {studies.length}
             </span>
           </div>
 
-          <div className="space-y-3">
-            {studies.length === 0 && (
-              <p className="text-center py-6 text-slate-500 dark:text-slate-400">No studies yet. Create one to get started.</p>
-            )}
-            {studies.map((s) => (
-              <div
-                key={s.id}
-                className="flex items-center justify-between gap-3 border border-slate-200 dark:border-slate-800 rounded-lg p-4"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <FlaskConical className="w-5 h-5 text-slate-400 dark:text-slate-500 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="font-medium text-slate-800 dark:text-slate-100 truncate">{s.name}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Recruitment goal: {s.recruitment_goal ?? '—'}
-                    </p>
-                  </div>
-                  {s.id === currentStudyId && (
-                    <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 shrink-0">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Active
-                    </span>
-                  )}
-                </div>
-                <HoverTooltip
-                  text={
-                    studies.length <= 1
-                      ? 'Cannot delete the only study. Create another study first, then delete this one.'
-                      : 'Permanently deletes this study and all of its participants and measurements. This cannot be undone.'
-                  }
-                >
-                  <button
-                    onClick={() => handleDeleteStudy(s.id)}
-                    disabled={studies.length <= 1}
-                    className={`p-2 rounded-lg transition-colors shrink-0 ${
-                      studies.length <= 1
-                        ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed'
-                        : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer'
-                    }`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </HoverTooltip>
+          {studies.length === 0 && (
+            <div style={{ padding: '32px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
+              No studies yet. Create one to get started.
+            </div>
+          )}
+
+          {studies.map((s, i) => (
+            <div
+              key={s.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                padding: '0 12px',
+                height: '40px',
+                background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
+                borderBottom: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                <FlaskConical size={14} style={{ color: 'var(--text-ghost)', flexShrink: 0 }} />
+                <span style={{ fontSize: '12px', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-data)' }}>
+                  {s.name}
+                </span>
+                {s.id === currentStudyId && (
+                  <span style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    fontSize: '9px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    color: 'var(--status-active)',
+                    flexShrink: 0,
+                  }}>
+                    <CheckCircle2 size={10} /> Active
+                  </span>
+                )}
+                {s.recruitment_goal && (
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                    Goal: {s.recruitment_goal}
+                  </span>
+                )}
               </div>
-            ))}
-          </div>
+
+              <HoverTooltip
+                text={
+                  studies.length <= 1
+                    ? 'Cannot delete the only study. Create another study first.'
+                    : 'Permanently delete this study and all its data. Cannot be undone.'
+                }
+              >
+                <button
+                  onClick={() => handleDeleteStudy(s.id)}
+                  disabled={studies.length <= 1}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: studies.length <= 1 ? 'var(--text-ghost)' : 'var(--status-dropped)',
+                    cursor: studies.length <= 1 ? 'not-allowed' : 'pointer',
+                    padding: '3px',
+                    display: 'flex',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </HoverTooltip>
+            </div>
+          ))}
         </div>
       </div>
-    </section>
+    </div>
   );
 };
 

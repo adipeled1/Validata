@@ -11,11 +11,11 @@ const CustomTooltip = ({ active, payload }: any) => {
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 shadow-md text-xs space-y-1">
-      <p className="font-semibold text-slate-700 dark:text-slate-300">{d.participantId || 'Unknown'}</p>
-      <p className="text-slate-600 dark:text-slate-300">Mean angle: <span className="font-medium">{d.mean?.toFixed(1)}°</span></p>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: '11px', lineHeight: 1.5 }}>
+      <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>{d.participantId || 'Unknown'}</p>
+      <p style={{ color: 'var(--text-secondary)' }}>Mean angle: <strong>{d.mean?.toFixed(1)}°</strong></p>
       <p style={{ color: Number(d.diff) >= 0 ? COLORS.bias : COLORS.limit }}>
-        AI − Goniometer: <span className="font-medium">{Number(d.diff) >= 0 ? '+' : ''}{d.diff?.toFixed(2)}°</span>
+        AI − Goniometer: <strong>{Number(d.diff) >= 0 ? '+' : ''}{d.diff?.toFixed(2)}°</strong>
       </p>
     </div>
   );

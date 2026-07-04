@@ -9,11 +9,11 @@ import YLabelChart from './YLabelChart';
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 shadow-md text-xs space-y-1">
-      <p className="font-semibold text-slate-700 dark:text-slate-300">Session: {label}</p>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: '11px' }}>
+      <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Session: {label}</p>
       {payload.map((p: any) => (
         <p key={p.dataKey} style={{ color: p.color }}>
-          {p.name}: <span className="font-medium">{p.value}°</span>
+          {p.name}: <strong>{p.value}°</strong>
         </p>
       ))}
     </div>
@@ -29,7 +29,12 @@ const PerformanceTrend = ({ data }: { data?: { sessions: any[] } }) => {
 
   if (sessions.length < 2) {
     return (
-      <div className="flex items-center justify-center h-64 bg-slate-50 dark:bg-slate-800 rounded-lg border border-dashed border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-400 text-sm text-center px-6">
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '200px', background: 'var(--bg-surface-alt)',
+        border: '1px dashed var(--border)',
+        fontSize: '11px', color: 'var(--text-ghost)', textAlign: 'center', padding: '16px',
+      }}>
         At least 2 sessions needed to show a trend
       </div>
     );

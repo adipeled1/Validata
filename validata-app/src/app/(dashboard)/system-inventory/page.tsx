@@ -1,10 +1,9 @@
 "use client";
 
 import { useSession } from '../../../context/SessionContext';
+import DataGrid from '../../components/ui/DataGrid';
 
 // ICH E6(R3) META-04: System inventory register.
-// Lists all system components, their versions, and validation status.
-// Accessible to mentor and sponsor_admin only.
 const ADMIN_ROLES = ['mentor', 'sponsor_admin'];
 
 const SYSTEM_COMPONENTS = [
@@ -73,54 +72,54 @@ const SYSTEM_COMPONENTS = [
   },
 ] as const;
 
+// Add an id field for DataGrid keyField
+const rows = SYSTEM_COMPONENTS.map((c, i) => ({ ...c, id: String(i) }));
+
+const columns = [
+  { key: 'name', label: 'Component', width: '200px', render: (c: any) => <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{c.name}</span> },
+  { key: 'type', label: 'Type', width: '140px' },
+  { key: 'version', label: 'Version', width: '160px', render: (c: any) => <span style={{ fontFamily: 'var(--font-data)', fontSize: '11px' }}>{c.version}</span> },
+  { key: 'vendor', label: 'Vendor', width: '140px' },
+  { key: 'gampCategory', label: 'GAMP Cat.', width: '180px' },
+  { key: 'validationStatus', label: 'Validation Status' },
+  { key: 'notes', label: 'Notes', render: (c: any) => <span style={{ color: 'var(--text-muted)' }}>{c.notes || '—'}</span> },
+];
+
 export default function SystemInventoryPage() {
   const { userRole } = useSession();
 
   if (!ADMIN_ROLES.includes(userRole)) {
-    return <p className="p-6 text-gray-500">You do not have access to the system inventory register.</p>;
+    return (
+      <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>
+        You do not have access to the system inventory register.
+      </div>
+    );
   }
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-xl font-semibold text-gray-900">System Inventory Register</h1>
-      <p className="text-sm text-gray-500">
-        Records all system components used in the Validata EDC platform, their GAMP category, and
-        validation status. Required by ICH E6(R3) Appendix C (META-04). This register must be reviewed
-        and signed off by the sponsor at each CSV review cycle.
-      </p>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="bg-gray-50 border-b text-left text-xs text-gray-500 uppercase tracking-wide">
-              <th className="px-3 py-2">Component</th>
-              <th className="px-3 py-2">Type</th>
-              <th className="px-3 py-2">Version</th>
-              <th className="px-3 py-2">Vendor</th>
-              <th className="px-3 py-2">GAMP Category</th>
-              <th className="px-3 py-2">Validation Status</th>
-              <th className="px-3 py-2">Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {SYSTEM_COMPONENTS.map((c) => (
-              <tr key={c.name} className="border-b hover:bg-gray-50">
-                <td className="px-3 py-2 font-medium">{c.name}</td>
-                <td className="px-3 py-2 text-xs">{c.type}</td>
-                <td className="px-3 py-2 font-mono text-xs">{c.version}</td>
-                <td className="px-3 py-2 text-xs">{c.vendor}</td>
-                <td className="px-3 py-2 text-xs">{c.gampCategory}</td>
-                <td className="px-3 py-2 text-xs">{c.validationStatus}</td>
-                <td className="px-3 py-2 text-xs text-gray-500">{c.notes}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div>
+        <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+          SYSTEM / System Inventory Register
+        </div>
+        <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
+          System Inventory Register
+        </h1>
+        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+          All system components used in Validata EDC, GAMP categories, and validation status. Required by ICH E6(R3) Appendix C (META-04).
+        </div>
       </div>
 
-      <p className="text-xs text-gray-400 mt-4">
+      <DataGrid
+        columns={columns}
+        rows={rows}
+        keyField="id"
+        emptyMessage="No components listed."
+      />
+
+      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
         Last reviewed: 2026-07-03. Next review due: per change control or annual CSV review cycle.
-      </p>
+      </div>
     </div>
   );
 }

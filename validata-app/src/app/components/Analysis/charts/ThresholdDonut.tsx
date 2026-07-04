@@ -5,9 +5,9 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
   const { name, value } = payload[0];
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 shadow-md text-xs">
-      <p style={{ color: payload[0].payload.fill }} className="font-semibold">{name}</p>
-      <p className="text-slate-600 dark:text-slate-300">{value} measurement{value !== 1 ? 's' : ''}</p>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: '11px' }}>
+      <p style={{ color: payload[0].payload.fill, fontWeight: 600, marginBottom: '2px' }}>{name}</p>
+      <p style={{ color: 'var(--text-secondary)' }}>{value} measurement{value !== 1 ? 's' : ''}</p>
     </div>
   );
 };
@@ -28,7 +28,7 @@ const ThresholdDonut = ({ data, threshold = 5 }: ThresholdDonutProps) => {
   ];
 
   return (
-    <div className="relative">
+    <div style={{ position: 'relative' }}>
       <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
         <PieChart>
           <Pie
@@ -47,11 +47,13 @@ const ThresholdDonut = ({ data, threshold = 5 }: ThresholdDonutProps) => {
         </PieChart>
       </ResponsiveContainer>
       {/* Center label — shows percentage, threshold, and raw counts */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="text-center">
-          <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{percentage.toFixed(1)}%</p>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">within ±{threshold}°</p>
-          <p className="text-xs text-slate-400 dark:text-slate-400 mt-0.5">
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-data)', lineHeight: 1 }}>
+            {percentage.toFixed(1)}%
+          </p>
+          <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>within ±{threshold}°</p>
+          <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>
             <span style={{ color: COLORS.pass }}>{pass} pass</span>
             {' / '}
             <span style={{ color: COLORS.fail }}>{fail} fail</span>

@@ -1,3 +1,5 @@
+"use client";
+
 import { UploadCloud, CheckCircle, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -6,6 +8,28 @@ const handleDownloadTemplate = () => {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
   XLSX.writeFile(workbook, 'validata-import-template.xlsx');
+};
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  background: 'var(--bg-input)',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius)',
+  color: 'var(--text-primary)',
+  fontSize: '12px',
+  padding: '5px 8px',
+  fontFamily: 'var(--font-ui)',
+  outline: 'none',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: '10px',
+  fontWeight: 600,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.08em',
+  color: 'var(--text-muted)',
+  marginBottom: '4px',
 };
 
 interface DataCollectionDisplayProps {
@@ -33,7 +57,6 @@ interface DataCollectionDisplayProps {
   onClearImportSummary: () => void;
 }
 
-// Pure presentational component
 const DataCollectionDisplay = ({
   activeParticipants,
   participantId,
@@ -56,205 +79,211 @@ const DataCollectionDisplay = ({
   onDrop,
   isImporting,
   importSummary,
-  onClearImportSummary
+  onClearImportSummary,
 }: DataCollectionDisplayProps) => {
   return (
-    <section className="app-section">
-      <header className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Data Collection & Management</h2>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">
-          Manual measurement logging and raw data file uploads.
-        </p>
-      </header>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Page header */}
+      <div>
+        <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+          PARTICIPANTS & DATA / Data Collection
+        </div>
+        <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
+          Data Collection &amp; Management
+        </h1>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Measurement Log */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-          <h3 className="text-xl font-semibold mb-4 text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-2">
+      {/* Two-pane layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        {/* Measurement Log Form */}
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '6px' }}>
             Measurement Log
-          </h3>
-          <form onSubmit={onSubmitLog} className="space-y-4">
+          </div>
+          <form onSubmit={onSubmitLog} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
-              <label htmlFor="log-participant" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Participant (Active Only)
-              </label>
+              <label htmlFor="log-participant" style={labelStyle}>Participant (Active Only)</label>
               <select
                 id="log-participant"
                 required
                 value={participantId}
                 onChange={(e) => onParticipantChange(e.target.value)}
-                className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                style={inputStyle}
               >
-                <option value="" disabled>
-                  -- Select Participant --
-                </option>
+                <option value="" disabled>-- Select Participant --</option>
                 {activeParticipants.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.id}
-                  </option>
+                  <option key={p.id} value={p.id}>{p.id}</option>
                 ))}
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
-                <label htmlFor="log-goniometer" className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  Goniometer
-                </label>
+                <label htmlFor="log-goniometer" style={labelStyle}>Goniometer</label>
                 <input
                   id="log-goniometer"
                   type="text"
                   placeholder="e.g. 45°"
                   value={goniometer}
                   onChange={(e) => onGoniometerChange(e.target.value)}
-                  className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                  style={inputStyle}
                 />
               </div>
               <div>
-                <label htmlFor="log-ai-model" className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  AI/ML Model
-                </label>
+                <label htmlFor="log-ai-model" style={labelStyle}>AI/ML Model</label>
                 <input
                   id="log-ai-model"
                   type="text"
                   placeholder="e.g. 44.8°"
                   value={aiModel}
                   onChange={(e) => onAiModelChange(e.target.value)}
-                  className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                  style={inputStyle}
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="log-test-date" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Test Date
-              </label>
+              <label htmlFor="log-test-date" style={labelStyle}>Test Date</label>
               <input
                 id="log-test-date"
                 type="date"
                 value={testDate}
                 onChange={(e) => onTestDateChange(e.target.value)}
-                className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                style={inputStyle}
               />
             </div>
 
             <div>
-              <label htmlFor="log-notes" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Researcher Notes
-              </label>
+              <label htmlFor="log-notes" style={labelStyle}>Researcher Notes</label>
               <textarea
                 id="log-notes"
-                rows={2}
+                rows={3}
                 value={notes}
                 onChange={(e) => onNotesChange(e.target.value)}
-                className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
-              ></textarea>
+                style={{ ...inputStyle, resize: 'vertical' }}
+              />
             </div>
+
             <button
               type="submit"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition-colors cursor-pointer"
+              style={{
+                padding: '6px 0',
+                background: 'var(--status-active)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 'var(--radius)',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
             >
               Log Measurement
             </button>
           </form>
         </div>
 
-        {/* File Upload / Import */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col">
-          <div className="flex items-center justify-between gap-3 mb-4 border-b border-slate-200 dark:border-slate-800 pb-2">
-            <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
+        {/* File Upload */}
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '16px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '6px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
               Bulk Import (CSV, JSON, Excel)
-            </h3>
+            </div>
             <button
               onClick={handleDownloadTemplate}
-              className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline cursor-pointer shrink-0"
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-link)', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download size={12} />
               Download Template
             </button>
           </div>
 
           {isImporting ? (
-            <div className="flex-1 flex flex-col justify-center items-center p-6 bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
-              <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-              <p className="text-slate-600 dark:text-slate-300 font-medium">Processing and importing file...</p>
-              <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Please do not refresh the page.</p>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+              <div style={{ width: '24px', height: '24px', border: '3px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Processing and importing file…</div>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           ) : importSummary ? (
-            <div className="flex-1 flex flex-col justify-between">
-              <div className="space-y-4">
-                <div className={`p-4 rounded-xl border ${importSummary.errorCount === 0 ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300' : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300'}`}>
-                  <div className="flex items-center gap-2 font-bold mb-1">
-                    <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                    Import Complete
-                  </div>
-                  <p className="text-sm">
-                    Successfully imported <strong>{importSummary.successCount}</strong> measurements.
-                    {importSummary.errorCount > 0 && <span> Skipped <strong>{importSummary.errorCount}</strong> rows due to validation errors.</span>}
-                  </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+              <div style={{
+                padding: '10px',
+                background: importSummary.errorCount === 0 ? 'rgba(78, 201, 176, 0.1)' : 'rgba(220, 220, 170, 0.1)',
+                border: `1px solid ${importSummary.errorCount === 0 ? 'var(--status-active)' : 'var(--status-pending)'}`,
+                borderRadius: 'var(--radius)',
+                fontSize: '12px',
+                color: 'var(--text-primary)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, marginBottom: '4px' }}>
+                  <CheckCircle size={14} style={{ color: 'var(--status-active)' }} />
+                  Import Complete
                 </div>
-
-                {importSummary.errors && importSummary.errors.length > 0 && (
-                  <div className="max-h-48 overflow-y-auto p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-lg text-xs text-rose-700 dark:text-rose-300 font-mono space-y-1">
-                    <div className="font-semibold mb-1 text-rose-800 dark:text-rose-300">Errors & Warnings:</div>
-                    {importSummary.errors.map((err: string, i: number) => (
-                      <div key={i}>• {err}</div>
-                    ))}
-                  </div>
-                )}
+                Successfully imported <strong>{importSummary.successCount}</strong> measurements.
+                {importSummary.errorCount > 0 && <span> Skipped <strong>{importSummary.errorCount}</strong> rows.</span>}
               </div>
+
+              {importSummary.errors?.length > 0 && (
+                <div style={{ maxHeight: '120px', overflowY: 'auto', padding: '8px', background: 'var(--bg-panel)', border: '1px solid var(--status-dropped)', borderRadius: 'var(--radius)', fontSize: '11px', color: 'var(--status-dropped)', fontFamily: 'var(--font-data)' }}>
+                  {importSummary.errors.map((err: string, i: number) => (
+                    <div key={i}>• {err}</div>
+                  ))}
+                </div>
+              )}
 
               <button
                 onClick={onClearImportSummary}
-                className="mt-4 w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium py-2.5 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
+                style={{ padding: '6px 0', background: 'var(--bg-surface-hover)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', color: 'var(--text-primary)', fontSize: '12px', cursor: 'pointer', marginTop: 'auto' }}
               >
                 Import Another File
               </button>
             </div>
           ) : (
-            <div className="flex-grow flex flex-col justify-between">
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div
-                className={`flex-1 flex flex-col justify-center items-center border-2 border-dashed rounded-lg transition-colors cursor-pointer p-6 min-h-[160px] ${
-                  isDragging
-                    ? 'border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40'
-                    : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700'
-                }`}
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
                 onDrop={onDrop}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: `2px dashed ${isDragging ? 'var(--accent-soft)' : 'var(--border)'}`,
+                  background: isDragging ? 'rgba(157, 127, 234, 0.08)' : 'var(--bg-surface-alt)',
+                  cursor: 'pointer',
+                  padding: '24px',
+                  minHeight: '140px',
+                  transition: 'all 0.15s',
+                }}
               >
-                <UploadCloud className="w-12 h-12 text-slate-400 dark:text-slate-500 mb-3 pointer-events-none" />
-                <p className="text-slate-600 dark:text-slate-300 font-medium pointer-events-none">
+                <UploadCloud size={32} style={{ color: 'var(--text-ghost)', marginBottom: '8px' }} />
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>
                   {isDragging ? 'Drop the file here' : 'Click or drag and drop a data file here'}
-                </p>
-                <p className="text-xs text-slate-400 dark:text-slate-400 mt-1 pointer-events-none">Supports CSV, Excel (.xlsx/.xls), JSON (up to 50MB)</p>
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  CSV, Excel (.xlsx/.xls), JSON — up to 50 MB
+                </div>
                 <input
                   type="file"
                   ref={fileInputRef}
-                  className="hidden"
+                  style={{ display: 'none' }}
                   onChange={onFileChange}
                   accept=".csv,.json,.xlsx,.xls"
                 />
               </div>
 
-              <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-500 dark:text-slate-400">
-                <p className="font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Expected Spreadsheet Headers:</p>
-                <code className="block bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-2 rounded text-indigo-600 dark:text-indigo-400 font-mono break-all leading-normal">
+              <div style={{ padding: '8px', background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', fontSize: '11px', color: 'var(--text-muted)' }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Expected headers:</div>
+                <code style={{ fontFamily: 'var(--font-data)', color: 'var(--accent-soft)', fontSize: '11px' }}>
                   participant_id, goniometer, ai_model, test_date, notes
                 </code>
-                <p className="mt-1.5 text-slate-400 dark:text-slate-400 leading-normal">
-                  * Note: Only active participants are imported. Goniometer and AI Model values must be numeric.
-                </p>
-                <p className="mt-1.5 text-slate-400 dark:text-slate-400 leading-normal">
-                  * Multiple measurements for the same participant: add one row per measurement, repeating the same <code className="text-indigo-600 dark:text-indigo-400 font-mono">participant_id</code> on each row. There is no limit on how many rows one participant can have.
-                </p>
               </div>
             </div>
           )}
         </div>
       </div>
-    </section>
+    </div>
   );
 };
 

@@ -7,21 +7,19 @@ interface ThemeContextValue {
   toggleTheme: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextValue>({ theme: 'light', toggleTheme: () => {} });
+const ThemeContext = createContext<ThemeContextValue>({ theme: 'dark', toggleTheme: () => {} });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Lazy initializer reads localStorage synchronously on mount instead of a
-  // separate effect, avoiding an extra render pass (same pattern as the
-  // Sidebar's collapsed/expanded state). The inline script in layout.js
-  // already applies the 'dark' class before hydration to prevent a flash;
-  // this just needs to agree with that same source of truth.
+  // Lazy initializer reads localStorage synchronously on mount. Default is 'dark'.
+  // The inline script in layout.tsx already sets data-theme before hydration to
+  // prevent a flash; this just needs to agree with that same source of truth.
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window === 'undefined') return 'light';
-    return localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+    if (typeof window === 'undefined') return 'dark';
+    return localStorage.getItem('theme') === 'light' ? 'light' : 'dark';
   });
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
 

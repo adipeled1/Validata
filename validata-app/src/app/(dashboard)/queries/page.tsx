@@ -11,16 +11,29 @@ const QUERY_ROLES = [
   'data_manager', 'monitor',
 ];
 
-const SEVERITY_COLORS: Record<string, string> = {
-  minor: 'bg-yellow-100 text-yellow-800',
-  major: 'bg-orange-100 text-orange-800',
-  critical: 'bg-red-100 text-red-800',
+const SEVERITY_COLOR: Record<string, string> = {
+  minor: 'var(--status-pending)',
+  major: 'var(--status-warning)',
+  critical: 'var(--status-dropped)',
 };
-const STATUS_COLORS: Record<string, string> = {
-  open: 'bg-red-100 text-red-800',
-  answered: 'bg-blue-100 text-blue-800',
-  resolved: 'bg-green-100 text-green-800',
-  closed: 'bg-gray-100 text-gray-700',
+const STATUS_COLOR: Record<string, string> = {
+  open: 'var(--status-dropped)',
+  answered: 'var(--accent-soft)',
+  resolved: 'var(--status-active)',
+  closed: 'var(--text-muted)',
+};
+
+const inputStyle: React.CSSProperties = {
+  background: 'var(--bg-input)',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius)',
+  color: 'var(--text-primary)',
+  fontSize: '12px',
+  padding: '5px 8px',
+  fontFamily: 'var(--font-ui)',
+  outline: 'none',
+  flex: 1,
+  minWidth: 0,
 };
 
 export default function QueriesPage() {
@@ -29,6 +42,8 @@ export default function QueriesPage() {
   const [queries, setQueries] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [answerText, setAnswerText] = useState<Record<number, string>>({});
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedQuery, setSelectedQuery] = useState<any | null>(null);
 
   const canRaiseQuery = QUERY_ROLES.includes(userRole);
 
@@ -43,7 +58,11 @@ export default function QueriesPage() {
   useEffect(() => { loadQueries(); }, [loadQueries]);
 
   if (!canRaiseQuery) {
-    return <p className="p-6 text-gray-500">You do not have access to query management.</p>;
+    return (
+      <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>
+        You do not have access to query management.
+      </div>
+    );
   }
 
   const advance = async (id: number, status: string) => {
@@ -55,93 +74,207 @@ export default function QueriesPage() {
       body: JSON.stringify(body),
     });
     loadQueries();
+    if (selectedQuery?.id === id) {
+      setSelectedQuery((prev: any) => prev ? { ...prev, status } : null);
+    }
   };
 
+  const filterCounts = {
+    all: queries.length,
+    open: queries.filter((q) => q.status === 'open').length,
+    answered: queries.filter((q) => q.status === 'answered').length,
+    resolved: queries.filter((q) => q.status === 'resolved').length,
+    closed: queries.filter((q) => q.status === 'closed').length,
+  };
+
+  const filteredQueries =
+    statusFilter === 'all' ? queries : queries.filter((q) => q.status === statusFilter);
+
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-xl font-semibold text-gray-900">Query Management</h1>
-      <p className="text-sm text-gray-500">
-        Queries are raised against specific data fields. Each query must be answered by site staff and
-        resolved by the monitor before the study can be locked. (ICH E6(R3) CAP-04)
-      </p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Page header */}
+      <div>
+        <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+          QUERY MANAGEMENT
+        </div>
+        <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
+          Queries
+        </h1>
+        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+          Queries are raised against specific data fields. Each query must be answered by site staff and resolved by the monitor before the study can be locked. (ICH E6(R3) CAP-04)
+        </div>
+      </div>
 
       {!currentStudyId && (
-        <p className="text-sm text-gray-400">No study selected.</p>
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No study selected.</div>
       )}
 
-      {loading && <p className="text-sm text-gray-400">Loading…</p>}
-
-      {!loading && queries.length === 0 && currentStudyId && (
-        <p className="text-sm text-gray-400">No queries for this study.</p>
-      )}
-
-      <div className="space-y-3">
-        {queries.map((q) => (
-          <div key={q.id} className="border rounded-lg p-4 bg-white shadow-sm space-y-2">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <span className="font-medium text-sm text-gray-900">
-                {q.record_table} / {q.record_id} — <span className="font-mono">{q.field_name}</span>
-              </span>
-              <div className="flex gap-2">
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${SEVERITY_COLORS[q.severity] ?? ''}`}>
-                  {q.severity}
+      {/* Three-pane layout */}
+      <div style={{ display: 'flex', gap: '0', border: '1px solid var(--border)', height: '600px', overflow: 'hidden' }}>
+        {/* Left: filter tree (180px) */}
+        <div style={{ width: '180px', flexShrink: 0, borderRight: '1px solid var(--border)', background: 'var(--bg-sidebar)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '8px 10px 4px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', fontWeight: 600 }}>
+            Filter
+          </div>
+          {(['all', 'open', 'answered', 'resolved', 'closed'] as const).map((s) => {
+            const isActive = statusFilter === s;
+            return (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                style={{
+                  width: '100%',
+                  height: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0 12px',
+                  fontSize: '13px',
+                  background: isActive ? 'var(--bg-selection)' : 'transparent',
+                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textTransform: 'capitalize',
+                }}
+              >
+                <span>{s}</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', background: 'var(--bg-surface)', padding: '0 4px', borderRadius: '2px' }}>
+                  {filterCounts[s]}
                 </span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[q.status] ?? ''}`}>
-                  {q.status}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Center: query list */}
+        <div style={{ flex: 1, overflow: 'auto', borderRight: '1px solid var(--border)' }}>
+          {loading && <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-muted)' }}>Loading…</div>}
+          {!loading && filteredQueries.length === 0 && (
+            <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-muted)' }}>No queries in this filter.</div>
+          )}
+          {filteredQueries.map((q, i) => {
+            const isSelected = selectedQuery?.id === q.id;
+            return (
+              <div
+                key={q.id}
+                onClick={() => setSelectedQuery(q)}
+                style={{
+                  padding: '8px 12px',
+                  borderBottom: '1px solid var(--border)',
+                  background: isSelected ? 'var(--bg-selection)' : i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
+                  cursor: 'pointer',
+                  borderLeft: `3px solid ${SEVERITY_COLOR[q.severity] ?? 'transparent'}`,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
+                  <span style={{ fontFamily: 'var(--font-data)', fontSize: '11px', color: 'var(--text-id)' }}>
+                    Q-{String(q.id).padStart(3, '0')}
+                  </span>
+                  <span style={{ fontSize: '10px', color: STATUS_COLOR[q.status] ?? 'var(--text-muted)', fontWeight: 600 }}>
+                    {q.status.toUpperCase()}
+                  </span>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {q.record_table} / {q.record_id} — <span style={{ fontFamily: 'var(--font-data)' }}>{q.field_name}</span>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {q.query_text}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Right: query detail panel */}
+        <div style={{ width: '320px', flexShrink: 0, background: 'var(--bg-panel)', overflow: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {!selectedQuery ? (
+            <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '24px', textAlign: 'center' }}>
+              Select a query to view details.
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-id)', fontFamily: 'var(--font-data)' }}>
+                Q-{String(selectedQuery.id).padStart(3, '0')}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Record</span><br />
+                {selectedQuery.record_table} / {selectedQuery.record_id} — {selectedQuery.field_name}
+              </div>
+              <div>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px' }}>Query</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                  {selectedQuery.query_text}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <span style={{ fontSize: '10px', padding: '2px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border)', color: SEVERITY_COLOR[selectedQuery.severity] ?? 'var(--text-muted)' }}>
+                  {selectedQuery.severity}
+                </span>
+                <span style={{ fontSize: '10px', padding: '2px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border)', color: STATUS_COLOR[selectedQuery.status] ?? 'var(--text-muted)' }}>
+                  {selectedQuery.status}
                 </span>
               </div>
-            </div>
+              {selectedQuery.answer_text && (
+                <div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px' }}>Answer</div>
+                  <div style={{ fontSize: '12px', color: 'var(--accent-soft)', lineHeight: 1.5, background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '6px 8px' }}>
+                    {selectedQuery.answer_text}
+                  </div>
+                </div>
+              )}
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                Raised {new Date(selectedQuery.raised_at).toUTCString()}
+              </div>
 
-            <p className="text-sm text-gray-700">{q.query_text}</p>
-
-            {q.answer_text && (
-              <p className="text-sm text-blue-800 bg-blue-50 rounded p-2">
-                <span className="font-medium">Answer:</span> {q.answer_text}
-              </p>
-            )}
-
-            <div className="flex gap-2 flex-wrap items-end">
-              {q.status === 'open' && (
-                <>
-                  <input
-                    type="text"
-                    placeholder="Answer text…"
-                    value={answerText[q.id] ?? ''}
-                    onChange={(e) => setAnswerText((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                    className="flex-1 min-w-0 border border-gray-300 rounded px-2 py-1 text-sm"
-                  />
+              {/* Actions */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
+                {selectedQuery.status === 'open' && (
+                  <>
+                    <input
+                      type="text"
+                      placeholder="Answer text…"
+                      value={answerText[selectedQuery.id] ?? ''}
+                      onChange={(e) => setAnswerText((prev) => ({ ...prev, [selectedQuery.id]: e.target.value }))}
+                      style={inputStyle}
+                    />
+                    <button
+                      onClick={() => advance(selectedQuery.id, 'answered')}
+                      disabled={!answerText[selectedQuery.id]}
+                      style={{
+                        padding: '5px 12px',
+                        background: 'var(--accent)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 'var(--radius)',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        opacity: answerText[selectedQuery.id] ? 1 : 0.5,
+                      }}
+                    >
+                      Answer
+                    </button>
+                  </>
+                )}
+                {selectedQuery.status === 'answered' && (
                   <button
-                    onClick={() => advance(q.id, 'answered')}
-                    disabled={!answerText[q.id]}
-                    className="px-3 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                    onClick={() => advance(selectedQuery.id, 'resolved')}
+                    style={{ padding: '5px 12px', background: 'var(--status-active)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', fontSize: '12px', cursor: 'pointer' }}
                   >
-                    Answer
+                    Resolve
                   </button>
-                </>
-              )}
-              {q.status === 'answered' && (
-                <button
-                  onClick={() => advance(q.id, 'resolved')}
-                  className="px-3 py-1 text-sm rounded bg-green-600 text-white hover:bg-green-700"
-                >
-                  Resolve
-                </button>
-              )}
-              {q.status === 'resolved' && (
-                <button
-                  onClick={() => advance(q.id, 'closed')}
-                  className="px-3 py-1 text-sm rounded bg-gray-500 text-white hover:bg-gray-600"
-                >
-                  Close
-                </button>
-              )}
-            </div>
-
-            <p className="text-xs text-gray-400">
-              Raised {new Date(q.raised_at).toUTCString()}
-            </p>
-          </div>
-        ))}
+                )}
+                {selectedQuery.status === 'resolved' && (
+                  <button
+                    onClick={() => advance(selectedQuery.id, 'closed')}
+                    style={{ padding: '5px 12px', background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', fontSize: '12px', cursor: 'pointer' }}
+                  >
+                    Close
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

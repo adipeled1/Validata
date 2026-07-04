@@ -1,20 +1,188 @@
 @import "tailwindcss";
 @config "../../tailwind.config.js";
 
+/* ── CSS Reset ─────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Design Tokens: Dark Theme (VS2026 Purple — default) ────────────────── */
+:root,
+[data-theme="dark"] {
+  /* Backgrounds */
+  --bg-activity:     #110f1a;
+  --bg-sidebar:      #1a1829;
+  --bg-menubar:      #1a1829;
+  --bg-tabs:         #141222;
+  --bg-tab-active:   #1e1c2e;
+  --bg-editor:       #1e1c2e;
+  --bg-surface:      #252338;
+  --bg-surface-alt:  #1e1c2e;
+  --bg-surface-hover:#2a2840;
+  --bg-selection:    #3d2b6e;
+  --bg-panel:        #161424;
+  --bg-panel-header: #141222;
+  --bg-input:        #252338;
+  --bg-tooltip:      #2d2b3e;
+
+  /* Borders */
+  --border:          #2e2b3e;
+  --border-focus:    #9d7fea;
+
+  /* Text */
+  --text-primary:    #d4c8f0;
+  --text-secondary:  #8878aa;
+  --text-muted:      #6b5f8a;
+  --text-ghost:      #4a4560;
+  --text-col-header: #9cdcfe;
+  --text-id:         #c4a8f0;
+  --text-actor:      #c084fc;
+  --text-timestamp:  #569cd6;
+  --text-link:       #4fc1ff;
+
+  /* Accent */
+  --accent:          #7c3aed;
+  --accent-soft:     #9d7fea;
+  --accent-badge:    #6b21a8;
+  --accent-badge-fg: #e9d5ff;
+
+  /* Status / Semantic */
+  --status-active:   #4ec9b0;
+  --status-complete: #6b7280;
+  --status-pending:  #dcdcaa;
+  --status-dropped:  #f44747;
+  --status-warning:  #ce9178;
+  --status-sign:     #a855f7;
+  --status-insert:   #4ec9b0;
+  --status-update:   #dcdcaa;
+
+  /* Status Bar */
+  --statusbar-bg:    #4c1d95;
+  --statusbar-fg:    #e9d5ff;
+  --statusbar-sep:   #7c3aed;
+}
+
+/* ── Design Tokens: Light Theme (Classic White + purple accent) ─────────── */
+[data-theme="light"] {
+  /* Backgrounds */
+  --bg-activity:     #e8e8e8;
+  --bg-sidebar:      #f3f3f3;
+  --bg-menubar:      #f3f3f3;
+  --bg-tabs:         #ececec;
+  --bg-tab-active:   #ffffff;
+  --bg-editor:       #ffffff;
+  --bg-surface:      #ffffff;
+  --bg-surface-alt:  #f8f8f8;
+  --bg-surface-hover:#f0f0f0;
+  --bg-selection:    #ddd6fe;
+  --bg-panel:        #f3f3f3;
+  --bg-panel-header: #ececec;
+  --bg-input:        #ffffff;
+  --bg-tooltip:      #fafafa;
+
+  /* Borders */
+  --border:          #d4d4d4;
+  --border-inner:    #e8e8e8;
+  --border-focus:    #7c3aed;
+
+  /* Text */
+  --text-primary:    #1f1f1f;
+  --text-secondary:  #616161;
+  --text-muted:      #999999;
+  --text-ghost:      #cccccc;
+  --text-col-header: #0f4a8a;
+  --text-id:         #5b21b6;
+  --text-actor:      #5b21b6;
+  --text-timestamp:  #1565c0;
+  --text-link:       #1565c0;
+
+  /* Accent */
+  --accent:          #7c3aed;
+  --accent-soft:     #7c3aed;
+  --accent-badge:    #7c3aed;
+  --accent-badge-fg: #ffffff;
+
+  /* Status / Semantic */
+  --status-active:   #059669;
+  --status-complete: #6b7280;
+  --status-pending:  #b45309;
+  --status-dropped:  #dc2626;
+  --status-warning:  #b45309;
+  --status-sign:     #7c3aed;
+  --status-insert:   #059669;
+  --status-update:   #b45309;
+
+  /* Status Bar */
+  --statusbar-bg:    #6d28d9;
+  --statusbar-fg:    #ede9fe;
+  --statusbar-sep:   #a78bfa;
+}
+
+/* ── Shared / Theme-independent tokens ─────────────────────────────────── */
+:root {
+  /* Typography */
+  --font-ui:         'Segoe UI', 'Inter', system-ui, sans-serif;
+  --font-data:       'Cascadia Code', 'JetBrains Mono', 'Fira Code', monospace;
+  --font-size-base:  13px;
+  --font-size-sm:    11px;
+  --font-size-lg:    14px;
+  --font-size-h1:    16px;
+
+  /* Geometry */
+  --radius:          2px;
+  --row-height:      32px;
+  --header-height:   32px;
+  --tab-height:      34px;
+  --menubar-height:  28px;
+  --statusbar-height:22px;
+  --activity-width:  40px;
+  --sidebar-width:   210px;
+  --panel-height:    158px;
+}
+
+/* ── Base styles ───────────────────────────────────────────────────────── */
+html {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  background: var(--bg-editor);
+  color: var(--text-primary);
+  height: 100%;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar styling (webkit) ────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-sidebar);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-ghost);
+}
+::-webkit-scrollbar-corner {
+  background: var(--bg-sidebar);
+}
+
+/* ── Utilities ─────────────────────────────────────────────────────────── */
 @layer utilities {
   .hidden-section {
     display: none !important;
   }
+  .font-data {
+    font-family: var(--font-data);
+  }
 }
-
-body {
-  background: #f8fafc; /* slate-50 background for dashboard */
-  color: #0f172a; /* slate-900 foreground */
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.dark body {
-  background: #020617; /* slate-950 background for dashboard */
-  color: #f1f5f9; /* slate-100 foreground */
-}
-

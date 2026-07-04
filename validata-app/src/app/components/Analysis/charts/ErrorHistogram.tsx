@@ -9,8 +9,8 @@ import YLabelChart from './YLabelChart';
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 shadow-md text-xs space-y-1">
-      <p className="text-slate-600 dark:text-slate-300">Error starts at <span className="font-medium">{label}°</span></p>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: '11px' }}>
+      <p style={{ color: 'var(--text-secondary)', marginBottom: '2px' }}>Error starts at <strong>{label}°</strong></p>
       <p style={{ color: COLORS.primary }}>{payload[0].value} measurement{payload[0].value !== 1 ? 's' : ''}</p>
     </div>
   );
