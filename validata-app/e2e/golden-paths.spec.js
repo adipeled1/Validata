@@ -13,25 +13,23 @@ test.describe('Golden paths (demo mode)', () => {
     // Two "Sign In" buttons exist (the tab toggle and the form submit) - scope to the submit one.
     await page.locator('button[type="submit"]', { hasText: 'Sign In' }).click();
 
-    // Login redirects with a short delay; land on the Participant Management view.
-    await expect(page.getByRole('heading', { name: 'Participant Management' })).toBeVisible({ timeout: 10_000 });
+    // VS2026 shell: landing page is Participant Registry (renamed from Participant Management).
+    await expect(page.getByRole('heading', { name: 'Participant Registry' })).toBeVisible({ timeout: 10_000 });
 
-    // Add a participant
-    const addParticipantButton = page.getByRole('button', { name: /add participant/i });
-    const registerForm = page.locator('form', { has: addParticipantButton });
-    await registerForm.getByLabel('Age').fill('29');
-    await registerForm.getByLabel('Gender').selectOption('Female');
-    await registerForm.getByLabel('Health Status').selectOption('Healthy');
-    await page.getByRole('checkbox').check();
-    await addParticipantButton.click();
+    // Add a participant via the inline panel (the form is no longer inline in the page).
+    await page.getByRole('button', { name: /\+ add participant/i }).click();
+    await page.getByLabel('Age').fill('29');
+    await page.getByLabel('Gender').selectOption('Female');
+    await page.getByLabel('Health Status').selectOption('Healthy');
+    // Submit the panel form using the "Add Participant" submit button inside the panel.
+    await page.getByRole('button', { name: 'Add Participant' }).click();
 
-    // Read the ID out of the success toast rather than the tracking table -
-    // extract it precisely, since the toast's full sentence also matches "P-\d+".
+    // Read the ID out of the success toast.
     const toast = page.getByText(/registered successfully/i);
     await expect(toast).toBeVisible();
     const participantId = (await toast.textContent()).match(/P-\d+/)[0];
 
-    // Log a measurement for that participant
+    // Log a measurement for that participant. Sidebar button label is "Data Collection".
     await page.getByRole('button', { name: 'Data Collection' }).click();
     await expect(page.getByRole('heading', { name: 'Data Collection & Management' })).toBeVisible();
 
@@ -42,11 +40,9 @@ test.describe('Golden paths (demo mode)', () => {
     await logForm.getByLabel('AI/ML Model').fill('44.9');
     await logMeasurementButton.click();
 
-    // View it in Results. Scope to a table cell specifically - the same ID
-    // also appears as a (hidden, closed) <option> in the participant filter
-    // dropdown on this same view, which would otherwise match first.
-    await page.getByRole('button', { name: 'Results' }).click();
-    await expect(page.getByRole('heading', { name: 'Results' })).toBeVisible();
+    // View it in Results. Sidebar button is now "Results Table".
+    await page.getByRole('button', { name: 'Results Table' }).click();
+    await expect(page.getByRole('heading', { name: 'Results Table' })).toBeVisible();
     await expect(page.locator('td', { hasText: participantId }).first()).toBeVisible();
   });
 });
