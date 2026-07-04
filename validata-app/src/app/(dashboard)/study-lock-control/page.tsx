@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 
@@ -123,8 +123,8 @@ export default function StudyLockControlPage() {
                 const isLocked = study.lock_state === 'locked';
                 const state = getState(study.id);
                 return (
-                  <>
-                    <tr key={study.id} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-surface)', height: 'var(--row-height)' }}>
+                  <React.Fragment key={study.id}>
+                  <tr style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-surface)', height: 'var(--row-height)' }}>
                       <td style={{ ...tdStyle, fontWeight: 600 }}>{study.name}</td>
                       <td style={tdStyle}>
                         <span style={{
@@ -204,7 +204,7 @@ export default function StudyLockControlPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 );
               })}
             </tbody>
