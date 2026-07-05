@@ -92,7 +92,10 @@ export default function AdverseEventsPage() {
     }
   }, [currentStudyId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
 
   const toggleBand = (key: string) => setCollapsed(c => ({ ...c, [key]: !c[key] }));
 

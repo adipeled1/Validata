@@ -79,7 +79,10 @@ export default function ConsentRecordsPage() {
     }
   }, [currentStudyId, selectedVersionId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
 
   const visibleRecords = selectedVersionId
     ? records.filter(r => r.form_version_id === selectedVersionId)

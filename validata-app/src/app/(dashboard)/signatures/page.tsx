@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 import { Download } from 'lucide-react';
@@ -46,7 +46,7 @@ export default function SignaturesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!currentStudyId) return;
     setLoading(true);
     setError('');
@@ -56,6 +56,11 @@ export default function SignaturesPage() {
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
   }, [currentStudyId]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
 
   const handleExportCSV = () => {
     const header = 'Signed At (UTC),Signer,Record Type,Record ID,Milestone,Meaning\n';

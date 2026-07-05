@@ -55,7 +55,10 @@ export default function QueriesPage() {
     setLoading(false);
   }, [currentStudyId]);
 
-  useEffect(() => { loadQueries(); }, [loadQueries]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadQueries();
+  }, [loadQueries]);
 
   if (!canRaiseQuery) {
     return (

@@ -62,12 +62,14 @@ export function TabProvider({ children }: { children: React.ReactNode }) {
   // Restore from sessionStorage after mount (client-only)
   useEffect(() => {
     const saved = loadTabs();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved.length > 0) setTabs(saved);
   }, []);
 
   // Ensure the current path always has a tab
   useEffect(() => {
     const label = PATH_LABELS[pathname] ?? 'Page';
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTabs((prev) => {
       if (prev.some((t) => t.path === pathname)) return prev;
       const next = [...prev, { id: genId(), label, path: pathname }];

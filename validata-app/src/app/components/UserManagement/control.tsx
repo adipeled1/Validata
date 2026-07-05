@@ -90,7 +90,7 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
     }
   };
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     setError('');
 
@@ -109,7 +109,7 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isDemoMode]);
 
   // UserManagement uses client-side fetch-on-mount by design — user profiles
   // are not part of the dashboard Server Component layout (they're mentor-only
@@ -118,7 +118,7 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUsers();
-  }, [isDemoMode]);
+  }, [fetchUsers]);
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     if (isDemoMode) {

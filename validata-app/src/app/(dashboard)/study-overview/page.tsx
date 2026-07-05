@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useStudy } from '../../../context/StudyContext';
 
 const ACTION_COLORS: Record<string, string> = {
@@ -23,7 +23,7 @@ export default function StudyOverviewPage() {
   const [queries, setQueries] = useState<any[]>([]);
   const [loadingAudit, setLoadingAudit] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!currentStudyId) return;
     setLoadingAudit(true);
     Promise.all([
@@ -34,6 +34,11 @@ export default function StudyOverviewPage() {
       setQueries(qs);
     }).finally(() => setLoadingAudit(false));
   }, [currentStudyId]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
 
   const openQueries = queries.filter((q) => q.status === 'open' || q.status === 'answered').length;
   const isLocked = currentStudy?.lock_state === 'locked';

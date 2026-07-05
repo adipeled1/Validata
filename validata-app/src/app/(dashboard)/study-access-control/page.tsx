@@ -76,6 +76,7 @@ export default function StudyAccessControlPage() {
   // Select first study by default
   useEffect(() => {
     if (studies.length > 0 && !selectedStudyId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedStudyId(studies[0].id);
     }
   }, [studies, selectedStudyId]);
@@ -111,11 +112,13 @@ export default function StudyAccessControlPage() {
 
   useEffect(() => {
     if (selectedStudyId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchMembers(selectedStudyId);
     }
   }, [selectedStudyId, fetchMembers]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProfiles();
   }, [fetchProfiles]);
 
@@ -372,7 +375,7 @@ export default function StudyAccessControlPage() {
                   <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>Loading…</div>
                 ) : members.length === 0 ? (
                   <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
-                    No members assigned to this study yet. Click "Add Member" to grant access.
+                    No members assigned to this study yet. Click &quot;Add Member&quot; to grant access.
                   </div>
                 ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>

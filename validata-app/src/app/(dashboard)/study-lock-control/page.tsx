@@ -37,7 +37,10 @@ export default function StudyLockControlPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
 
   const getState = (id: string) => actionState[id] ?? { saving: false, reason: '', show: false };
 

@@ -54,7 +54,10 @@ export default function AuditLogPage() {
     setLoading(false);
   }, [currentStudyId, actionFilter, fromDate, toDate]);
 
-  useEffect(() => { loadLogs(); }, [loadLogs]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadLogs();
+  }, [loadLogs]);
 
   const downloadCsv = async () => {
     if (!currentStudyId) return;

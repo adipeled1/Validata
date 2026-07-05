@@ -67,7 +67,10 @@ export default function DelegationLogPage() {
     }
   }, [currentStudyId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
 
   useEffect(() => {
     fetch('/api/profiles')
