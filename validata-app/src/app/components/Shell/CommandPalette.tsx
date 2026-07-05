@@ -28,7 +28,6 @@ const NAV_COMMANDS: Array<{ label: string; path: string; description: string }> 
   { label: 'Consent Records', path: '/consent-records', description: 'Compliance' },
   { label: 'Adverse Events', path: '/adverse-events', description: 'Compliance' },
   { label: 'Study Management', path: '/study-management', description: 'Administration' },
-  { label: 'Study Access Control', path: '/study-access-control', description: 'Administration' },
   { label: 'User Registry', path: '/user-management', description: 'Administration' },
   { label: 'Delegation Log', path: '/delegation-log', description: 'Administration' },
   { label: 'Study Lock Control', path: '/study-lock-control', description: 'Administration' },

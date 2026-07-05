@@ -274,7 +274,6 @@ export default function PrimarySidebar({
                 currentPath={currentPath}
                 items={[
                   { label: 'Study Management', path: '/study-management' },
-                  { label: 'Study Access Control', path: '/study-access-control' },
                   { label: 'User Registry', path: '/user-management', badge: pendingCount },
                   { label: 'Delegation Log', path: '/delegation-log' },
                   { label: 'Study Lock Control', path: '/study-lock-control' },

@@ -92,10 +92,10 @@ export default function StatusBar({
           canAdmin ? (
             <button
               style={{ ...clickableSegmentStyle, fontWeight: 500, opacity: 0.9 }}
-              onClick={() => router.push('/study-access-control')}
+              onClick={() => router.push('/study-management')}
               onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.textDecoration = 'underline')}
               onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.textDecoration = 'none')}
-              title="Study Access Control"
+              title="Study Management"
             >
               {studyName}
             </button>
