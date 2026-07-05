@@ -158,7 +158,7 @@ function StudiesCell({
           border: '1px solid var(--border)',
           color: isInactive ? 'var(--text-muted)' : 'var(--text-secondary)',
           fontSize: '11px',
-          cursor: isInactive ? 'not-allowed' : 'pointer',
+          cursor: isInactive ? 'default' : 'pointer',
           borderRadius: 'var(--radius)',
           width: '100%',
           textAlign: 'left',
