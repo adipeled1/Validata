@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserCheck, Shield, Trash2, ShieldAlert, AlertCircle, RefreshCw, UserMinus, Clock, X, Plus } from 'lucide-react';
+import { UserCheck, Shield, Trash2, ShieldAlert, AlertCircle, RefreshCw, UserMinus, Clock, X, Plus, ChevronDown } from 'lucide-react';
 
 interface User {
   id: string;
@@ -7,6 +7,7 @@ interface User {
   role: string;
   status: string;
   candidate_expires_at?: string;
+  deleted_at?: string | null;
 }
 
 interface Study {
@@ -70,18 +71,58 @@ const chipStyle: React.CSSProperties = {
   whiteSpace: 'nowrap',
 };
 
-// Studies a non-mentor/admin user belongs to, shown as removable chips with a
-// "+ Add" popover checklist — lets a mentor staff someone for a study without
-// ever leaving User Registry (Study Access Control still exists separately,
-// for the study-centric "who's on this study" view).
+// Studies a non-mentor/admin user belongs to, shown as a dropdown checklist.
+// Resolves the layout shifting issue by using a fixed-width custom dropdown trigger.
+function StudyCheckboxItem({
+  study,
+  checked,
+  onChange,
+}: {
+  study: Study;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <label
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        fontSize: '11px',
+        padding: '5px 6px',
+        cursor: 'pointer',
+        color: 'var(--text-primary)',
+        borderRadius: '3px',
+        background: hovered ? 'var(--bg-surface-alt)' : 'transparent',
+        transition: 'background 0.15s ease',
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        style={{ cursor: 'pointer' }}
+      />
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={study.name}>
+        {study.name}
+      </span>
+    </label>
+  );
+}
+
 function StudiesCell({
   userId,
+  userStatus,
   allStudies,
   memberStudyIds,
   onAdd,
   onRemove,
 }: {
   userId: string;
+  userStatus: string;
   allStudies: Study[];
   memberStudyIds: string[];
   onAdd: (userId: string, studyId: string) => void;
@@ -91,28 +132,53 @@ function StudiesCell({
   const memberSet = new Set(memberStudyIds);
   const memberStudies = allStudies.filter((s) => memberSet.has(s.id));
 
+  const labelText = memberStudies.length === 0
+    ? 'Assign studies...'
+    : memberStudies.map((s) => s.name).join(', ');
+
+  const labelTitle = memberStudies.length === 0
+    ? 'No studies assigned'
+    : memberStudies.map((s) => s.name).join(', ');
+
+  const isInactive = userStatus !== 'active';
+
   return (
-    <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
-      {memberStudies.map((s) => (
-        <span key={s.id} style={chipStyle}>
-          {s.name}
-          <button
-            onClick={() => onRemove(userId, s.id)}
-            title={`Remove from ${s.name}`}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, display: 'flex' }}
-          >
-            <X size={9} />
-          </button>
-        </span>
-      ))}
+    <div style={{ position: 'relative', display: 'inline-block', width: '175px' }}>
       <button
+        disabled={isInactive}
         onClick={() => setOpen((v) => !v)}
-        title="Add to a study"
-        style={{ ...chipStyle, cursor: 'pointer', color: 'var(--accent-soft)' }}
+        title={isInactive ? 'Activate account to manage study assignments' : labelTitle}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '6px',
+          padding: '4px 8px',
+          background: 'var(--bg-surface-alt)',
+          border: '1px solid var(--border)',
+          color: isInactive ? 'var(--text-muted)' : 'var(--text-secondary)',
+          fontSize: '11px',
+          cursor: isInactive ? 'not-allowed' : 'pointer',
+          borderRadius: 'var(--radius)',
+          width: '100%',
+          textAlign: 'left',
+          height: '28px',
+          fontFamily: 'var(--font-ui)',
+          opacity: isInactive ? 0.65 : 1,
+        }}
       >
-        <Plus size={9} /> Add
+        <span style={{
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          color: memberStudies.length === 0 || isInactive ? 'var(--text-muted)' : 'var(--text-primary)',
+          flex: 1,
+        }}>
+          {labelText}
+        </span>
+        <ChevronDown size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
       </button>
-      {open && (
+      {open && !isInactive && (
         <>
           {/* Click-outside backdrop */}
           <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={() => setOpen(false)} />
@@ -122,6 +188,7 @@ function StudiesCell({
               minWidth: '200px', maxHeight: '220px', overflowY: 'auto',
               background: 'var(--bg-editor)', border: '1px solid var(--border)',
               boxShadow: '0 4px 12px rgba(0,0,0,0.25)', padding: '6px',
+              borderRadius: 'var(--radius)',
             }}
           >
             {allStudies.length === 0 ? (
@@ -130,17 +197,12 @@ function StudiesCell({
               allStudies.map((s) => {
                 const checked = memberSet.has(s.id);
                 return (
-                  <label
+                  <StudyCheckboxItem
                     key={s.id}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', padding: '3px 4px', cursor: 'pointer', color: 'var(--text-primary)' }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => (checked ? onRemove(userId, s.id) : onAdd(userId, s.id))}
-                    />
-                    {s.name}
-                  </label>
+                    study={s}
+                    checked={checked}
+                    onChange={() => (checked ? onRemove(userId, s.id) : onAdd(userId, s.id))}
+                  />
                 );
               })
             )}
@@ -166,9 +228,11 @@ const UserManagementDisplay = ({
   onAddStudyMember,
   onRemoveStudyMember,
 }: UserManagementDisplayProps) => {
+  const [showArchive, setShowArchive] = useState(false);
   const viewerIsAdmin = viewerRole === 'admin';
   const candidates = users.filter((u) => u.status === 'candidate');
-  const activeUsers = users.filter((u) => u.status !== 'candidate');
+  const activeUsers = users.filter((u) => u.status !== 'candidate' && !u.deleted_at);
+  const deletedUsers = users.filter((u) => u.status !== 'candidate' && !!u.deleted_at);
   // A plain mentor can't touch an account that's already mentor/admin —
   // separation of duties so mentors can't demote/suspend/delete each other.
   const canManage = (targetRole: string) => viewerIsAdmin || (targetRole !== 'mentor' && targetRole !== 'admin');
@@ -208,6 +272,26 @@ const UserManagementDisplay = ({
           >
             Export Access Registry (CSV)
           </a>
+          {deletedUsers.length > 0 && (
+            <button
+              onClick={() => setShowArchive(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 10px',
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-secondary)',
+                fontSize: '11px',
+                cursor: 'pointer',
+                borderRadius: 'var(--radius)',
+              }}
+            >
+              <Trash2 size={12} style={{ color: 'var(--status-dropped)' }} />
+              Deleted Archives ({deletedUsers.length})
+            </button>
+          )}
           <button
             onClick={onRefresh}
             style={{
@@ -457,6 +541,7 @@ const UserManagementDisplay = ({
                         ) : (
                           <StudiesCell
                             userId={user.id}
+                            userStatus={user.status}
                             allStudies={studies}
                             memberStudyIds={membershipsByUser[user.id] ?? []}
                             onAdd={onAddStudyMember}
@@ -528,6 +613,110 @@ const UserManagementDisplay = ({
           )}
         </div>
       </div>
+      {/* Deleted archives overlay modal */}
+      {showArchive && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            width: '100%',
+            maxWidth: '550px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            {/* Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 16px',
+              borderBottom: '1px solid var(--border)',
+            }}>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                Deleted Profile Archives
+              </span>
+              <button
+                onClick={() => setShowArchive(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            {/* Content */}
+            <div style={{ padding: '16px', maxHeight: '350px', overflowY: 'auto' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                Reactivating an account will restore their profile to the active registry and allow them to log in.
+              </div>
+              {deletedUsers.length === 0 ? (
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', padding: '24px 0' }}>
+                  No deleted profiles found.
+                </div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={colHeaderStyle}>Email</th>
+                      <th style={colHeaderStyle}>Role</th>
+                      <th style={{ ...colHeaderStyle, textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {deletedUsers.map((user, i) => (
+                      <tr
+                        key={user.id}
+                        style={{
+                          background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
+                          borderBottom: '1px solid var(--border)',
+                        }}
+                      >
+                        <td style={{ ...cellStyle, padding: '8px 10px', height: 'auto' }}>
+                          <span style={{ fontFamily: 'var(--font-data)', fontSize: '11px' }}>{user.email}</span>
+                        </td>
+                        <td style={{ ...cellStyle, padding: '8px 10px', height: 'auto', textTransform: 'capitalize', color: 'var(--text-secondary)' }}>
+                          {user.role.replace(/_/g, ' ')}
+                        </td>
+                        <td style={{ ...cellStyle, padding: '8px 10px', height: 'auto', textAlign: 'right' }}>
+                          <button
+                            onClick={() => {
+                              onStatusChange(user.id, 'active');
+                              setShowArchive(false);
+                            }}
+                            title="Reactivate user profile"
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid var(--border)',
+                              borderRadius: 'var(--radius)',
+                              color: 'var(--status-active)',
+                              cursor: 'pointer',
+                              padding: '3px 8px',
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              fontFamily: 'var(--font-ui)',
+                            }}
+                          >
+                            Reactivate
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

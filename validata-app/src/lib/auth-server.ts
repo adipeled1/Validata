@@ -5,6 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 export type Profile = {
   role: string; // expanded role set defined in schemas.ts roleSchema
   status: 'candidate' | 'pending' | 'active' | 'suspended';
+  deleted_at?: string | null;
 };
 
 export type ResolvedSession = {
@@ -62,7 +63,7 @@ async function resolveSession(): Promise<Session> {
   // Fetch the user's role and status from the profiles table
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('role, status')
+    .select('role, status, deleted_at')
     .eq('id', user.id)
     .single();
 
@@ -91,6 +92,10 @@ async function resolveSession(): Promise<Session> {
       isDemo: false,
       supabaseClient: supabase
     };
+  }
+
+  if (profile.deleted_at) {
+    return { error: 'Forbidden. This account has been deleted.', status: 403 };
   }
 
   return {

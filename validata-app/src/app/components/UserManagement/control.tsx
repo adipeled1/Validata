@@ -141,7 +141,7 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
   const handleStatusChange = async (userId: string, newStatus: string) => {
     if (isDemoMode) {
       setUsers(prevUsers =>
-        prevUsers.map(user => (user.id === userId ? { ...user, status: newStatus } : user))
+        prevUsers.map(user => (user.id === userId ? { ...user, status: newStatus, deleted_at: newStatus === 'active' ? null : user.deleted_at } : user))
       );
       return;
     }
@@ -149,7 +149,7 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
     try {
       await updateStatusAPI(userId, newStatus);
       setUsers(prevUsers =>
-        prevUsers.map(user => (user.id === userId ? { ...user, status: newStatus } : user))
+        prevUsers.map(user => (user.id === userId ? { ...user, status: newStatus, deleted_at: newStatus === 'active' ? null : user.deleted_at } : user))
       );
     } catch (err: any) {
       alert('Error updating user status: ' + err.message);

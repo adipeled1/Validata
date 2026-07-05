@@ -60,10 +60,18 @@ export async function POST(request: Request): Promise<Response> {
     // Derive study_role from the user's platform role (annotation only — roles are global).
     const { data: profile } = await session.supabaseClient!
       .from('profiles')
-      .select('role')
+      .select('role, status')
       .eq('id', userId)
       .single();
-    const studyRole = profile?.role ?? 'team_member';
+
+    if (!profile) {
+      return Response.json({ error: 'User profile not found.' }, { status: 404 });
+    }
+    if (profile.status !== 'active') {
+      return Response.json({ error: 'Cannot manage study memberships for non-active users.' }, { status: 400 });
+    }
+
+    const studyRole = profile.role ?? 'team_member';
 
     const { data, error } = await session.supabaseClient!
       .from('study_members')
@@ -99,6 +107,19 @@ export async function DELETE(request: Request): Promise<Response> {
 
     if (session.isDemo) {
       return Response.json({ success: true });
+    }
+
+    const { data: profile } = await session.supabaseClient!
+      .from('profiles')
+      .select('status')
+      .eq('id', userId)
+      .single();
+
+    if (!profile) {
+      return Response.json({ error: 'User profile not found.' }, { status: 404 });
+    }
+    if (profile.status !== 'active') {
+      return Response.json({ error: 'Cannot manage study memberships for non-active users.' }, { status: 400 });
     }
 
     const { error } = await session.supabaseClient!

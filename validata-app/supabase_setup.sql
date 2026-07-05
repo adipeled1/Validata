@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     email TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('admin', 'mentor', 'team_member')) DEFAULT 'team_member',
     status TEXT NOT NULL CHECK (status IN ('pending', 'active', 'suspended')) DEFAULT 'pending',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE
 );
 
 -- Enable RLS on profiles table
@@ -646,6 +647,7 @@ BEGIN
               'investigator', 'site_coordinator', 'data_manager'
           )
           AND public.profiles.status = 'active'
+          AND public.profiles.deleted_at IS NULL
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -663,6 +665,7 @@ BEGIN
               'monitor', 'auditor', 'irb_reviewer'
           )
           AND public.profiles.status = 'active'
+          AND public.profiles.deleted_at IS NULL
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -1453,3 +1456,49 @@ DROP TRIGGER IF EXISTS study_members_audit ON public.study_members;
 CREATE TRIGGER study_members_audit
   AFTER INSERT OR DELETE ON public.study_members
   FOR EACH ROW EXECUTE FUNCTION public.audit_study_members();
+
+-- ============================================================
+-- 32. Soft-delete profiles, delete candidate user RPC, and restrict study_members edits to active users only
+-- ============================================================
+
+-- Add deleted_at column to profiles
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+
+-- RPC to hard-delete a candidate from auth.users (cascades to profiles)
+CREATE OR REPLACE FUNCTION public.delete_candidate_user(p_user_id UUID)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = p_user_id AND status = 'candidate'
+  ) THEN
+    DELETE FROM auth.users WHERE id = p_user_id;
+    RETURN TRUE;
+  END IF;
+  RETURN FALSE;
+END;
+$$;
+
+-- Restrict study_members insert/update/delete to only active, non-deleted users
+DROP POLICY IF EXISTS "study_members_write" ON public.study_members;
+CREATE POLICY "study_members_write" ON public.study_members
+  FOR ALL TO authenticated
+  USING (
+    public.is_mentor()
+    AND EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE public.profiles.id = user_id
+        AND public.profiles.status = 'active'
+        AND public.profiles.deleted_at IS NULL
+    )
+  )
+  WITH CHECK (
+    public.is_mentor()
+    AND EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE public.profiles.id = user_id
+        AND public.profiles.status = 'active'
+        AND public.profiles.deleted_at IS NULL
+    )
+  );

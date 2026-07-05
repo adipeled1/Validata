@@ -21,16 +21,16 @@ export async function GET(request: Request): Promise<Response> {
 
     const { data: profiles, error } = await session.supabaseClient!
       .from('profiles')
-      .select('id, email, role, status, created_at')
+      .select('id, email, role, status, created_at, deleted_at')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
     const { searchParams } = new URL(request.url);
     if (searchParams.get('format') === 'csv') {
-      const header = 'id,email,role,status,created_at\n';
+      const header = 'id,email,role,status,created_at,deleted_at\n';
       const rows = (profiles ?? [])
-        .map((p) => `${p.id},${p.email},${p.role},${p.status},${p.created_at}`)
+        .map((p) => `${p.id},${p.email},${p.role},${p.deleted_at ? 'deleted' : p.status},${p.created_at},${p.deleted_at ?? ''}`)
         .join('\n');
       return new Response(header + rows, {
         headers: {

@@ -118,9 +118,14 @@ export async function PATCH(request: Request): Promise<Response> {
       return Response.json({ error: 'Forbidden. Only an admin can manage mentor/admin accounts.' }, { status: 403 });
     }
 
-    const updates: Record<string, string | undefined> = {};
+    const updates: Record<string, string | null | undefined> = {};
     if (role !== undefined) updates.role = role;
-    if (status !== undefined) updates.status = status;
+    if (status !== undefined) {
+      updates.status = status;
+      if (status === 'active') {
+        updates.deleted_at = null; // Clear deleted_at when reactivated!
+      }
+    }
     // ICH E6(R3) COR-01: store reason on the row so the audit trigger captures it in new_value
     if (reason) updates.change_reason = reason;
 
@@ -164,7 +169,7 @@ export async function DELETE(request: Request): Promise<Response> {
 
     const { data: targetProfile, error: targetError } = await session.supabaseClient!
       .from('profiles')
-      .select('role')
+      .select('role, status')
       .eq('id', id)
       .single();
     if (targetError || !targetProfile) {
@@ -174,10 +179,18 @@ export async function DELETE(request: Request): Promise<Response> {
       return Response.json({ error: 'Forbidden. Only an admin can delete mentor/admin accounts.' }, { status: 403 });
     }
 
-    const { error } = await session.supabaseClient!
-      .from('profiles')
-      .delete()
-      .eq('id', id);
+    let error;
+    if (targetProfile.status === 'candidate') {
+      const { error: rpcError } = await session.supabaseClient!
+        .rpc('delete_candidate_user', { p_user_id: id });
+      error = rpcError;
+    } else {
+      const { error: updateError } = await session.supabaseClient!
+        .from('profiles')
+        .update({ deleted_at: new Date().toISOString(), status: 'suspended' })
+        .eq('id', id);
+      error = updateError;
+    }
 
     if (error) throw error;
     return Response.json({ success: true, deletedId: id });
