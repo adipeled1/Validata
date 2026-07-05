@@ -248,6 +248,7 @@ const ParticipantsDisplay = ({
   onGoalSubmit,
 }: ParticipantsDisplayProps) => {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [selectedParticipant, setSelectedParticipant] = useState<any | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -635,6 +636,7 @@ const ParticipantsDisplay = ({
           keyField="id"
           selectedKeys={selectedKeys}
           onSelectChange={setSelectedKeys}
+          onRowClick={(row) => { setSelectedParticipant(row); setIsPanelOpen(false); }}
           onRowContextMenu={(row, e) => setContextMenu({ row, x: e.clientX, y: e.clientY })}
           emptyMessage={
             search || filterStatus !== 'all' || filterGender !== 'all'
@@ -655,6 +657,31 @@ const ParticipantsDisplay = ({
           onDrop={onDrop}
         />
       )}
+
+      {/* Participant Detail InlinePanel */}
+      <InlinePanel isOpen={!!selectedParticipant && !isPanelOpen} onClose={() => setSelectedParticipant(null)} title="Participant Detail">
+        {selectedParticipant && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px' }}>
+            {[
+              { label: 'ID', value: selectedParticipant.id },
+              { label: 'Status', value: selectedParticipant.status ?? 'active' },
+              { label: 'Age', value: selectedParticipant.age ?? '—' },
+              { label: 'Gender', value: selectedParticipant.gender ?? '—' },
+              { label: 'Health Status', value: selectedParticipant.healthStatus || selectedParticipant.health_status || '—' },
+              { label: 'Enrolled', value: selectedParticipant.enrollmentDateDisplay || selectedParticipant.enrollmentDate || '—' },
+            ].map(({ label, value }) => (
+              <div key={label}>
+                <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                  {label}
+                </div>
+                <div style={{ color: 'var(--text-primary)', fontFamily: label === 'ID' || label === 'Enrolled' ? 'var(--font-data)' : 'var(--font-ui)' }}>
+                  {String(value)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </InlinePanel>
 
       {/* Add Participant InlinePanel */}
       <InlinePanel isOpen={isPanelOpen} onClose={() => setIsPanelOpen(false)} title="Add Participant">

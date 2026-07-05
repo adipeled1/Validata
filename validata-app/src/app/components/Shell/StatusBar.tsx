@@ -17,8 +17,8 @@ interface StatusBarProps {
 }
 
 const ROLE_NAMES: Record<string, string> = {
+  admin: 'Admin',
   mentor: 'Project Mentor',
-  sponsor_admin: 'Sponsor Admin',
   investigator: 'Investigator',
   site_coordinator: 'Site Coordinator',
   data_manager: 'Data Manager',
@@ -62,8 +62,7 @@ export default function StatusBar({
   const roleName = ROLE_NAMES[userRole] || userRole;
   const isLocked = lockState === 'locked';
 
-  const ADMIN_ROLES = ['sponsor_admin', 'mentor'];
-  const canAdmin = ADMIN_ROLES.includes(userRole);
+  const canAdmin = userRole === 'mentor' || userRole === 'admin';
 
   return (
     <div
@@ -157,7 +156,7 @@ export default function StatusBar({
         <>
           <button
             onClick={onTogglePanel}
-            title={isPanelOpen ? 'Close Panel (Ctrl+`)' : 'Open Panel (Ctrl+`)'}
+            title={isPanelOpen ? 'Close Study Log (Ctrl+`)' : 'Toggle Study Log (Ctrl+`)'}
             style={{
               background: 'transparent',
               border: 'none',

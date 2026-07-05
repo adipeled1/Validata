@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
     email TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN ('mentor', 'team_member')) DEFAULT 'team_member',
+    role TEXT NOT NULL CHECK (role IN ('admin', 'mentor', 'team_member')) DEFAULT 'team_member',
     status TEXT NOT NULL CHECK (status IN ('pending', 'active', 'suspended')) DEFAULT 'pending',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
@@ -12,12 +12,25 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- 2. Create helper functions to prevent policy recursion
 -- This function runs with SECURITY DEFINER privileges to bypass RLS checks on profiles table
+-- 'admin' is a separate, higher tier than 'mentor' (see §17 below where the
+-- full role model is expanded) — is_mentor() treats admin as a superset of
+-- mentor so admin never loses any mentor capability.
 CREATE OR REPLACE FUNCTION public.is_mentor()
 RETURNS BOOLEAN AS $$
 BEGIN
     RETURN EXISTS (
-        SELECT 1 FROM public.profiles 
-        WHERE public.profiles.id = auth.uid() AND public.profiles.role = 'mentor'
+        SELECT 1 FROM public.profiles
+        WHERE public.profiles.id = auth.uid() AND public.profiles.role IN ('mentor', 'admin')
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE public.profiles.id = auth.uid() AND public.profiles.role = 'admin'
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -31,25 +44,31 @@ DROP POLICY IF EXISTS "Allow mentors to delete profiles" ON public.profiles;
 
 -- Create RLS Policies for profiles
 -- Policy to allow any authenticated user to view their own profile, or mentors to view all profiles
-CREATE POLICY "Allow users to view profiles" 
-ON public.profiles 
-FOR SELECT 
-TO authenticated 
+CREATE POLICY "Allow users to view profiles"
+ON public.profiles
+FOR SELECT
+TO authenticated
 USING (auth.uid() = id OR public.is_mentor());
 
--- Policy to allow mentors to update any profile (assign roles/status)
-CREATE POLICY "Allow mentors to update profiles" 
-ON public.profiles 
-FOR UPDATE 
-TO authenticated 
-USING (public.is_mentor());
+-- Policy to allow mentors to update any non-mentor/admin profile (assign
+-- roles/status) — including promoting someone TO mentor, which stays
+-- unrestricted. Only an admin may update a profile that is ALREADY mentor or
+-- admin (the separation-of-duties fix so two mentors can't demote or suspend
+-- each other), or grant the admin role itself.
+CREATE POLICY "Allow mentors to update profiles"
+ON public.profiles
+FOR UPDATE
+TO authenticated
+USING (public.is_mentor() AND (public.is_admin() OR role NOT IN ('mentor', 'admin')))
+WITH CHECK (public.is_admin() OR role <> 'admin');
 
--- Policy to allow mentors to delete profiles
-CREATE POLICY "Allow mentors to delete profiles" 
-ON public.profiles 
-FOR DELETE 
-TO authenticated 
-USING (public.is_mentor());
+-- Policy to allow mentors to delete any non-mentor/admin profile; only an
+-- admin may delete a mentor/admin profile.
+CREATE POLICY "Allow mentors to delete profiles"
+ON public.profiles
+FOR DELETE
+TO authenticated
+USING (public.is_mentor() AND (public.is_admin() OR role NOT IN ('mentor', 'admin')));
 
 
 -- 3. Automatic Profile Creation Trigger on Auth Sign Up
@@ -558,16 +577,23 @@ CREATE TRIGGER audit_profiles
 -- 17. Expanded role model (AUTH-02, ACC-01, ACC-02)
 -- ============================================================
 -- Expand the profiles.role CHECK constraint from 2 roles to 9.
--- New roles align with ICH E6(R3) section 5 stakeholder definitions:
---   sponsor_admin   — same authority as legacy 'mentor' (sponsor representative)
+-- Roles align with ICH E6(R3) section 5 stakeholder definitions:
+--   admin           — separation-of-duties tier above mentor; same global access
+--                     as mentor, plus sole authority to manage mentor/admin accounts
+--                     (prevents mentors from being able to lock each other out)
+--   mentor          — highest operational authority; covers the professor/PI and developers
 --   investigator    — PI / sub-investigator; can enter and correct data
 --   site_coordinator— CRC; can enter data
 --   data_manager    — DM; can enter, correct, and flag data; cannot approve
 --   monitor         — CRA; read-only data access + query rights
 --   auditor         — GCP auditor; read-only
 --   irb_reviewer    — Ethics committee member; read-only
---   team_member     — legacy placeholder, assigned before a real role is granted
---   mentor          — legacy admin alias (kept for backwards compatibility)
+--   team_member     — default for new registrations, before a real role is granted
+--
+-- Bootstrapping the first admin: there is no in-app path to create the first
+-- admin account (an admin is the only role that can promote someone to
+-- admin/mentor). Seed it directly, once, e.g.:
+--   UPDATE public.profiles SET role = 'admin', status = 'active' WHERE email = '<head mentor email>';
 
 ALTER TABLE public.profiles
     DROP CONSTRAINT IF EXISTS profiles_role_check;
@@ -575,8 +601,8 @@ ALTER TABLE public.profiles
 ALTER TABLE public.profiles
     ADD CONSTRAINT profiles_role_check
     CHECK (role IN (
-        'mentor', 'team_member',
-        'sponsor_admin', 'investigator', 'site_coordinator',
+        'admin', 'mentor', 'team_member',
+        'investigator', 'site_coordinator',
         'data_manager', 'monitor', 'auditor', 'irb_reviewer'
     ));
 
@@ -585,14 +611,25 @@ ALTER TABLE public.profiles
 ALTER TABLE public.profiles
     ADD COLUMN IF NOT EXISTS change_reason TEXT;
 
--- Update is_mentor() to include sponsor_admin
+-- Update is_mentor() — admin is treated as a superset of mentor
 CREATE OR REPLACE FUNCTION public.is_mentor()
 RETURNS BOOLEAN AS $$
 BEGIN
     RETURN EXISTS (
         SELECT 1 FROM public.profiles
         WHERE public.profiles.id = auth.uid()
-          AND public.profiles.role IN ('mentor', 'sponsor_admin')
+          AND public.profiles.role IN ('mentor', 'admin')
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE public.profiles.id = auth.uid()
+          AND public.profiles.role = 'admin'
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -605,7 +642,7 @@ BEGIN
         SELECT 1 FROM public.profiles
         WHERE public.profiles.id = auth.uid()
           AND public.profiles.role IN (
-              'mentor', 'sponsor_admin',
+              'admin', 'mentor',
               'investigator', 'site_coordinator', 'data_manager'
           )
           AND public.profiles.status = 'active'
@@ -621,11 +658,30 @@ BEGIN
         SELECT 1 FROM public.profiles
         WHERE public.profiles.id = auth.uid()
           AND public.profiles.role IN (
-              'mentor', 'sponsor_admin',
+              'admin', 'mentor',
               'investigator', 'site_coordinator', 'data_manager',
               'monitor', 'auditor', 'irb_reviewer'
           )
           AND public.profiles.status = 'active'
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Per-study scoping: mentor is a global admin (unrestricted across all studies
+-- by design); every other role must additionally be listed in study_members
+-- for the specific study being accessed. Without this, Study Access Control
+-- only records who was assigned to a study without actually restricting data
+-- access to it — any active investigator/monitor/auditor/etc. could otherwise
+-- read (and, for edit roles, write) every study in the system.
+CREATE OR REPLACE FUNCTION public.is_study_member(p_study_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+    IF public.is_mentor() THEN
+        RETURN TRUE;
+    END IF;
+    RETURN EXISTS (
+        SELECT 1 FROM public.study_members
+        WHERE study_id = p_study_id AND user_id = auth.uid()
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -640,7 +696,17 @@ CREATE POLICY "Allow active authenticated users to view studies"
 ON public.studies
 FOR SELECT
 TO authenticated
-USING (deleted_at IS NULL AND public.can_read_only());
+USING (deleted_at IS NULL AND public.can_read_only() AND public.is_study_member(id));
+
+-- Mentor/admin can additionally view soft-deleted studies — needed for the
+-- retention/destruction-request workflow (RET-02, RET-03), which otherwise
+-- has no way to even read the study it's evaluating.
+DROP POLICY IF EXISTS "Allow mentors to view deleted studies" ON public.studies;
+CREATE POLICY "Allow mentors to view deleted studies"
+ON public.studies
+FOR SELECT
+TO authenticated
+USING (deleted_at IS NOT NULL AND public.is_mentor());
 
 -- Participants
 DROP POLICY IF EXISTS "Allow active authenticated users to view participants" ON public.participants;
@@ -650,6 +716,7 @@ FOR SELECT
 TO authenticated
 USING (
     public.can_read_only()
+    AND public.is_study_member(study_id)
     AND EXISTS (
         SELECT 1 FROM public.studies
         WHERE public.studies.id = study_id AND public.studies.deleted_at IS NULL
@@ -661,14 +728,14 @@ CREATE POLICY "Allow active authenticated users to insert participants"
 ON public.participants
 FOR INSERT
 TO authenticated
-WITH CHECK (public.can_edit_data());
+WITH CHECK (public.can_edit_data() AND public.is_study_member(study_id));
 
 DROP POLICY IF EXISTS "Allow active authenticated users to update participants" ON public.participants;
 CREATE POLICY "Allow active authenticated users to update participants"
 ON public.participants
 FOR UPDATE
 TO authenticated
-USING (public.can_edit_data());
+USING (public.can_edit_data() AND public.is_study_member(study_id));
 
 -- Measurements
 DROP POLICY IF EXISTS "Allow active authenticated users to view measurements" ON public.measurements;
@@ -678,6 +745,7 @@ FOR SELECT
 TO authenticated
 USING (
     public.can_read_only()
+    AND public.is_study_member(study_id)
     AND EXISTS (
         SELECT 1 FROM public.studies
         WHERE public.studies.id = study_id AND public.studies.deleted_at IS NULL
@@ -689,16 +757,16 @@ CREATE POLICY "Allow active authenticated users to insert measurements"
 ON public.measurements
 FOR INSERT
 TO authenticated
-WITH CHECK (public.can_edit_data());
+WITH CHECK (public.can_edit_data() AND public.is_study_member(study_id));
 
 DROP POLICY IF EXISTS "Allow active authenticated users to update measurements" ON public.measurements;
 CREATE POLICY "Allow active authenticated users to update measurements"
 ON public.measurements
 FOR UPDATE
 TO authenticated
-USING (public.can_edit_data());
+USING (public.can_edit_data() AND public.is_study_member(study_id));
 
--- Audit log: visible to mentor, sponsor_admin, monitor, and auditor
+-- Audit log: visible to mentor, monitor, and auditor
 DROP POLICY IF EXISTS "audit_log_select_mentor" ON public.audit_log;
 CREATE POLICY "audit_log_select_mentor"
 ON public.audit_log
@@ -708,8 +776,14 @@ USING (
     EXISTS (
         SELECT 1 FROM public.profiles
         WHERE public.profiles.id = auth.uid()
-          AND public.profiles.role IN ('mentor', 'sponsor_admin', 'monitor', 'auditor')
+          AND public.profiles.role IN ('admin', 'mentor', 'monitor', 'auditor')
           AND public.profiles.status = 'active'
+    )
+    -- Global (non-study) entries such as ROLE_CHANGE are mentor-only;
+    -- study-scoped entries require monitor/auditor to be a member of that study.
+    AND (
+        (study_id IS NULL AND public.is_mentor())
+        OR (study_id IS NOT NULL AND public.is_study_member(study_id))
     )
 );
 
@@ -718,7 +792,7 @@ USING (
 -- ============================================================
 -- Locks a study after database lock so no new data can be entered.
 -- A locked study is read-only for data_manager / investigator / site_coordinator;
--- only sponsor_admin / mentor can lock and unlock.
+-- only mentor can lock and unlock.
 ALTER TABLE public.studies
     ADD COLUMN IF NOT EXISTS lock_state   TEXT    NOT NULL DEFAULT 'open'
         CHECK (lock_state IN ('open', 'locked')),
@@ -734,6 +808,7 @@ FOR INSERT
 TO authenticated
 WITH CHECK (
     public.can_edit_data()
+    AND public.is_study_member(study_id)
     AND EXISTS (
         SELECT 1 FROM public.studies
         WHERE public.studies.id = study_id
@@ -749,6 +824,7 @@ FOR UPDATE
 TO authenticated
 USING (
     public.can_edit_data()
+    AND public.is_study_member(study_id)
     AND EXISTS (
         SELECT 1 FROM public.studies
         WHERE public.studies.id = study_id
@@ -765,6 +841,7 @@ FOR INSERT
 TO authenticated
 WITH CHECK (
     public.can_edit_data()
+    AND public.is_study_member(study_id)
     AND EXISTS (
         SELECT 1 FROM public.studies
         WHERE public.studies.id = study_id
@@ -780,6 +857,7 @@ FOR UPDATE
 TO authenticated
 USING (
     public.can_edit_data()
+    AND public.is_study_member(study_id)
     AND EXISTS (
         SELECT 1 FROM public.studies
         WHERE public.studies.id = study_id
@@ -823,7 +901,7 @@ CREATE POLICY "queries_select"
 ON public.queries
 FOR SELECT
 TO authenticated
-USING (public.can_read_only());
+USING (public.can_read_only() AND public.is_study_member(study_id));
 
 -- Data managers and monitors can raise queries
 DROP POLICY IF EXISTS "queries_insert" ON public.queries;
@@ -835,9 +913,10 @@ WITH CHECK (
     EXISTS (
         SELECT 1 FROM public.profiles
         WHERE public.profiles.id = auth.uid()
-          AND public.profiles.role IN ('mentor', 'sponsor_admin', 'data_manager', 'monitor', 'investigator')
+          AND public.profiles.role IN ('admin', 'mentor', 'data_manager', 'monitor', 'investigator')
           AND public.profiles.status = 'active'
     )
+    AND public.is_study_member(study_id)
 );
 
 -- Data editors and monitors can update queries (answer / resolve / close)
@@ -846,7 +925,7 @@ CREATE POLICY "queries_update"
 ON public.queries
 FOR UPDATE
 TO authenticated
-USING (public.can_read_only());
+USING (public.can_read_only() AND public.is_study_member(study_id));
 
 -- Query changes are logged by the audit trigger
 DROP TRIGGER IF EXISTS audit_queries ON public.queries;
@@ -879,9 +958,9 @@ CREATE POLICY "signatures_select"
 ON public.signatures
 FOR SELECT
 TO authenticated
-USING (public.can_read_only());
+USING (public.can_read_only() AND public.is_study_member(study_id));
 
--- Only investigators and mentor-level roles can sign (insert)
+-- Only investigators and mentors can sign (insert)
 DROP POLICY IF EXISTS "signatures_insert" ON public.signatures;
 CREATE POLICY "signatures_insert"
 ON public.signatures
@@ -891,9 +970,10 @@ WITH CHECK (
     EXISTS (
         SELECT 1 FROM public.profiles
         WHERE public.profiles.id = auth.uid()
-          AND public.profiles.role IN ('mentor', 'sponsor_admin', 'investigator')
+          AND public.profiles.role IN ('admin', 'mentor', 'investigator')
           AND public.profiles.status = 'active'
     )
+    AND public.is_study_member(study_id)
 );
 
 -- Signature events are logged by the audit trigger
@@ -926,7 +1006,7 @@ ALTER TABLE public.consent_form_versions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "consent_form_versions_select" ON public.consent_form_versions;
 CREATE POLICY "consent_form_versions_select"
 ON public.consent_form_versions FOR SELECT TO authenticated
-USING (public.can_read_only());
+USING (public.can_read_only() AND public.is_study_member(study_id));
 
 DROP POLICY IF EXISTS "consent_form_versions_insert" ON public.consent_form_versions;
 CREATE POLICY "consent_form_versions_insert"
@@ -964,12 +1044,12 @@ ALTER TABLE public.consent_records ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "consent_records_select" ON public.consent_records;
 CREATE POLICY "consent_records_select"
 ON public.consent_records FOR SELECT TO authenticated
-USING (public.can_read_only());
+USING (public.can_read_only() AND public.is_study_member(study_id));
 
 DROP POLICY IF EXISTS "consent_records_insert" ON public.consent_records;
 CREATE POLICY "consent_records_insert"
 ON public.consent_records FOR INSERT TO authenticated
-WITH CHECK (public.can_edit_data());
+WITH CHECK (public.can_edit_data() AND public.is_study_member(study_id));
 
 DROP TRIGGER IF EXISTS audit_consent_records ON public.consent_records;
 CREATE TRIGGER audit_consent_records
@@ -1016,17 +1096,17 @@ ALTER TABLE public.adverse_events ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "adverse_events_select" ON public.adverse_events;
 CREATE POLICY "adverse_events_select"
 ON public.adverse_events FOR SELECT TO authenticated
-USING (public.can_read_only());
+USING (public.can_read_only() AND public.is_study_member(study_id));
 
 DROP POLICY IF EXISTS "adverse_events_insert" ON public.adverse_events;
 CREATE POLICY "adverse_events_insert"
 ON public.adverse_events FOR INSERT TO authenticated
-WITH CHECK (public.can_edit_data());
+WITH CHECK (public.can_edit_data() AND public.is_study_member(study_id));
 
 DROP POLICY IF EXISTS "adverse_events_update" ON public.adverse_events;
 CREATE POLICY "adverse_events_update"
 ON public.adverse_events FOR UPDATE TO authenticated
-USING (public.can_edit_data());
+USING (public.can_edit_data() AND public.is_study_member(study_id));
 
 DROP TRIGGER IF EXISTS audit_adverse_events ON public.adverse_events;
 CREATE TRIGGER audit_adverse_events
@@ -1063,7 +1143,7 @@ ALTER TABLE public.edit_check_rules ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "edit_check_rules_select" ON public.edit_check_rules;
 CREATE POLICY "edit_check_rules_select"
 ON public.edit_check_rules FOR SELECT TO authenticated
-USING (public.can_read_only());
+USING (public.can_read_only() AND public.is_study_member(study_id));
 
 DROP POLICY IF EXISTS "edit_check_rules_insert" ON public.edit_check_rules;
 CREATE POLICY "edit_check_rules_insert"
@@ -1098,7 +1178,7 @@ ALTER TABLE public.delegations ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "delegations_select" ON public.delegations;
 CREATE POLICY "delegations_select"
 ON public.delegations FOR SELECT TO authenticated
-USING (public.can_read_only());
+USING (public.can_read_only() AND public.is_study_member(study_id));
 
 DROP POLICY IF EXISTS "delegations_insert" ON public.delegations;
 CREATE POLICY "delegations_insert"
@@ -1137,7 +1217,7 @@ ALTER TABLE public.profiles
 
 -- Blinding: treatment assignment vault
 -- access_level controls which roles can see treatment assignment:
---   'unblinded_only' = only sponsor_admin/mentor can query
+--   'unblinded_only' = only mentor can query
 --   'open_label'     = all operational roles can see assignments
 CREATE TABLE IF NOT EXISTS public.treatment_assignments (
     id              BIGSERIAL   PRIMARY KEY,
@@ -1152,7 +1232,7 @@ CREATE TABLE IF NOT EXISTS public.treatment_assignments (
 
 ALTER TABLE public.treatment_assignments ENABLE ROW LEVEL SECURITY;
 
--- Only sponsor_admin/mentor can read treatment assignments (blinded study default)
+-- Only mentor can read treatment assignments (blinded study default)
 DROP POLICY IF EXISTS "treatment_assignments_select" ON public.treatment_assignments;
 CREATE POLICY "treatment_assignments_select"
 ON public.treatment_assignments FOR SELECT TO authenticated
@@ -1229,19 +1309,19 @@ ALTER TABLE public.ip_dispensations ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "ip_inventory_select" ON public.ip_inventory;
 CREATE POLICY "ip_inventory_select"
-ON public.ip_inventory FOR SELECT TO authenticated USING (public.can_read_only());
+ON public.ip_inventory FOR SELECT TO authenticated USING (public.can_read_only() AND public.is_study_member(study_id));
 
 DROP POLICY IF EXISTS "ip_inventory_insert" ON public.ip_inventory;
 CREATE POLICY "ip_inventory_insert"
-ON public.ip_inventory FOR INSERT TO authenticated WITH CHECK (public.can_edit_data());
+ON public.ip_inventory FOR INSERT TO authenticated WITH CHECK (public.can_edit_data() AND public.is_study_member(study_id));
 
 DROP POLICY IF EXISTS "ip_dispensations_select" ON public.ip_dispensations;
 CREATE POLICY "ip_dispensations_select"
-ON public.ip_dispensations FOR SELECT TO authenticated USING (public.can_read_only());
+ON public.ip_dispensations FOR SELECT TO authenticated USING (public.can_read_only() AND public.is_study_member(study_id));
 
 DROP POLICY IF EXISTS "ip_dispensations_insert" ON public.ip_dispensations;
 CREATE POLICY "ip_dispensations_insert"
-ON public.ip_dispensations FOR INSERT TO authenticated WITH CHECK (public.can_edit_data());
+ON public.ip_dispensations FOR INSERT TO authenticated WITH CHECK (public.can_edit_data() AND public.is_study_member(study_id));
 
 DROP TRIGGER IF EXISTS audit_ip_inventory ON public.ip_inventory;
 CREATE TRIGGER audit_ip_inventory
@@ -1344,16 +1424,13 @@ DROP POLICY IF EXISTS "study_members_read" ON public.study_members;
 CREATE POLICY "study_members_read" ON public.study_members
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND status = 'active'
-            AND role IN ('mentor', 'sponsor_admin', 'investigator', 'site_coordinator',
+            AND role IN ('admin', 'mentor', 'investigator', 'site_coordinator',
                          'data_manager', 'monitor', 'auditor', 'irb_reviewer'))
   );
 
 DROP POLICY IF EXISTS "study_members_write" ON public.study_members;
 CREATE POLICY "study_members_write" ON public.study_members
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND status = 'active'
-            AND role IN ('mentor', 'sponsor_admin'))
-  );
+  FOR ALL USING (public.is_mentor());
 
 -- Audit trigger for study_members
 CREATE OR REPLACE FUNCTION public.audit_study_members()

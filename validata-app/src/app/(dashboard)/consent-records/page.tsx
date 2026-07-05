@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 
-const COMPLIANCE_ROLES = ['monitor', 'auditor', 'mentor', 'sponsor_admin', 'investigator', 'site_coordinator', 'data_manager'];
+const COMPLIANCE_ROLES = ['monitor', 'auditor', 'admin', 'mentor', 'investigator', 'site_coordinator', 'data_manager', 'irb_reviewer'];
 
 interface ConsentFormVersion {
   id: number;
@@ -151,7 +151,7 @@ export default function ConsentRecordsPage() {
     );
   }
 
-  const canEdit = ['mentor', 'sponsor_admin', 'investigator', 'site_coordinator'].includes(userRole);
+  const canEdit = ['admin', 'mentor', 'investigator', 'site_coordinator'].includes(userRole);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '8px' }}>
@@ -164,9 +164,6 @@ export default function ConsentRecordsPage() {
           <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
             Consent Records
           </h1>
-          <span style={{ fontSize: '10px', color: 'var(--text-muted)', background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '2px 6px' }}>
-            ICH E6(R3) CONSENT-01…04
-          </span>
         </div>
       </div>
 

@@ -2,7 +2,7 @@ import { verifySession, isMentor, canReadOnly } from '@/lib/auth-server';
 
 // GET /api/admin/access-registry
 // Returns all active user profiles with their roles and status.
-// Accessible to mentor, sponsor_admin, monitor, and auditor (ICH E6(R3) ACC-01, ACC-02).
+// Accessible to mentor, monitor, and auditor (ICH E6(R3) ACC-01, ACC-02).
 // Supports ?format=csv for regulatory export.
 export async function GET(request: Request): Promise<Response> {
   try {

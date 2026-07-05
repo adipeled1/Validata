@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import ActivityBar, { type ActivitySection } from '../Shell/ActivityBar';
 import PrimarySidebar from '../Shell/PrimarySidebar';
 
 interface SidebarProps {
@@ -21,25 +19,15 @@ const Sidebar = ({
   onSwitchStudy,
 }: SidebarProps) => {
   const pathname = usePathname();
-  const [activeSection, setActiveSection] = useState<ActivitySection>('participants');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', height: '100%', flexShrink: 0 }}>
-      <ActivityBar
-        userRole={userRole}
-        currentPath={pathname}
-        onSectionChange={setActiveSection}
-        openSection={activeSection}
-      />
-      <PrimarySidebar
-        userRole={userRole}
-        currentPath={pathname}
-        scrollToSection={activeSection}
-        studies={studies}
-        currentStudyId={currentStudyId ?? null}
-        onSwitchStudy={onSwitchStudy}
-      />
-    </div>
+    <PrimarySidebar
+      userRole={userRole}
+      currentPath={pathname}
+      studies={studies}
+      currentStudyId={currentStudyId ?? null}
+      onSwitchStudy={onSwitchStudy}
+    />
   );
 };
 

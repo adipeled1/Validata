@@ -123,16 +123,42 @@ export async function getDashboardSession(): Promise<Session> {
 
 // ICH E6(R3) AUTH-02: role helpers used by API routes and Server Actions
 // to enforce function-based access control beyond the basic active/pending gate.
+
+// 'admin' sits above 'mentor' (separation of duties: only an admin can change
+// or remove a mentor/admin account, so mentors can't lock each other out).
+// It carries every mentor capability plus that one extra power, so isMentor()
+// and canEditData() both treat admin as a superset of mentor.
+export function isAdmin(session: ResolvedSession): boolean {
+  return session.profile.role === 'admin';
+}
+
 export function isMentor(session: ResolvedSession): boolean {
-  return session.profile.role === 'mentor' || session.profile.role === 'sponsor_admin';
+  return session.profile.role === 'mentor' || session.profile.role === 'admin';
 }
 
 export function canEditData(session: ResolvedSession): boolean {
-  return ['mentor', 'sponsor_admin', 'investigator', 'site_coordinator', 'data_manager'].includes(
+  return ['admin', 'mentor', 'investigator', 'site_coordinator', 'data_manager'].includes(
     session.profile.role
   );
 }
 
 export function canReadOnly(session: ResolvedSession): boolean {
   return canEditData(session) || ['monitor', 'auditor', 'irb_reviewer'].includes(session.profile.role);
+}
+
+// Mentors can still promote someone to mentor (e.g. approving a co-PI) — that
+// stays unrestricted. What's blocked is a mentor touching an account that is
+// ALREADY mentor/admin (role change, suspend, or delete) — that's the actual
+// fix for "two mentors can't terminate each other" — and granting the admin
+// role itself, which only an existing admin may do.
+// `currentRole` = the target account's role right now. `newRole` = the role
+// being assigned in this request, if any (omit for status-only changes or delete).
+export function canManageAccount(session: ResolvedSession, currentRole: string, newRole?: string): boolean {
+  if (currentRole === 'mentor' || currentRole === 'admin') {
+    return isAdmin(session);
+  }
+  if (newRole === 'admin') {
+    return isAdmin(session);
+  }
+  return isMentor(session);
 }

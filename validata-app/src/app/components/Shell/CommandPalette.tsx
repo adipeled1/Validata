@@ -18,7 +18,6 @@ interface CommandEntry {
 
 const NAV_COMMANDS: Array<{ label: string; path: string; description: string }> = [
   { label: 'Participant Registry', path: '/participants', description: 'Participants & Data' },
-  { label: 'Participant Viewer', path: '/participants-view', description: 'Participants & Data' },
   { label: 'Data Collection', path: '/data-collection', description: 'Participants & Data' },
   { label: 'Results Table', path: '/results', description: 'Participants & Data' },
   { label: 'Study Overview', path: '/study-overview', description: 'Analysis' },
@@ -220,6 +219,9 @@ export default function CommandPalette({
           <span>↑↓ navigate</span>
           <span>↵ open</span>
           <span>Esc close</span>
+          <span style={{ marginLeft: '8px', paddingLeft: '12px', borderLeft: '1px solid var(--border)' }}>Ctrl+K quick jump</span>
+          <span>Ctrl+` study log</span>
+          <span>Ctrl+W close tab</span>
         </div>
       </div>
     </>

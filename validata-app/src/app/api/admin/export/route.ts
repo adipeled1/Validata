@@ -4,7 +4,7 @@ import { createHash } from 'crypto';
 // GET /api/admin/export?studyId=
 // Produces a JSON archival export of all study data with a SHA-256 integrity hash
 // and generation timestamp (ICH E6(R3) RET-01, RET-03).
-// Restricted to mentor / sponsor_admin.
+// Restricted to mentor.
 export async function GET(request: Request): Promise<Response> {
   try {
     const session = await verifySession();

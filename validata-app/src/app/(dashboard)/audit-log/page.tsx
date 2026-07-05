@@ -5,8 +5,8 @@ import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 
 // ICH E6(R3) AUDIT-05: Audit trail viewer.
-// Restricted to mentor, sponsor_admin, monitor, and auditor roles.
-const AUDIT_VIEWER_ROLES = ['mentor', 'sponsor_admin', 'monitor', 'auditor'];
+// Restricted to mentor, monitor, and auditor roles.
+const AUDIT_VIEWER_ROLES = ['admin', 'mentor', 'monitor', 'auditor'];
 
 const ACTION_COLORS: Record<string, string> = {
   INSERT: 'var(--status-insert)',

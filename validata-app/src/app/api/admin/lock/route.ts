@@ -3,7 +3,7 @@ import { lockStudySchema, formatValidationError } from '@/lib/schemas';
 
 // POST /api/admin/lock
 // Locks a study so no new data can be entered (ICH E6(R3) INT-01, INT-03).
-// Restricted to mentor and sponsor_admin roles.
+// Restricted to mentor role.
 export async function POST(request: Request): Promise<Response> {
   try {
     const session = await verifySession();

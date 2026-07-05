@@ -4,7 +4,7 @@ import { useSession } from '../../../context/SessionContext';
 import DataGrid from '../../components/ui/DataGrid';
 
 // ICH E6(R3) META-04: System inventory register.
-const ADMIN_ROLES = ['mentor', 'sponsor_admin'];
+const ADMIN_ROLES = ['admin', 'mentor'];
 
 const SYSTEM_COMPONENTS = [
   {
@@ -51,15 +51,6 @@ const SYSTEM_COMPONENTS = [
     gampCategory: '4 — Configurable Software',
     validationStatus: 'Vendor-managed; email/password with JWT sessions',
     notes: 'Demo mode bypass gated by NEXT_PUBLIC_DEMO_ENABLED env var',
-  },
-  {
-    name: 'Google AI (Gemini)',
-    type: 'External AI Service',
-    version: 'API — version per GOOGLE_AI_API_KEY',
-    vendor: 'Google LLC',
-    gampCategory: 'N/A — External analysis tool',
-    validationStatus: 'Not validated for GCP; used for informational AI summarization only — not for regulatory decisions',
-    notes: 'AI results must not be used as primary evidence in regulatory submissions',
   },
   {
     name: 'Zod Schema Validation',

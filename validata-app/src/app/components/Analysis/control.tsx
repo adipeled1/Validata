@@ -31,7 +31,7 @@ const AnalysisControl = ({
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [localThreshold, setLocalThreshold] = useState(threshold);
 
-  const canSign = userRole && ['mentor', 'sponsor_admin', 'investigator'].includes(userRole);
+  const canSign = userRole && ['admin', 'mentor', 'investigator'].includes(userRole);
 
   // Analysis uses client-side fetch-on-mount by design — analysis data is
   // computed from the participants+measurements props passed in (not from the

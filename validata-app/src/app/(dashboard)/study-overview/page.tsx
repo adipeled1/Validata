@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 
 const ACTION_COLORS: Record<string, string> = {
@@ -16,63 +15,9 @@ const ACTION_COLORS: Record<string, string> = {
   UNLOCK: 'var(--text-secondary)',
 };
 
-function StatBlock({
-  label,
-  value,
-  description,
-  color,
-}: {
-  label: string;
-  value: string | number;
-  description?: string;
-  color?: string;
-}) {
-  return (
-    <div
-      style={{
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border)',
-        padding: '10px 16px',
-        minWidth: '100px',
-        flex: 1,
-        height: '70px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '10px',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '0.1em',
-          color: 'var(--text-muted)',
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: '28px',
-          fontWeight: 700,
-          color: color ?? 'var(--text-primary)',
-          fontFamily: 'var(--font-data)',
-          lineHeight: 1,
-        }}
-      >
-        {value}
-      </div>
-      {description && (
-        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{description}</div>
-      )}
-    </div>
-  );
-}
 
 export default function StudyOverviewPage() {
-  const { currentUserEmail } = useSession();
-  const { currentStudy, participants, measurements, currentStudyId } = useStudy();
+  const { currentStudy, currentStudyId } = useStudy();
 
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [queries, setQueries] = useState<any[]>([]);
@@ -90,12 +35,8 @@ export default function StudyOverviewPage() {
     }).finally(() => setLoadingAudit(false));
   }, [currentStudyId]);
 
-  const enrolled = participants.length;
-  const active = participants.filter((p) => String(p.status || '').toLowerCase() === 'active').length;
-  const completed = participants.filter((p) => String(p.status || '').toLowerCase() === 'completed').length;
-  const dropped = participants.filter((p) => String(p.status || '').toLowerCase() === 'dropped').length;
-  const totalMeasurements = measurements.length;
   const openQueries = queries.filter((q) => q.status === 'open' || q.status === 'answered').length;
+  const isLocked = currentStudy?.lock_state === 'locked';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -143,34 +84,13 @@ export default function StudyOverviewPage() {
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span
-            style={{
-              fontSize: '11px',
-              color: 'var(--status-active)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
+          <span style={{ fontSize: '11px', color: 'var(--status-active)', display: 'flex', alignItems: 'center', gap: '4px' }}>
             &#x25CF; Active
           </span>
-          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>&#x1F513; Unlocked</span>
+          <span style={{ fontSize: '11px', color: isLocked ? 'var(--status-dropped)' : 'var(--text-secondary)' }}>
+            {isLocked ? '🔒 Locked' : '🔓 Unlocked'}
+          </span>
         </div>
-      </div>
-
-      {/* Stat blocks */}
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-        <StatBlock label="Enrolled" value={enrolled} description="All participants" />
-        <StatBlock label="Active" value={active} color="var(--status-active)" description="Currently active" />
-        <StatBlock label="Completed" value={completed} color="var(--status-complete)" description="Protocol complete" />
-        <StatBlock label="Dropped" value={dropped} color="var(--status-dropped)" description="Withdrawn" />
-        <StatBlock label="Measurements" value={totalMeasurements} color="var(--accent-soft)" description="Total recorded" />
-        <StatBlock
-          label="Open Queries"
-          value={openQueries > 0 ? `${openQueries} open` : 'None'}
-          color={openQueries > 0 ? 'var(--status-pending)' : 'var(--status-complete)'}
-          description="Requiring action"
-        />
       </div>
 
       {/* Two-column row: Recent Activity + Open Queries */}

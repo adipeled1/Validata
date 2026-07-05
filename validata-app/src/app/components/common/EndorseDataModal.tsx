@@ -68,6 +68,12 @@ export default function EndorseDataModal({ studyId, signerEmail, onClose, onSucc
 
         <p className="text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded p-3">{MEANING}</p>
 
+        <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded p-2">
+          This creates a permanent, timestamped audit record only — it does not lock the study or notify
+          anyone. Data can still be edited afterward. Use Study Lock Control separately if you need to
+          prevent further changes.
+        </p>
+
         <div className="space-y-1">
           <label className="block text-sm font-medium text-gray-700" htmlFor="endorse-email">
             Email

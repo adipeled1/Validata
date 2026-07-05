@@ -7,9 +7,12 @@ import { z } from 'zod';
 const idOrNumber = z.union([z.string(), z.number()]);
 
 // ICH E6(R3): expanded role set (AUTH-02).
-// 'mentor' is kept as a legacy alias for 'sponsor_admin' during migration.
+// 'admin' is the highest role — separation of duties above 'mentor' so that no
+// mentor can change or remove another mentor's account (avoids mutual lockout).
+// 'mentor' covers the professor/PI, scoped globally across all studies same as admin.
 export const roleSchema = z.enum([
-  'sponsor_admin',
+  'admin',
+  'mentor',
   'investigator',
   'site_coordinator',
   'data_manager',
@@ -17,7 +20,6 @@ export const roleSchema = z.enum([
   'auditor',
   'irb_reviewer',
   'team_member',
-  'mentor', // legacy — maps to sponsor_admin in the DB
 ]);
 
 export const createParticipantSchema = z.object({

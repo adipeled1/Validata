@@ -1,13 +1,15 @@
-// GET ?studyId=  → list members
-// POST body: { studyId, userId, studyRole }  → add member
+// GET ?studyId=  → list members of one study
+// GET (no studyId) → list every study_members row (used to render each user's
+//   study memberships inline in User Registry without an N+1 fetch per user)
+// POST body: { studyId, userId }  → add member (study_role set from user's profile.role)
 // DELETE body: { studyId, userId }  → remove member
-// Role-gated: mentor / sponsor_admin
+// Role-gated: mentor only
 import { verifySession, isMentor } from '@/lib/auth-server';
 
 // Demo mock data
 const DEMO_MEMBERS = [
-  { study_id: 'demo-study-1', user_id: 'demo-mentor-id', study_role: 'sponsor_admin', granted_at: new Date().toISOString(), email: 'mentor@demo.com' },
-  { study_id: 'demo-study-1', user_id: 'demo-team-id', study_role: 'data_manager', granted_at: new Date().toISOString(), email: 'team@demo.com' },
+  { study_id: 'demo-study-1', user_id: 'demo-mentor-id', study_role: 'mentor', granted_at: new Date().toISOString(), email: 'mentor@demo.com', profiles: { email: 'mentor@demo.com', role: 'mentor' } },
+  { study_id: 'demo-study-1', user_id: 'demo-team-id', study_role: 'data_manager', granted_at: new Date().toISOString(), email: 'team@demo.com', profiles: { email: 'team@demo.com', role: 'data_manager' } },
 ];
 
 export async function GET(request: Request): Promise<Response> {
@@ -18,17 +20,18 @@ export async function GET(request: Request): Promise<Response> {
 
     const { searchParams } = new URL(request.url);
     const studyId = searchParams.get('studyId');
-    if (!studyId) return Response.json({ error: 'studyId is required.' }, { status: 400 });
 
     if (session.isDemo) {
-      return Response.json(DEMO_MEMBERS.filter((m) => m.study_id === studyId));
+      return Response.json(studyId ? DEMO_MEMBERS.filter((m) => m.study_id === studyId) : DEMO_MEMBERS);
     }
 
-    const { data, error } = await session.supabaseClient!
+    let query = session.supabaseClient!
       .from('study_members')
       .select('*, profiles(email, role)')
-      .eq('study_id', studyId)
       .order('granted_at', { ascending: true });
+    if (studyId) query = query.eq('study_id', studyId);
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return Response.json(data ?? []);
@@ -45,14 +48,22 @@ export async function POST(request: Request): Promise<Response> {
     if (!isMentor(session)) return Response.json({ error: 'Forbidden. Admin role required.' }, { status: 403 });
 
     const body = await request.json();
-    const { studyId, userId, studyRole } = body;
-    if (!studyId || !userId || !studyRole) {
-      return Response.json({ error: 'studyId, userId, and studyRole are required.' }, { status: 400 });
+    const { studyId, userId } = body;
+    if (!studyId || !userId) {
+      return Response.json({ error: 'studyId and userId are required.' }, { status: 400 });
     }
 
     if (session.isDemo) {
-      return Response.json({ study_id: studyId, user_id: userId, study_role: studyRole }, { status: 201 });
+      return Response.json({ study_id: studyId, user_id: userId, study_role: 'team_member' }, { status: 201 });
     }
+
+    // Derive study_role from the user's platform role (annotation only — roles are global).
+    const { data: profile } = await session.supabaseClient!
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+    const studyRole = profile?.role ?? 'team_member';
 
     const { data, error } = await session.supabaseClient!
       .from('study_members')

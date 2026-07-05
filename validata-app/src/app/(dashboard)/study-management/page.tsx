@@ -8,7 +8,7 @@ export default function StudyManagementPage() {
   const { userRole } = useSession();
   const { studies, currentStudyId, addStudy, deleteStudy } = useStudy();
 
-  if (userRole !== 'mentor') {
+  if (userRole !== 'mentor' && userRole !== 'admin') {
     return null;
   }
 

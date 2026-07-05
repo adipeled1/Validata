@@ -3,7 +3,7 @@ import { unlockStudySchema, formatValidationError } from '@/lib/schemas';
 
 // POST /api/admin/unlock
 // Unlocks a previously locked study (ICH E6(R3) INT-01, INT-03).
-// Restricted to mentor and sponsor_admin roles. Unlock events are logged by the audit trigger.
+// Restricted to mentor role. Unlock events are logged by the audit trigger.
 export async function POST(request: Request): Promise<Response> {
   try {
     const session = await verifySession();

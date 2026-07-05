@@ -1,10 +1,10 @@
 import { verifySession } from '@/lib/auth-server';
 
-const AUDIT_VIEWER_ROLES = ['mentor', 'sponsor_admin', 'monitor', 'auditor'];
+const AUDIT_VIEWER_ROLES = ['admin', 'mentor', 'monitor', 'auditor'];
 
 // GET /api/audit-log?studyId=&actor=&action=&from=&to=&format=csv
 // Returns the audit trail filtered by optional params (ICH E6(R3) AUDIT-05).
-// Accessible to mentor, sponsor_admin, monitor, and auditor only.
+// Accessible to mentor, monitor, and auditor only.
 export async function GET(request: Request): Promise<Response> {
   try {
     const session = await verifySession();

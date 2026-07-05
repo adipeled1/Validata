@@ -21,7 +21,6 @@ const TabContext = createContext<TabContextValue | null>(null);
 
 export const PATH_LABELS: Record<string, string> = {
   '/participants': 'Participant Registry',
-  '/participants-view': 'Participant Viewer',
   '/data-collection': 'Data Collection',
   '/results': 'Results Table',
   '/study-overview': 'Study Overview',

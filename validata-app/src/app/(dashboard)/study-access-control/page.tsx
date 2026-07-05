@@ -3,18 +3,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
-import { UserMinus, Plus, RefreshCw } from 'lucide-react';
+import { UserMinus, Plus, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import ConfirmWithReasonModal from '../../components/common/ConfirmWithReasonModal';
 
-const ADMIN_ROLES = ['sponsor_admin', 'mentor'];
+const ADMIN_ROLES = ['admin', 'mentor'];
 
-const STUDY_ROLES = [
-  'investigator',
-  'site_coordinator',
-  'data_manager',
-  'monitor',
-  'auditor',
-  'irb_reviewer',
-  'team_member',
+const ROLE_GUIDE: { role: string; label: string; description: string }[] = [
+  { role: 'admin', label: 'Admin', description: 'Same access as Mentor, plus sole authority to manage mentor/admin accounts.' },
+  { role: 'mentor', label: 'Mentor', description: 'Full access to everything. Manages users, studies, and all data.' },
+  { role: 'investigator', label: 'Investigator', description: 'Runs the study. Enroll participants, enter data, create delegations.' },
+  { role: 'site_coordinator', label: 'Site Coordinator', description: 'Day-to-day operations. Enter data, manage participants.' },
+  { role: 'data_manager', label: 'Data Manager', description: 'Data quality. Enter data, raise and answer queries.' },
+  { role: 'monitor', label: 'Monitor', description: 'Sponsor oversight. Read all data; raise and resolve queries.' },
+  { role: 'auditor', label: 'Auditor', description: 'Independent review. Read-only: audit trail and compliance only.' },
+  { role: 'irb_reviewer', label: 'IRB Reviewer', description: 'Ethics review. Read-only access.' },
+  { role: 'team_member', label: 'Team Member', description: 'General access. View participants and enter measurement data.' },
 ];
 
 interface Member {
@@ -62,9 +65,13 @@ export default function StudyAccessControlPage() {
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [showAddPanel, setShowAddPanel] = useState(false);
   const [addUserId, setAddUserId] = useState('');
-  const [addStudyRole, setAddStudyRole] = useState(STUDY_ROLES[0]);
   const [addError, setAddError] = useState('');
   const [addLoading, setAddLoading] = useState(false);
+  const [roleGuideOpen, setRoleGuideOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('sac-role-guide-open') === 'true';
+  });
+  const [confirmRemoveUserId, setConfirmRemoveUserId] = useState<string | null>(null);
 
   // Select first study by default
   useEffect(() => {
@@ -112,6 +119,14 @@ export default function StudyAccessControlPage() {
     fetchProfiles();
   }, [fetchProfiles]);
 
+  const toggleRoleGuide = () => {
+    setRoleGuideOpen((v) => {
+      const next = !v;
+      localStorage.setItem('sac-role-guide-open', String(next));
+      return next;
+    });
+  };
+
   const handleAddMember = async () => {
     if (!selectedStudyId || !addUserId) return;
     setAddLoading(true);
@@ -120,7 +135,7 @@ export default function StudyAccessControlPage() {
       const res = await fetch('/api/admin/study-members', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studyId: selectedStudyId, userId: addUserId, studyRole: addStudyRole }),
+        body: JSON.stringify({ studyId: selectedStudyId, userId: addUserId }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -128,7 +143,6 @@ export default function StudyAccessControlPage() {
       } else {
         setShowAddPanel(false);
         setAddUserId('');
-        setAddStudyRole(STUDY_ROLES[0]);
         fetchMembers(selectedStudyId);
       }
     } catch (e: unknown) {
@@ -138,18 +152,19 @@ export default function StudyAccessControlPage() {
     }
   };
 
-  const handleRemoveMember = async (userId: string) => {
+  const handleRemoveMember = async (userId: string, reason: string) => {
     if (!selectedStudyId) return;
-    if (!window.confirm('Remove this member from the study?')) return;
     try {
       await fetch('/api/admin/study-members', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studyId: selectedStudyId, userId }),
+        body: JSON.stringify({ studyId: selectedStudyId, userId, reason }),
       });
       fetchMembers(selectedStudyId);
     } catch {
       // ignore
+    } finally {
+      setConfirmRemoveUserId(null);
     }
   };
 
@@ -165,6 +180,19 @@ export default function StudyAccessControlPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Confirm remove modal */}
+      {confirmRemoveUserId && (
+        <ConfirmWithReasonModal
+          title="Remove Study Member"
+          body="This person will lose access to this study. The change will be recorded in the audit trail."
+          reasonLabel="Reason for removal"
+          reasonRequired={false}
+          confirmLabel="Remove"
+          onConfirm={(reason) => handleRemoveMember(confirmRemoveUserId, reason)}
+          onCancel={() => setConfirmRemoveUserId(null)}
+        />
+      )}
+
       {/* Page header */}
       <div>
         <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
@@ -176,6 +204,45 @@ export default function StudyAccessControlPage() {
         <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
           Grant or revoke per-study access for research staff. ICH E6(R3) AUTH-05.
         </div>
+      </div>
+
+      {/* Role Guide Card */}
+      <div style={{ border: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
+        <button
+          onClick={toggleRoleGuide}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '7px 10px', background: 'transparent', border: 'none',
+            cursor: 'pointer', fontSize: '11px', fontWeight: 600,
+            color: 'var(--text-secondary)', textAlign: 'left',
+          }}
+        >
+          {roleGuideOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          Role Definitions
+        </button>
+        {roleGuideOpen && (
+          <div style={{ borderTop: '1px solid var(--border)', padding: '8px 10px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+              <thead>
+                <tr>
+                  <th style={{ ...colHeaderStyle, textAlign: 'left', width: '160px' }}>Role</th>
+                  <th style={{ ...colHeaderStyle, textAlign: 'left' }}>What they can do</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ROLE_GUIDE.map((r) => (
+                  <tr key={r.role} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '5px 10px 5px 0', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{r.label}</td>
+                    <td style={{ padding: '5px 0', color: 'var(--text-secondary)' }}>{r.description}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p style={{ margin: '8px 0 2px', fontSize: '10px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+              Roles are set globally in the <a href="/user-management" style={{ color: 'var(--accent-soft)' }}>User Registry</a>. This page controls which studies each person can access.
+            </p>
+          </div>
+        )}
       </div>
 
       {isDemoMode && (
@@ -282,19 +349,7 @@ export default function StudyAccessControlPage() {
                     >
                       <option value="">— Select user —</option>
                       {allProfiles.map((p) => (
-                        <option key={p.id} value={p.id}>{p.email} ({p.role})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Study Role</label>
-                    <select
-                      value={addStudyRole}
-                      onChange={(e) => setAddStudyRole(e.target.value)}
-                      style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: '12px', padding: '4px 6px', fontFamily: 'var(--font-ui)' }}
-                    >
-                      {STUDY_ROLES.map((r) => (
-                        <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>
+                        <option key={p.id} value={p.id}>{p.email} ({p.role.replace(/_/g, ' ')})</option>
                       ))}
                     </select>
                   </div>
@@ -324,7 +379,7 @@ export default function StudyAccessControlPage() {
                     <thead>
                       <tr>
                         <th style={colHeaderStyle}>Email</th>
-                        <th style={colHeaderStyle}>Study Role</th>
+                        <th style={colHeaderStyle}>Role</th>
                         <th style={colHeaderStyle}>Granted At</th>
                         <th style={{ ...colHeaderStyle, textAlign: 'right' }}>Actions</th>
                       </tr>
@@ -332,6 +387,7 @@ export default function StudyAccessControlPage() {
                     <tbody>
                       {members.map((m, i) => {
                         const email = m.profiles?.email ?? m.email ?? m.user_id;
+                        const profileRole = m.profiles?.role ?? m.study_role;
                         return (
                           <tr
                             key={m.user_id}
@@ -344,14 +400,14 @@ export default function StudyAccessControlPage() {
                               <span style={{ fontFamily: 'var(--font-data)', fontSize: '11px' }}>{email}</span>
                             </td>
                             <td style={{ ...cellStyle, fontSize: '11px', color: 'var(--text-secondary)' }}>
-                              {m.study_role.replace(/_/g, ' ')}
+                              {profileRole.replace(/_/g, ' ')}
                             </td>
                             <td style={{ ...cellStyle, fontFamily: 'var(--font-data)', fontSize: '11px', color: 'var(--text-timestamp)' }}>
                               {new Date(m.granted_at).toLocaleDateString()}
                             </td>
                             <td style={{ ...cellStyle, textAlign: 'right' }}>
                               <button
-                                onClick={() => handleRemoveMember(m.user_id)}
+                                onClick={() => setConfirmRemoveUserId(m.user_id)}
                                 title="Remove from study"
                                 style={{ background: 'transparent', border: 'none', color: 'var(--status-dropped)', cursor: 'pointer', padding: '3px', display: 'inline-flex' }}
                               >

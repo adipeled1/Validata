@@ -1,4 +1,4 @@
-import { verifySession, isMentor } from '@/lib/auth-server';
+import { verifySession, isMentor, canManageAccount } from '@/lib/auth-server';
 import { updateProfileSchema, formatValidationError } from '@/lib/schemas';
 import { DEMO_USERS } from '@/lib/demoData';
 
@@ -55,7 +55,7 @@ export async function GET(request: Request): Promise<Response> {
       return Response.json(profile);
     }
 
-    // 2. Fetch all profiles — mentor/sponsor_admin only (ICH E6(R3) ACC-01)
+    // 2. Fetch all profiles — mentor only (ICH E6(R3) ACC-01)
     if (!isMentor(session)) {
       return Response.json({ error: 'Forbidden. Admin role required.' }, { status: 403 });
     }
@@ -79,7 +79,7 @@ export async function GET(request: Request): Promise<Response> {
   }
 }
 
-// PATCH: Update user profile (role/status) — mentor/sponsor_admin only (ICH E6(R3) AUTH-02, COR-01)
+// PATCH: Update user profile (role/status) — mentor only (ICH E6(R3) AUTH-02, COR-01)
 export async function PATCH(request: Request): Promise<Response> {
   try {
     const session = await verifySession();
@@ -100,6 +100,22 @@ export async function PATCH(request: Request): Promise<Response> {
 
     if (session.isDemo) {
       return Response.json({ id, role, status });
+    }
+
+    // Separation of duties: a mentor can still promote someone to mentor (e.g.
+    // approving a co-PI), but once an account is mentor/admin, only an admin
+    // can change/suspend/delete it — that's the actual fix for "two mentors
+    // can terminate each other". Granting the admin role itself is admin-only too.
+    const { data: targetProfile, error: targetError } = await session.supabaseClient!
+      .from('profiles')
+      .select('role')
+      .eq('id', id)
+      .single();
+    if (targetError || !targetProfile) {
+      return Response.json({ error: 'User not found.' }, { status: 404 });
+    }
+    if (!canManageAccount(session, targetProfile.role, role)) {
+      return Response.json({ error: 'Forbidden. Only an admin can manage mentor/admin accounts.' }, { status: 403 });
     }
 
     const updates: Record<string, string | undefined> = {};
@@ -123,7 +139,7 @@ export async function PATCH(request: Request): Promise<Response> {
   }
 }
 
-// DELETE: Delete user profile — mentor/sponsor_admin only
+// DELETE: Delete user profile — mentor only
 export async function DELETE(request: Request): Promise<Response> {
   try {
     const session = await verifySession();
@@ -144,6 +160,18 @@ export async function DELETE(request: Request): Promise<Response> {
 
     if (session.isDemo) {
       return Response.json({ success: true, deletedId: id });
+    }
+
+    const { data: targetProfile, error: targetError } = await session.supabaseClient!
+      .from('profiles')
+      .select('role')
+      .eq('id', id)
+      .single();
+    if (targetError || !targetProfile) {
+      return Response.json({ error: 'User not found.' }, { status: 404 });
+    }
+    if (!canManageAccount(session, targetProfile.role)) {
+      return Response.json({ error: 'Forbidden. Only an admin can delete mentor/admin accounts.' }, { status: 403 });
     }
 
     const { error } = await session.supabaseClient!

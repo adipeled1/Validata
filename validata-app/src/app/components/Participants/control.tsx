@@ -97,7 +97,7 @@ const ParticipantsControl = ({
         onToggleCompleted={onToggleParticipantCompleted}
         recruitedCount={countRecruitedParticipants(participants)}
         recruitmentGoal={recruitmentGoal}
-        isMentor={userRole === 'mentor' || userRole === 'sponsor_admin'}
+        isMentor={userRole === 'mentor' || userRole === 'admin'}
         goalInput={goalInput}
         onGoalInputChange={setGoalInput}
         onGoalSubmit={handleGoalSubmit}

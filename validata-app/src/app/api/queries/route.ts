@@ -41,7 +41,7 @@ export async function GET(request: Request): Promise<Response> {
 
 // POST /api/queries
 // Raise a new query against a specific data record (ICH E6(R3) CAP-04, COR-01).
-// Permitted roles: mentor, sponsor_admin, data_manager, monitor, investigator.
+// Permitted roles: mentor, data_manager, monitor, investigator.
 export async function POST(request: Request): Promise<Response> {
   try {
     const session = await verifySession();
@@ -49,7 +49,7 @@ export async function POST(request: Request): Promise<Response> {
       return Response.json({ error: session.error }, { status: session.status });
     }
 
-    const allowedRoles = ['mentor', 'sponsor_admin', 'data_manager', 'monitor', 'investigator'];
+    const allowedRoles = ['admin', 'mentor', 'data_manager', 'monitor', 'investigator'];
     if (!allowedRoles.includes(session.profile.role)) {
       return Response.json({ error: 'Forbidden. Insufficient role to raise a query.' }, { status: 403 });
     }

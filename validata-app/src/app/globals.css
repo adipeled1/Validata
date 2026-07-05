@@ -63,6 +63,15 @@
   --status-insert:   #4ec9b0;
   --status-update:   #dcdcaa;
 
+  /* Severity */
+  --status-fatal:    #dc2626;
+  --status-severe:   #d97706;
+  --status-moderate: #ca8a04;
+
+  /* Error / Warning pair */
+  --color-error:     #dc2626;
+  --color-warning:   #d97706;
+
   /* Status Bar */
   --statusbar-bg:    #4c1d95;
   --statusbar-fg:    #e9d5ff;
@@ -118,6 +127,15 @@
   --status-sign:     #7c3aed;
   --status-insert:   #059669;
   --status-update:   #b45309;
+
+  /* Severity */
+  --status-fatal:    #dc2626;
+  --status-severe:   #d97706;
+  --status-moderate: #ca8a04;
+
+  /* Error / Warning pair */
+  --color-error:     #dc2626;
+  --color-warning:   #d97706;
 
   /* Status Bar */
   --statusbar-bg:    #6d28d9;

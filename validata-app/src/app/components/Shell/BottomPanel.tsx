@@ -182,6 +182,19 @@ export default function BottomPanel({ studyId, isOpen, onClose }: BottomPanelPro
           flexShrink: 0,
         }}
       >
+        <span style={{
+          padding: '0 12px',
+          fontSize: '10px',
+          fontWeight: 700,
+          letterSpacing: '0.07em',
+          color: 'var(--text-secondary)',
+          display: 'flex',
+          alignItems: 'center',
+          borderRight: '1px solid var(--border)',
+          userSelect: 'none',
+        }}>
+          STUDY LOG
+        </span>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (

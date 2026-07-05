@@ -5,9 +5,9 @@ import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 
 // ICH E6(R3) CAP-04, COR-01, COR-02: Query management page.
-// Accessible to data_manager, monitor, investigator, sponsor_admin, mentor.
+// Accessible to data_manager, monitor, investigator, and mentor.
 const QUERY_ROLES = [
-  'mentor', 'sponsor_admin', 'investigator',
+  'admin', 'mentor', 'investigator',
   'data_manager', 'monitor',
 ];
 

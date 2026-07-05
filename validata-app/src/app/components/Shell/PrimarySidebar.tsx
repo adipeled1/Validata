@@ -1,8 +1,7 @@
 "use client";
 
-import { useRef, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useTabs } from '../../../context/TabContext';
-import type { ActivitySection } from './ActivityBar';
 
 interface Study {
   id: string;
@@ -12,16 +11,15 @@ interface Study {
 interface PrimarySidebarProps {
   userRole: string;
   currentPath: string;
-  scrollToSection: ActivitySection | null;
   studies: Study[];
   currentStudyId: string | null;
   onSwitchStudy: (id: string) => void;
 }
 
-const ADMIN_ROLES = ['sponsor_admin', 'mentor'];
-const COMPLIANCE_ROLES = ['monitor', 'auditor', 'mentor', 'sponsor_admin'];
+const ADMIN_ROLES = ['admin', 'mentor'];
+const COMPLIANCE_ROLES = ['monitor', 'auditor', 'admin', 'mentor', 'investigator', 'site_coordinator', 'data_manager', 'irb_reviewer'];
 
-type NavEntry = { label: string; path: string; highlight?: boolean };
+type NavEntry = { label: string; path: string; highlight?: boolean; badge?: number };
 
 function SectionHeader({ label, sectionRef }: { label: string; sectionRef?: React.Ref<HTMLDivElement> }) {
   return (
@@ -121,6 +119,7 @@ function NavGroup({ items, currentPath }: { items: NavEntry[]; currentPath: stri
           path={item.path}
           currentPath={currentPath}
           highlight={item.highlight}
+          badge={item.badge}
         />
       ))}
     </>
@@ -142,34 +141,32 @@ function Divider() {
 export default function PrimarySidebar({
   userRole,
   currentPath,
-  scrollToSection,
   studies,
   currentStudyId,
   onSwitchStudy,
 }: PrimarySidebarProps) {
-  const refs: Record<ActivitySection, React.RefObject<HTMLDivElement>> = {
-    study: useRef<HTMLDivElement>(null),
-    participants: useRef<HTMLDivElement>(null),
-    analysis: useRef<HTMLDivElement>(null),
-    queries: useRef<HTMLDivElement>(null),
-    compliance: useRef<HTMLDivElement>(null),
-    administration: useRef<HTMLDivElement>(null),
-    system: useRef<HTMLDivElement>(null),
-  };
-
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!scrollToSection) return;
-    const el = refs[scrollToSection]?.current;
-    if (el && scrollContainerRef.current) {
-      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }
-  }, [scrollToSection]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showCompliance = COMPLIANCE_ROLES.includes(userRole);
   const showAdmin = ADMIN_ROLES.includes(userRole);
-  const showSystem = userRole === 'mentor';
+  const showSystem = userRole === 'mentor' || userRole === 'admin';
+
+  // Surface "someone is waiting for approval" without the mentor having to
+  // remember to open User Registry and check — see critical_system_review_5.7.26.md §2.
+  const [pendingCount, setPendingCount] = useState(0);
+  useEffect(() => {
+    if (!showAdmin) return;
+    let cancelled = false;
+    fetch('/api/profiles')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((profiles: { status: string }[]) => {
+        if (cancelled) return;
+        const count = profiles.filter((p) => p.status === 'pending' || p.status === 'candidate').length;
+        setPendingCount(count);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [showAdmin]);
 
   return (
     <div
@@ -186,7 +183,7 @@ export default function PrimarySidebar({
       <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingTop: '4px' }}>
 
         {/* Study Context */}
-        <div ref={refs.study}>
+        <div>
           <SectionHeader label="Study Context" />
           <div style={{ padding: '4px 10px 8px' }}>
             <select
@@ -216,13 +213,12 @@ export default function PrimarySidebar({
         <Divider />
 
         {/* Participants & Data */}
-        <div ref={refs.participants}>
+        <div>
           <SectionHeader label="Participants & Data" />
           <NavGroup
             currentPath={currentPath}
             items={[
               { label: 'Participant Registry', path: '/participants' },
-              { label: 'Participant Viewer', path: '/participants-view' },
               { label: 'Data Collection', path: '/data-collection' },
               { label: 'Results Table', path: '/results' },
             ]}
@@ -232,7 +228,7 @@ export default function PrimarySidebar({
         <Divider />
 
         {/* Analysis & Results */}
-        <div ref={refs.analysis}>
+        <div>
           <SectionHeader label="Analysis & Results" />
           <NavGroup
             currentPath={currentPath}
@@ -246,7 +242,7 @@ export default function PrimarySidebar({
         <Divider />
 
         {/* Query Management */}
-        <div ref={refs.queries}>
+        <div>
           <SectionHeader label="Query Management" />
           <NavItem label="Queries" path="/queries" currentPath={currentPath} />
         </div>
@@ -254,7 +250,7 @@ export default function PrimarySidebar({
         {showCompliance && (
           <>
             <Divider />
-            <div ref={refs.compliance}>
+            <div>
               <SectionHeader label="Compliance" />
               <NavGroup
                 currentPath={currentPath}
@@ -272,14 +268,14 @@ export default function PrimarySidebar({
         {showAdmin && (
           <>
             <Divider />
-            <div ref={refs.administration}>
+            <div>
               <SectionHeader label="Administration" />
               <NavGroup
                 currentPath={currentPath}
                 items={[
                   { label: 'Study Management', path: '/study-management' },
-                  { label: 'Study Access Control', path: '/study-access-control', highlight: true },
-                  { label: 'User Registry', path: '/user-management' },
+                  { label: 'Study Access Control', path: '/study-access-control' },
+                  { label: 'User Registry', path: '/user-management', badge: pendingCount },
                   { label: 'Delegation Log', path: '/delegation-log' },
                   { label: 'Study Lock Control', path: '/study-lock-control' },
                 ]}
@@ -291,7 +287,7 @@ export default function PrimarySidebar({
         {showSystem && (
           <>
             <Divider />
-            <div ref={refs.system}>
+            <div>
               <SectionHeader label="System" />
               <NavItem label="System Inventory" path="/system-inventory" currentPath={currentPath} />
             </div>

@@ -7,10 +7,10 @@ import { useStudy } from '../../../context/StudyContext';
 import Analysis from '../../components/Analysis/control';
 
 // ICH E6(R3) ACC-01: analysis is readable by any operational role.
-// Signing (endorsement) is restricted to investigator / sponsor_admin / mentor
+// Signing (endorsement) is restricted to investigator / mentor
 // inside the AnalysisControl component itself.
 const READABLE_ROLES = [
-  'mentor', 'sponsor_admin', 'investigator', 'site_coordinator',
+  'admin', 'mentor', 'investigator', 'site_coordinator',
   'data_manager', 'monitor', 'auditor', 'irb_reviewer',
 ];
 

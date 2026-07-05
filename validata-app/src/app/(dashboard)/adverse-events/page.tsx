@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 
-const COMPLIANCE_ROLES = ['monitor', 'auditor', 'mentor', 'sponsor_admin', 'investigator', 'site_coordinator', 'data_manager'];
+const COMPLIANCE_ROLES = ['monitor', 'auditor', 'admin', 'mentor', 'investigator', 'site_coordinator', 'data_manager', 'irb_reviewer'];
+const CREATE_ROLES = ['admin', 'mentor', 'investigator', 'site_coordinator', 'data_manager'];
 
 interface AdverseEvent {
   id: string;
@@ -34,8 +35,8 @@ const CAUSALITY_LABELS: Record<string, string> = {
 };
 
 const BANDS = [
-  { key: 'susar', label: 'SUSAR', types: ['susar'], borderColor: '#dc2626' },
-  { key: 'sae', label: 'SAE — Serious Adverse Events', types: ['sae'], borderColor: '#d97706' },
+  { key: 'susar', label: 'SUSAR', types: ['susar'], borderColor: 'var(--color-error)' },
+  { key: 'sae', label: 'SAE — Serious Adverse Events', types: ['sae'], borderColor: 'var(--color-warning)' },
   { key: 'ae', label: 'AE — Non-Serious Adverse Events', types: ['ae'], borderColor: 'var(--border)' },
 ];
 
@@ -49,14 +50,32 @@ function deadlineStatus(deadline: string | null): 'red' | 'yellow' | null {
   return null;
 }
 
+const EMPTY_FORM = {
+  aeType: 'ae' as 'ae' | 'sae' | 'susar',
+  participantId: '',
+  description: '',
+  severity: 'mild' as 'mild' | 'moderate' | 'severe' | 'life_threatening' | 'fatal',
+  causality: 'possible' as 'unrelated' | 'unlikely' | 'possible' | 'probable' | 'definite',
+  expectedness: 'unexpected' as 'expected' | 'unexpected',
+  reportDate: new Date().toISOString().split('T')[0],
+  onsetDate: '',
+  notes: '',
+};
+
 export default function AdverseEventsPage() {
   const { userRole, isDemoMode } = useSession();
-  const { currentStudyId } = useStudy();
+  const { currentStudyId, participants } = useStudy();
 
   const [events, setEvents] = useState<AdverseEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  const [showPanel, setShowPanel] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const canCreate = CREATE_ROLES.includes(userRole);
 
   const load = useCallback(async () => {
     if (!currentStudyId) return;
@@ -76,6 +95,52 @@ export default function AdverseEventsPage() {
   useEffect(() => { load(); }, [load]);
 
   const toggleBand = (key: string) => setCollapsed(c => ({ ...c, [key]: !c[key] }));
+
+  const handleCreate = async () => {
+    if (!currentStudyId || !form.participantId || !form.description) return;
+    setSaving(true);
+    setFormError(null);
+    try {
+      const res = await fetch('/api/adverse-events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studyId: currentStudyId,
+          participantId: form.participantId,
+          aeType: form.aeType,
+          description: form.description,
+          severity: form.severity,
+          causality: form.causality,
+          expectedness: form.expectedness,
+          reportDate: form.reportDate,
+          onsetDate: form.onsetDate || undefined,
+          notes: form.notes || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed to create adverse event.');
+      setShowPanel(false);
+      setForm(EMPTY_FORM);
+      load();
+    } catch (e) {
+      setFormError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleMarkSubmitted = async (id: string) => {
+    try {
+      await fetch(`/api/adverse-events/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ authoritySubmittedAt: new Date().toISOString() }),
+      });
+      load();
+    } catch {
+      // ignore
+    }
+  };
 
   if (!COMPLIANCE_ROLES.includes(userRole)) {
     return (
@@ -116,15 +181,121 @@ export default function AdverseEventsPage() {
           </h1>
         </div>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          <span style={{ fontSize: '10px', color: 'var(--text-muted)', background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '2px 6px' }}>
-            ICH E6(R3) SAFETY-03
-          </span>
           <button onClick={exportCsv} style={btnSecondary}>Export CSV</button>
+          {canCreate && (
+            <button
+              onClick={() => setShowPanel(v => !v)}
+              style={{ ...btnSecondary, color: 'var(--accent)', borderColor: 'var(--accent)' }}
+            >
+              {showPanel ? 'Cancel' : '+ New Adverse Event'}
+            </button>
+          )}
         </div>
       </div>
 
+      {/* Create Panel */}
+      {showPanel && (
+        <div style={{
+          flexShrink: 0, border: '1px solid var(--accent)', background: 'var(--bg-surface)',
+          padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px',
+        }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            New Adverse Event
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+            <label style={labelStyle}>
+              Type
+              <select value={form.aeType} onChange={e => setForm(f => ({ ...f, aeType: e.target.value as typeof form.aeType }))} style={inputStyle}>
+                <option value="ae">AE — Adverse Event</option>
+                <option value="sae">SAE — Serious Adverse Event</option>
+                <option value="susar">SUSAR</option>
+              </select>
+            </label>
+            <label style={labelStyle}>
+              Participant *
+              <select value={form.participantId} onChange={e => setForm(f => ({ ...f, participantId: e.target.value }))} style={inputStyle}>
+                <option value="">— Select participant —</option>
+                {(participants ?? []).map(p => (
+                  <option key={p.id} value={p.id}>{p.pid ?? p.id}</option>
+                ))}
+              </select>
+            </label>
+            <label style={labelStyle}>
+              Report Date *
+              <input type="date" value={form.reportDate} onChange={e => setForm(f => ({ ...f, reportDate: e.target.value }))} style={inputStyle} />
+            </label>
+            <label style={labelStyle}>
+              Severity
+              <select value={form.severity} onChange={e => setForm(f => ({ ...f, severity: e.target.value as typeof form.severity }))} style={inputStyle}>
+                <option value="mild">Mild</option>
+                <option value="moderate">Moderate</option>
+                <option value="severe">Severe</option>
+                <option value="life_threatening">Life-Threatening</option>
+                <option value="fatal">Fatal</option>
+              </select>
+            </label>
+            <label style={labelStyle}>
+              Causality
+              <select value={form.causality} onChange={e => setForm(f => ({ ...f, causality: e.target.value as typeof form.causality }))} style={inputStyle}>
+                <option value="unrelated">Unrelated</option>
+                <option value="unlikely">Unlikely</option>
+                <option value="possible">Possible</option>
+                <option value="probable">Probable</option>
+                <option value="definite">Definite</option>
+              </select>
+            </label>
+            <label style={labelStyle}>
+              Expectedness
+              <select value={form.expectedness} onChange={e => setForm(f => ({ ...f, expectedness: e.target.value as typeof form.expectedness }))} style={inputStyle}>
+                <option value="unexpected">Unexpected</option>
+                <option value="expected">Expected</option>
+              </select>
+            </label>
+            <label style={labelStyle}>
+              Onset Date
+              <input type="date" value={form.onsetDate} onChange={e => setForm(f => ({ ...f, onsetDate: e.target.value }))} style={inputStyle} />
+            </label>
+          </div>
+          <label style={labelStyle}>
+            Description *
+            <textarea
+              value={form.description}
+              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              rows={2}
+              style={{ ...inputStyle, resize: 'vertical', height: 'auto' }}
+              placeholder="Describe the adverse event…"
+            />
+          </label>
+          <label style={labelStyle}>
+            Notes
+            <textarea
+              value={form.notes}
+              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+              rows={2}
+              style={{ ...inputStyle, resize: 'vertical', height: 'auto' }}
+              placeholder="Optional additional notes…"
+            />
+          </label>
+          {formError && (
+            <div style={{ fontSize: '11px', color: '#dc2626' }}>{formError}</div>
+          )}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={handleCreate}
+              disabled={saving || !form.participantId || !form.description}
+              style={{ ...btnSecondary, color: 'var(--accent)', borderColor: 'var(--accent)', opacity: (saving || !form.participantId || !form.description) ? 0.5 : 1 }}
+            >
+              {saving ? 'Saving…' : 'Save Adverse Event'}
+            </button>
+            <button onClick={() => { setShowPanel(false); setForm(EMPTY_FORM); setFormError(null); }} style={btnSecondary}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {error && (
-        <div style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid #dc2626', padding: '8px 12px', fontSize: '12px', color: '#dc2626', flexShrink: 0 }}>
+        <div style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid var(--color-error)', padding: '8px 12px', fontSize: '12px', color: 'var(--color-error)', flexShrink: 0 }}>
           {error}
         </div>
       )}
@@ -191,16 +362,26 @@ export default function AdverseEventsPage() {
                             <td style={{ ...tdStyle, fontFamily: 'var(--font-data)', fontSize: '11px' }}>{e.report_date}</td>
                             <td style={{
                               ...tdStyle, fontFamily: 'var(--font-data)', fontSize: '11px',
-                              color: dlStatus === 'red' ? '#dc2626' : dlStatus === 'yellow' ? '#d97706' : 'var(--text-primary)',
+                              color: dlStatus === 'red' ? 'var(--color-error)' : dlStatus === 'yellow' ? 'var(--color-warning)' : 'var(--text-primary)',
                               fontWeight: dlStatus ? 600 : 400,
                             }}>
                               {e.authority_deadline ?? '—'}
                               {dlStatus === 'red' && ' ⚠'}
                             </td>
                             <td style={{ ...tdStyle, textAlign: 'center' }}>
-                              <span style={{ color: e.authority_submitted_at ? 'var(--status-active)' : 'var(--text-muted)' }}>
-                                {e.authority_submitted_at ? '✓' : '—'}
-                              </span>
+                              {e.authority_submitted_at ? (
+                                <span style={{ color: 'var(--status-active)' }}>✓</span>
+                              ) : canCreate ? (
+                                <button
+                                  onClick={() => handleMarkSubmitted(e.id)}
+                                  title="Mark as submitted to authority"
+                                  style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '10px', padding: '1px 6px' }}
+                                >
+                                  Mark
+                                </button>
+                              ) : (
+                                <span style={{ color: 'var(--text-muted)' }}>—</span>
+                              )}
                             </td>
                           </tr>
                         );
@@ -219,10 +400,10 @@ export default function AdverseEventsPage() {
 
 function severityColor(severity: string): string {
   switch (severity) {
-    case 'fatal': return '#dc2626';
-    case 'life_threatening': return '#dc2626';
-    case 'severe': return '#d97706';
-    case 'moderate': return '#ca8a04';
+    case 'fatal': return 'var(--status-fatal)';
+    case 'life_threatening': return 'var(--status-fatal)';
+    case 'severe': return 'var(--status-severe)';
+    case 'moderate': return 'var(--status-moderate)';
     default: return 'var(--text-primary)';
   }
 }
@@ -245,4 +426,16 @@ const tdStyle: React.CSSProperties = {
   padding: '0 8px', height: 'var(--row-height)',
   color: 'var(--text-primary)', borderBottom: '1px solid var(--border)',
   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'flex', flexDirection: 'column', gap: '3px',
+  fontSize: '10px', fontWeight: 600, textTransform: 'uppercase',
+  letterSpacing: '0.06em', color: 'var(--text-secondary)',
+};
+
+const inputStyle: React.CSSProperties = {
+  background: 'var(--bg-input)', border: '1px solid var(--border)',
+  color: 'var(--text-primary)', fontSize: '12px', padding: '4px 8px',
+  fontFamily: 'var(--font-ui)', outline: 'none', width: '100%',
 };

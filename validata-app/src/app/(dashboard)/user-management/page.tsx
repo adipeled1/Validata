@@ -3,8 +3,8 @@
 import { useSession } from '../../../context/SessionContext';
 import UserManagement from '../../components/UserManagement/control';
 
-// ICH E6(R3) AUTH-02, ACC-01: user management is restricted to admin roles.
-const ADMIN_ROLES = ['mentor', 'sponsor_admin'];
+// ICH E6(R3) AUTH-02, ACC-01: user management is restricted to mentor only.
+const ADMIN_ROLES = ['admin', 'mentor'];
 
 export default function UserManagementPage() {
   const { userRole, isDemoMode, currentUserEmail } = useSession();
@@ -13,5 +13,5 @@ export default function UserManagementPage() {
     return null;
   }
 
-  return <UserManagement isDemoMode={isDemoMode} currentUserEmail={currentUserEmail} />;
+  return <UserManagement isDemoMode={isDemoMode} currentUserEmail={currentUserEmail} viewerRole={userRole} />;
 }

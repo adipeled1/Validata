@@ -44,6 +44,24 @@ export async function listStudies(session: ResolvedSession) {
   return data;
 }
 
+// Soft-deleted studies, for the mentor/admin-only retention & destruction-request
+// workflow (RET-02, RET-03). Relies on the "Allow mentors to view deleted studies"
+// RLS policy — a non-mentor caller simply gets an empty result, not an error.
+export async function listDeletedStudies(session: ResolvedSession) {
+  if (session.isDemo) {
+    return [];
+  }
+
+  const { data, error } = await session.supabaseClient!
+    .from('studies')
+    .select('*')
+    .not('deleted_at', 'is', null)
+    .order('deleted_at', { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
 export async function createStudy(session: ResolvedSession, { name, recruitmentGoal }: CreateStudyInput) {
   if (!name || !name.trim()) {
     throw new Error('Study name is required.');

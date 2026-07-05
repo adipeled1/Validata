@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import UserManagementDisplay from './display';
 import { fetchUsersAPI, updateRoleAPI, updateStatusAPI, deleteUserAPI } from './service';
 import { DEMO_USERS } from '../../../lib/demoData';
+import { useStudy } from '../../../context/StudyContext';
+import ConfirmWithReasonModal from '../common/ConfirmWithReasonModal';
 
 interface UserManagementControlProps {
   isDemoMode: boolean;
   currentUserEmail: string;
+  viewerRole: string;
 }
 
 interface User {
@@ -15,19 +18,84 @@ interface User {
   status: string;
 }
 
-const UserManagementControl = ({ isDemoMode, currentUserEmail }: UserManagementControlProps) => {
+const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: UserManagementControlProps) => {
+  const { studies } = useStudy();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<string | null>(null);
+  // userId -> array of study ids they're currently a member of
+  const [membershipsByUser, setMembershipsByUser] = useState<Record<string, string[]>>({});
+
+  const fetchMemberships = useCallback(async () => {
+    if (isDemoMode) return;
+    try {
+      const res = await fetch('/api/admin/study-members');
+      if (!res.ok) return;
+      const rows: { user_id: string; study_id: string }[] = await res.json();
+      const grouped: Record<string, string[]> = {};
+      for (const row of rows) {
+        (grouped[row.user_id] ??= []).push(row.study_id);
+      }
+      setMembershipsByUser(grouped);
+    } catch {
+      // Non-fatal — Studies column just shows nothing until the next refresh.
+    }
+  }, [isDemoMode]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchMemberships();
+  }, [fetchMemberships]);
+
+  const handleAddStudyMember = async (userId: string, studyId: string) => {
+    if (isDemoMode) {
+      setMembershipsByUser((prev) => ({ ...prev, [userId]: [...(prev[userId] ?? []), studyId] }));
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/study-members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studyId, userId }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? 'Failed to add study membership.');
+      }
+      setMembershipsByUser((prev) => ({ ...prev, [userId]: [...(prev[userId] ?? []), studyId] }));
+    } catch (err: any) {
+      alert('Error assigning study: ' + err.message);
+    }
+  };
+
+  const handleRemoveStudyMember = async (userId: string, studyId: string) => {
+    if (isDemoMode) {
+      setMembershipsByUser((prev) => ({ ...prev, [userId]: (prev[userId] ?? []).filter((id) => id !== studyId) }));
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/study-members', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studyId, userId }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? 'Failed to remove study membership.');
+      }
+      setMembershipsByUser((prev) => ({ ...prev, [userId]: (prev[userId] ?? []).filter((id) => id !== studyId) }));
+    } catch (err: any) {
+      alert('Error removing study: ' + err.message);
+    }
+  };
 
   const fetchUsers = async () => {
     setIsLoading(true);
     setError('');
 
     if (isDemoMode) {
-      if (users.length === 0) {
-        setUsers(DEMO_USERS as User[]);
-      }
+      setUsers(DEMO_USERS as User[]);
       setIsLoading(false);
       return;
     }
@@ -88,10 +156,14 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail }: UserManagementC
     }
   };
 
-  const handleDelete = async (userId: string) => {
-    if (!window.confirm('Are you sure you want to delete this user profile? The user will lose access to this portal.')) {
-      return;
-    }
+  const handleDelete = (userId: string) => {
+    setConfirmDeleteUserId(userId);
+  };
+
+  const handleConfirmDelete = async (_reason: string) => {
+    const userId = confirmDeleteUserId;
+    setConfirmDeleteUserId(null);
+    if (!userId) return;
 
     if (isDemoMode) {
       setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
@@ -107,16 +179,34 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail }: UserManagementC
   };
 
   return (
-    <UserManagementDisplay
-      users={users}
-      isLoading={isLoading}
-      error={error}
-      currentUserEmail={currentUserEmail}
-      onRoleChange={handleRoleChange}
-      onStatusChange={handleStatusChange}
-      onDelete={handleDelete}
-      onRefresh={fetchUsers}
-    />
+    <>
+      {confirmDeleteUserId && (
+        <ConfirmWithReasonModal
+          title="Delete User Profile"
+          body="This user will permanently lose access to the portal. This action cannot be undone."
+          reasonLabel="Reason for deletion"
+          reasonRequired={false}
+          confirmLabel="Delete User"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfirmDeleteUserId(null)}
+        />
+      )}
+      <UserManagementDisplay
+        users={users}
+        isLoading={isLoading}
+        error={error}
+        currentUserEmail={currentUserEmail}
+        viewerRole={viewerRole}
+        studies={studies}
+        membershipsByUser={membershipsByUser}
+        onRoleChange={handleRoleChange}
+        onStatusChange={handleStatusChange}
+        onDelete={handleDelete}
+        onRefresh={fetchUsers}
+        onAddStudyMember={handleAddStudyMember}
+        onRemoveStudyMember={handleRemoveStudyMember}
+      />
+    </>
   );
 };
 

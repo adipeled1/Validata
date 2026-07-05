@@ -17,12 +17,19 @@ interface Delegation {
   created_at: string;
 }
 
+interface ProfileItem {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+}
+
 const ALL_ROLES = [
-  'mentor', 'sponsor_admin', 'investigator', 'site_coordinator',
+  'admin', 'mentor', 'investigator', 'site_coordinator',
   'data_manager', 'monitor', 'auditor', 'irb_reviewer',
 ];
 
-const ADMIN_ROLES = ['mentor', 'sponsor_admin', 'investigator'];
+const ADMIN_ROLES = ['admin', 'mentor', 'investigator'];
 
 export default function DelegationLogPage() {
   const { userRole, isDemoMode } = useSession();
@@ -33,6 +40,7 @@ export default function DelegationLogPage() {
   const [showPanel, setShowPanel] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<ProfileItem[]>([]);
 
   const [form, setForm] = useState({
     delegatedTo: '',
@@ -60,6 +68,13 @@ export default function DelegationLogPage() {
   }, [currentStudyId]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    fetch('/api/profiles')
+      .then(r => r.ok ? r.json() : [])
+      .then((data: ProfileItem[]) => setProfiles(data.filter(p => p.status === 'active')))
+      .catch(() => setProfiles([]));
+  }, []);
 
   const handleCreate = async () => {
     if (!currentStudyId) return;
@@ -90,6 +105,17 @@ export default function DelegationLogPage() {
     }
   };
 
+  const handleRevoke = async (id: number) => {
+    try {
+      const res = await fetch(`/api/admin/delegations/${id}`, { method: 'PATCH' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed to revoke.');
+      load();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
   if (!ALL_ROLES.includes(userRole)) {
     return (
       <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>
@@ -113,9 +139,6 @@ export default function DelegationLogPage() {
           </h1>
         </div>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          <span style={{ fontSize: '10px', color: 'var(--text-muted)', background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '2px 6px' }}>
-            ICH E6(R3) AUTH-03 / ACC-03
-          </span>
           {canCreate && (
             <button
               onClick={() => setShowPanel(p => !p)}
@@ -139,7 +162,7 @@ export default function DelegationLogPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
             <thead>
               <tr style={{ background: 'var(--bg-surface)', position: 'sticky', top: 0, zIndex: 1 }}>
-                {['Delegated To', 'Role Delegated', 'Task', 'Delegated By', 'Study', 'From', 'To', 'Status'].map(col => (
+                {['Delegated To', 'Role Delegated', 'Task', 'Delegated By', 'Study', 'From', 'To', 'Status', ''].map(col => (
                   <th key={col} style={thStyle}>{col}</th>
                 ))}
               </tr>
@@ -149,7 +172,7 @@ export default function DelegationLogPage() {
                 <tr><td colSpan={8} style={{ padding: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>Loading…</td></tr>
               ) : delegations.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '16px', color: 'var(--text-muted)', textAlign: 'center', fontSize: '11px' }}>
+                  <td colSpan={9} style={{ padding: '16px', color: 'var(--text-muted)', textAlign: 'center', fontSize: '11px' }}>
                     {isDemoMode
                       ? 'No delegation records (demo mode — database not connected)'
                       : 'No delegation entries for this study.'}
@@ -158,6 +181,7 @@ export default function DelegationLogPage() {
               ) : delegations.map((d, i) => {
                 const isRevoked = !!d.revoked_at;
                 const isExpired = d.effective_to && new Date(d.effective_to) < new Date() && !isRevoked;
+                const isActive = !isRevoked && !isExpired;
                 const statusLabel = isRevoked ? 'Revoked' : isExpired ? 'Expired' : 'Active';
                 const statusColor = isRevoked ? '#dc2626' : isExpired ? 'var(--text-muted)' : 'var(--status-active)';
                 return (
@@ -171,6 +195,17 @@ export default function DelegationLogPage() {
                     <td style={{ ...tdStyle, fontFamily: 'var(--font-data)', fontSize: '11px' }}>{d.effective_to ?? '—'}</td>
                     <td style={tdStyle}>
                       <span style={{ color: statusColor, fontWeight: 600, fontSize: '11px' }}>● {statusLabel}</span>
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'right', paddingRight: '8px' }}>
+                      {canCreate && isActive && (
+                        <button
+                          onClick={() => handleRevoke(d.id)}
+                          title="Revoke delegation"
+                          style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--status-dropped)', cursor: 'pointer', fontSize: '10px', padding: '1px 6px' }}
+                        >
+                          Revoke
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -192,13 +227,19 @@ export default function DelegationLogPage() {
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
-                <div style={labelStyle}>Delegate To (user ID or email)</div>
-                <input
-                  placeholder="user@example.com"
+                <div style={labelStyle}>Delegate To</div>
+                <select
                   value={form.delegatedTo}
                   onChange={e => setForm(p => ({ ...p, delegatedTo: e.target.value }))}
                   style={inputStyle}
-                />
+                >
+                  <option value="">— Select user —</option>
+                  {profiles.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.email} ({p.role.replace(/_/g, ' ')})
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <div style={labelStyle}>Role Delegated</div>

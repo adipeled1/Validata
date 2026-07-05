@@ -5,7 +5,7 @@ import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 import { Download } from 'lucide-react';
 
-const COMPLIANCE_ROLES = ['monitor', 'auditor', 'mentor', 'sponsor_admin', 'investigator'];
+const COMPLIANCE_ROLES = ['monitor', 'auditor', 'admin', 'mentor', 'investigator', 'irb_reviewer'];
 
 const colHeaderStyle: React.CSSProperties = {
   padding: '0 10px 6px',

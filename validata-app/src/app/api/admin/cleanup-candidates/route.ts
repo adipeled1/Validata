@@ -1,12 +1,12 @@
 // POST /api/admin/cleanup-candidates
 // Manually trigger cleanup of expired candidates
-// Role-gated: mentor and sponsor_admin only
-import { verifySession } from '@/lib/auth-server';
+// Role-gated: mentor only
+import { verifySession, isMentor } from '@/lib/auth-server';
 
 export async function POST(): Promise<Response> {
   const session = await verifySession();
   if ('error' in session) return Response.json({ error: session.error }, { status: session.status });
-  if (!['mentor', 'sponsor_admin'].includes(session.profile.role)) {
+  if (!isMentor(session)) {
     return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
   if (session.isDemo) return Response.json({ deleted: 0, demo: true });

@@ -1,5 +1,5 @@
-import React from 'react';
-import { UserCheck, Shield, Trash2, ShieldAlert, AlertCircle, RefreshCw, UserMinus, Clock, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { UserCheck, Shield, Trash2, ShieldAlert, AlertCircle, RefreshCw, UserMinus, Clock, X, Plus } from 'lucide-react';
 
 interface User {
   id: string;
@@ -9,15 +9,25 @@ interface User {
   candidate_expires_at?: string;
 }
 
+interface Study {
+  id: string;
+  name: string;
+}
+
 interface UserManagementDisplayProps {
   users: User[];
   isLoading: boolean;
   error: string;
   currentUserEmail: string;
+  viewerRole: string;
+  studies: Study[];
+  membershipsByUser: Record<string, string[]>;
   onRoleChange: (userId: string, newRole: string) => void;
   onStatusChange: (userId: string, newStatus: string) => void;
   onDelete: (userId: string) => void;
   onRefresh: () => void;
+  onAddStudyMember: (userId: string, studyId: string) => void;
+  onRemoveStudyMember: (userId: string, studyId: string) => void;
 }
 
 const colHeaderStyle: React.CSSProperties = {
@@ -47,18 +57,121 @@ const STATUS_COLOR: Record<string, string> = {
   suspended: 'var(--status-dropped)',
 };
 
+const chipStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '3px',
+  fontSize: '10px',
+  padding: '1px 5px',
+  background: 'var(--bg-surface-alt)',
+  border: '1px solid var(--border)',
+  borderRadius: '3px',
+  color: 'var(--text-secondary)',
+  whiteSpace: 'nowrap',
+};
+
+// Studies a non-mentor/admin user belongs to, shown as removable chips with a
+// "+ Add" popover checklist — lets a mentor staff someone for a study without
+// ever leaving User Registry (Study Access Control still exists separately,
+// for the study-centric "who's on this study" view).
+function StudiesCell({
+  userId,
+  allStudies,
+  memberStudyIds,
+  onAdd,
+  onRemove,
+}: {
+  userId: string;
+  allStudies: Study[];
+  memberStudyIds: string[];
+  onAdd: (userId: string, studyId: string) => void;
+  onRemove: (userId: string, studyId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const memberSet = new Set(memberStudyIds);
+  const memberStudies = allStudies.filter((s) => memberSet.has(s.id));
+
+  return (
+    <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
+      {memberStudies.map((s) => (
+        <span key={s.id} style={chipStyle}>
+          {s.name}
+          <button
+            onClick={() => onRemove(userId, s.id)}
+            title={`Remove from ${s.name}`}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, display: 'flex' }}
+          >
+            <X size={9} />
+          </button>
+        </span>
+      ))}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="Add to a study"
+        style={{ ...chipStyle, cursor: 'pointer', color: 'var(--accent-soft)' }}
+      >
+        <Plus size={9} /> Add
+      </button>
+      {open && (
+        <>
+          {/* Click-outside backdrop */}
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={() => setOpen(false)} />
+          <div
+            style={{
+              position: 'absolute', top: '100%', left: 0, marginTop: '4px', zIndex: 10,
+              minWidth: '200px', maxHeight: '220px', overflowY: 'auto',
+              background: 'var(--bg-editor)', border: '1px solid var(--border)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.25)', padding: '6px',
+            }}
+          >
+            {allStudies.length === 0 ? (
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', padding: '4px' }}>No studies found.</div>
+            ) : (
+              allStudies.map((s) => {
+                const checked = memberSet.has(s.id);
+                return (
+                  <label
+                    key={s.id}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', padding: '3px 4px', cursor: 'pointer', color: 'var(--text-primary)' }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => (checked ? onRemove(userId, s.id) : onAdd(userId, s.id))}
+                    />
+                    {s.name}
+                  </label>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 const UserManagementDisplay = ({
   users,
   isLoading,
   error,
   currentUserEmail,
+  viewerRole,
+  studies,
+  membershipsByUser,
   onRoleChange,
   onStatusChange,
   onDelete,
   onRefresh,
+  onAddStudyMember,
+  onRemoveStudyMember,
 }: UserManagementDisplayProps) => {
+  const viewerIsAdmin = viewerRole === 'admin';
   const candidates = users.filter((u) => u.status === 'candidate');
   const activeUsers = users.filter((u) => u.status !== 'candidate');
+  // A plain mentor can't touch an account that's already mentor/admin —
+  // separation of duties so mentors can't demote/suspend/delete each other.
+  const canManage = (targetRole: string) => viewerIsAdmin || (targetRole !== 'mentor' && targetRole !== 'admin');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -75,24 +188,45 @@ const UserManagementDisplay = ({
             Manage system access, roles, and approval status for all researchers.
           </div>
         </div>
-        <button
-          onClick={onRefresh}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '5px 10px',
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border)',
-            color: 'var(--text-secondary)',
-            fontSize: '11px',
-            cursor: 'pointer',
-            borderRadius: 'var(--radius)',
-          }}
-        >
-          <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
-          Refresh
-        </button>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <a
+            href="/api/admin/access-registry?format=csv"
+            title="Download the full access registry as CSV (ICH E6(R3) ACC-01/ACC-02)"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 10px',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-secondary)',
+              fontSize: '11px',
+              cursor: 'pointer',
+              borderRadius: 'var(--radius)',
+              textDecoration: 'none',
+            }}
+          >
+            Export Access Registry (CSV)
+          </a>
+          <button
+            onClick={onRefresh}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 10px',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-secondary)',
+              fontSize: '11px',
+              cursor: 'pointer',
+              borderRadius: 'var(--radius)',
+            }}
+          >
+            <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Error */}
@@ -221,6 +355,7 @@ const UserManagementDisplay = ({
                   <th style={colHeaderStyle}>Email</th>
                   <th style={colHeaderStyle}>Role</th>
                   <th style={colHeaderStyle}>Status</th>
+                  <th style={colHeaderStyle}>Studies</th>
                   <th style={{ ...colHeaderStyle, textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
@@ -257,17 +392,50 @@ const UserManagementDisplay = ({
 
                       {/* Role */}
                       <td style={cellStyle}>
-                        <span style={{
-                          fontSize: '10px',
-                          fontWeight: 600,
-                          color: user.role === 'mentor' ? 'var(--accent-soft)' : 'var(--text-secondary)',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}>
-                          {user.role === 'mentor' && <Shield size={10} />}
-                          {user.role === 'mentor' ? 'Mentor' : user.role.replace(/_/g, ' ')}
-                        </span>
+                        {isSelf || !canManage(user.role) ? (
+                          <span
+                            title={!isSelf && !canManage(user.role) ? 'Only an admin can change a mentor/admin account' : undefined}
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              color: 'var(--accent-soft)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <Shield size={10} />
+                            {user.role === 'admin' ? 'Admin' : user.role === 'mentor' ? 'Mentor' : user.role.replace(/_/g, ' ')}
+                          </span>
+                        ) : (
+                          <select
+                            value={user.role}
+                            onChange={(e) => onRoleChange(user.id, e.target.value)}
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              color: user.role === 'mentor' ? 'var(--accent-soft)' : 'var(--text-secondary)',
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '0',
+                              fontFamily: 'var(--font-ui)',
+                              outline: 'none',
+                            }}
+                          >
+                            <option value="admin" disabled={!viewerIsAdmin} title={!viewerIsAdmin ? 'Only an admin can grant the admin role' : undefined}>
+                              Admin{!viewerIsAdmin ? ' (admin only)' : ''}
+                            </option>
+                            <option value="mentor">Mentor</option>
+                            <option value="investigator">Investigator</option>
+                            <option value="site_coordinator">Site Coordinator</option>
+                            <option value="data_manager">Data Manager</option>
+                            <option value="monitor">Monitor</option>
+                            <option value="auditor">Auditor</option>
+                            <option value="irb_reviewer">IRB Reviewer</option>
+                            <option value="team_member">Team Member</option>
+                          </select>
+                        )}
                       </td>
 
                       {/* Status */}
@@ -282,12 +450,27 @@ const UserManagementDisplay = ({
                         </span>
                       </td>
 
+                      {/* Studies — mentor/admin are global, not scoped by study_members */}
+                      <td style={{ ...cellStyle, height: 'auto', padding: '6px 10px' }}>
+                        {user.role === 'mentor' || user.role === 'admin' ? (
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontStyle: 'italic' }}>All studies (global)</span>
+                        ) : (
+                          <StudiesCell
+                            userId={user.id}
+                            allStudies={studies}
+                            memberStudyIds={membershipsByUser[user.id] ?? []}
+                            onAdd={onAddStudyMember}
+                            onRemove={onRemoveStudyMember}
+                          />
+                        )}
+                      </td>
+
                       {/* Actions */}
                       <td style={{ ...cellStyle, textAlign: 'right' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
 
                           {/* Approve pending */}
-                          {user.status === 'pending' && (
+                          {user.status === 'pending' && canManage(user.role) && (
                             <button
                               onClick={() => onStatusChange(user.id, 'active')}
                               title="Approve account"
@@ -297,19 +480,9 @@ const UserManagementDisplay = ({
                             </button>
                           )}
 
-                          {/* Role toggle */}
-                          {!isSelf && (
-                            <button
-                              onClick={() => onRoleChange(user.id, user.role === 'mentor' ? 'team_member' : 'mentor')}
-                              title={`Switch to ${user.role === 'mentor' ? 'Team Member' : 'Mentor'}`}
-                              style={{ background: 'transparent', border: 'none', color: 'var(--accent-soft)', cursor: 'pointer', padding: '3px', display: 'flex' }}
-                            >
-                              <Shield size={14} />
-                            </button>
-                          )}
 
                           {/* Suspend */}
-                          {!isSelf && user.status === 'active' && (
+                          {!isSelf && user.status === 'active' && canManage(user.role) && (
                             <button
                               onClick={() => onStatusChange(user.id, 'suspended')}
                               title="Suspend access"
@@ -320,7 +493,7 @@ const UserManagementDisplay = ({
                           )}
 
                           {/* Unsuspend */}
-                          {!isSelf && user.status === 'suspended' && (
+                          {!isSelf && user.status === 'suspended' && canManage(user.role) && (
                             <button
                               onClick={() => onStatusChange(user.id, 'active')}
                               title="Activate access"
@@ -331,7 +504,7 @@ const UserManagementDisplay = ({
                           )}
 
                           {/* Delete */}
-                          {!isSelf && (
+                          {!isSelf && canManage(user.role) && (
                             <button
                               onClick={() => onDelete(user.id)}
                               title="Delete profile"
@@ -339,6 +512,11 @@ const UserManagementDisplay = ({
                             >
                               <Trash2 size={14} />
                             </button>
+                          )}
+                          {!isSelf && !canManage(user.role) && (
+                            <span title="Only an admin can manage this account" style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                              admin only
+                            </span>
                           )}
                         </div>
                       </td>

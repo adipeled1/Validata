@@ -14,7 +14,7 @@ interface Study {
   deleted_at?: string | null;
 }
 
-const ADMIN_ROLES = ['sponsor_admin', 'mentor'];
+const ADMIN_ROLES = ['admin', 'mentor'];
 
 export default function StudyLockControlPage() {
   const { userRole, isDemoMode } = useSession();
@@ -89,13 +89,10 @@ export default function StudyLockControlPage() {
             Study Lock Control
           </h1>
         </div>
-        <span style={{ fontSize: '10px', color: 'var(--text-muted)', background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '2px 6px' }}>
-          ICH E6(R3) INT-01 / INT-03
-        </span>
       </div>
 
       {error && (
-        <div style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid #dc2626', padding: '8px 12px', fontSize: '12px', color: '#dc2626', flexShrink: 0 }}>
+        <div style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid var(--color-error)', padding: '8px 12px', fontSize: '12px', color: 'var(--color-error)', flexShrink: 0 }}>
           {error}
         </div>
       )}
@@ -130,8 +127,8 @@ export default function StudyLockControlPage() {
                         <span style={{
                           display: 'inline-flex', alignItems: 'center', gap: '4px',
                           padding: '1px 6px', fontSize: '10px', fontWeight: 700,
-                          border: `1px solid ${isLocked ? '#dc2626' : 'var(--status-active)'}`,
-                          color: isLocked ? '#dc2626' : 'var(--status-active)',
+                          border: `1px solid ${isLocked ? 'var(--color-error)' : 'var(--status-active)'}`,
+                          color: isLocked ? 'var(--color-error)' : 'var(--status-active)',
                           background: isLocked ? 'rgba(220,38,38,0.08)' : 'rgba(78,201,176,0.08)',
                           textTransform: 'uppercase', letterSpacing: '0.06em',
                         }}>
@@ -154,8 +151,8 @@ export default function StudyLockControlPage() {
                             style={{
                               padding: '3px 8px', fontSize: '11px', fontWeight: 600,
                               background: isLocked ? 'rgba(220,38,38,0.1)' : 'rgba(78,201,176,0.1)',
-                              color: isLocked ? '#dc2626' : 'var(--status-active)',
-                              border: `1px solid ${isLocked ? '#dc2626' : 'var(--status-active)'}`,
+                              color: isLocked ? 'var(--color-error)' : 'var(--status-active)',
+                              border: `1px solid ${isLocked ? 'var(--color-error)' : 'var(--status-active)'}`,
                               cursor: 'pointer',
                             }}
                           >
@@ -187,7 +184,7 @@ export default function StudyLockControlPage() {
                               disabled={state.saving || !state.reason.trim()}
                               style={{
                                 padding: '4px 12px', fontSize: '11px', fontWeight: 600,
-                                background: isLocked ? '#dc2626' : 'var(--accent)',
+                                background: isLocked ? 'var(--color-error)' : 'var(--accent)',
                                 color: '#fff', border: 'none', cursor: 'pointer',
                                 opacity: (state.saving || !state.reason.trim()) ? 0.5 : 1,
                               }}

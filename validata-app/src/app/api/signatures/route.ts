@@ -1,7 +1,7 @@
 import { verifySession } from '@/lib/auth-server';
 import { createSignatureSchema, formatValidationError } from '@/lib/schemas';
 
-const SIGNING_ROLES = ['mentor', 'sponsor_admin', 'investigator'];
+const SIGNING_ROLES = ['admin', 'mentor', 'investigator'];
 
 // POST /api/signatures
 // Records an electronic signature for a data milestone (ICH E6(R3) SIG-01, SIG-02, SIG-03).
