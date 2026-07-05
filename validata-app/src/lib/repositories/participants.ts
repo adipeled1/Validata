@@ -72,17 +72,17 @@ export async function createParticipant(
 
   let participantId = id;
   if (!participantId) {
-    const { data: existing } = await session.supabaseClient!
-      .from('participants')
-      .select('id')
-      .eq('study_id', studyId);
+    // fable_system_review §4.5: this used to SELECT all participants and
+    // compute max+1 in application code - two concurrent enrollments could
+    // read the same max and generate the same id, hitting the composite PK
+    // (id, study_id). next_participant_id() atomically increments a
+    // per-study counter row in the DB, so concurrent callers always get
+    // distinct values.
+    const { data: nextId, error: idError } = await session.supabaseClient!
+      .rpc('next_participant_id', { p_study_id: studyId });
 
-    const maxNum = (existing ?? []).reduce((max: number, p: { id: string }) => {
-      const num = parseInt(p.id?.split('-')[1]) || 0;
-      return Math.max(max, num);
-    }, 1000);
-
-    participantId = `P-${maxNum + 1}`;
+    if (idError) throw idError;
+    participantId = nextId as string;
   }
 
   const { data, error } = await session.supabaseClient!
@@ -108,6 +108,9 @@ export async function createParticipant(
 // Update participant status (e.g. drop, complete/un-complete).
 // ICH E6(R3) COR-01: reason is captured for status changes and flows to
 // the audit_log trigger via the status_reason column.
+// Only status/status_reason may ever be written here — this is now also
+// enforced at the DB level by enforce_participants_immutability() in
+// supabase_setup.sql, which rejects any UPDATE touching another column.
 export async function updateParticipantStatus(
   session: ResolvedSession,
   { id, status, studyId, reason }: UpdateParticipantStatusInput

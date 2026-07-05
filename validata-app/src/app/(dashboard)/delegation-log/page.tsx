@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
+import { READABLE_ROLES, DELEGATION_ROLES, hasRole } from '../../../lib/permissions';
 
 interface Delegation {
   id: number;
@@ -24,22 +26,21 @@ interface ProfileItem {
   status: string;
 }
 
-const ALL_ROLES = [
-  'admin', 'mentor', 'investigator', 'site_coordinator',
-  'data_manager', 'monitor', 'auditor', 'irb_reviewer',
-];
-
-const ADMIN_ROLES = ['admin', 'mentor', 'investigator'];
+// fable_system_review §3.2: standardized on SWR instead of a bare useEffect fetch.
+async function fetchDelegations(studyId: string): Promise<Delegation[]> {
+  const res = await fetch(`/api/admin/delegations?studyId=${studyId}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return Array.isArray(data) ? data : [];
+}
 
 export default function DelegationLogPage() {
   const { userRole, isDemoMode } = useSession();
   const { currentStudyId, studies } = useStudy();
 
-  const [delegations, setDelegations] = useState<Delegation[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showPanel, setShowPanel] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<ProfileItem[]>([]);
 
   const [form, setForm] = useState({
@@ -50,27 +51,14 @@ export default function DelegationLogPage() {
     effectiveTo: '',
   });
 
-  const canCreate = ADMIN_ROLES.includes(userRole);
+  const canCreate = hasRole(userRole, DELEGATION_ROLES);
 
-  const load = useCallback(async () => {
-    if (!currentStudyId) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/admin/delegations?studyId=${currentStudyId}`);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setDelegations(Array.isArray(data) ? data : []);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentStudyId]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load();
-  }, [load]);
+  const swrKey = currentStudyId ? `delegations:${currentStudyId}` : null;
+  const { data: delegations = [], isLoading: loading, error: swrError, mutate: mutateDelegations } = useSWR(
+    swrKey,
+    () => fetchDelegations(currentStudyId!)
+  );
+  const error = actionError ?? (swrError ? (swrError as Error).message : null);
 
   useEffect(() => {
     fetch('/api/profiles')
@@ -82,7 +70,7 @@ export default function DelegationLogPage() {
   const handleCreate = async () => {
     if (!currentStudyId) return;
     setSaving(true);
-    setError(null);
+    setActionError(null);
     try {
       const res = await fetch('/api/admin/delegations', {
         method: 'POST',
@@ -100,9 +88,9 @@ export default function DelegationLogPage() {
       if (data.error) throw new Error(data.error);
       setShowPanel(false);
       setForm({ delegatedTo: '', roleDelegated: 'site_coordinator', taskDescription: '', effectiveFrom: '', effectiveTo: '' });
-      load();
+      mutateDelegations();
     } catch (e) {
-      setError((e as Error).message);
+      setActionError((e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -113,13 +101,13 @@ export default function DelegationLogPage() {
       const res = await fetch(`/api/admin/delegations/${id}`, { method: 'PATCH' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed to revoke.');
-      load();
+      mutateDelegations();
     } catch (e) {
-      setError((e as Error).message);
+      setActionError((e as Error).message);
     }
   };
 
-  if (!ALL_ROLES.includes(userRole)) {
+  if (!hasRole(userRole, READABLE_ROLES)) {
     return (
       <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>
         You do not have access to the delegation log.

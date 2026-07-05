@@ -10,11 +10,13 @@ export async function GET(request: Request): Promise<Response> {
       return Response.json({ error: session.error }, { status: session.status });
     }
 
-    // Lazy cleanup: hard-delete expired candidates on every admin load
-    // Fire-and-forget — don't await so it doesn't delay the response
-    if (!session.isDemo && session.supabaseClient) {
-      void Promise.resolve(session.supabaseClient.rpc('cleanup_expired_candidates')).catch(() => {});
-    }
+    // fable_system_review §5.4: candidate cleanup used to run here as an
+    // un-awaited side effect of a GET request - a read endpoint that
+    // hard-deletes rows from auth.users as a fire-and-forget action is
+    // surprising, unauditable (the deletion's HTTP context is a list
+    // request), and racy. It's now a scheduled pg_cron job (see
+    // supabase_setup.sql §37) instead, with POST /api/admin/cleanup-
+    // candidates still available for an on-demand manual trigger.
 
     const { searchParams } = new URL(request.url);
     const fetchCurrentOnly = searchParams.get('current') === 'true';
@@ -57,7 +59,7 @@ export async function GET(request: Request): Promise<Response> {
 
     // 2. Fetch all profiles — mentor only (ICH E6(R3) ACC-01)
     if (!isMentor(session)) {
-      return Response.json({ error: 'Forbidden. Admin role required.' }, { status: 403 });
+      return Response.json({ error: 'Forbidden. Mentor or admin role required.' }, { status: 403 });
     }
 
     if (session.isDemo) {
@@ -88,7 +90,7 @@ export async function PATCH(request: Request): Promise<Response> {
     }
 
     if (!isMentor(session)) {
-      return Response.json({ error: 'Forbidden. Admin role required.' }, { status: 403 });
+      return Response.json({ error: 'Forbidden. Mentor or admin role required.' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -153,7 +155,7 @@ export async function DELETE(request: Request): Promise<Response> {
     }
 
     if (!isMentor(session)) {
-      return Response.json({ error: 'Forbidden. Admin role required.' }, { status: 403 });
+      return Response.json({ error: 'Forbidden. Mentor or admin role required.' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

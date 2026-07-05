@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
-
-const COMPLIANCE_ROLES = ['monitor', 'auditor', 'admin', 'mentor', 'investigator', 'site_coordinator', 'data_manager', 'irb_reviewer'];
+import { READABLE_ROLES, EDIT_ROLES, CONSENT_VERSION_ROLES, hasRole } from '../../../lib/permissions';
 
 interface ConsentFormVersion {
   id: number;
@@ -31,18 +31,23 @@ const METHOD_LABELS: Record<string, string> = {
   verbal_with_witness: 'Verbal + Witness',
 };
 
+// fable_system_review §3.2: standardized on SWR instead of a bare useEffect fetch.
+async function fetchConsent(studyId: string): Promise<{ versions: ConsentFormVersion[]; records: ConsentRecord[] }> {
+  const res = await fetch(`/api/consent?studyId=${studyId}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return { versions: data.versions || [], records: data.records || [] };
+}
+
 export default function ConsentRecordsPage() {
   const { userRole, isDemoMode } = useSession();
   const { currentStudyId, participants } = useStudy();
 
-  const [versions, setVersions] = useState<ConsentFormVersion[]>([]);
-  const [records, setRecords] = useState<ConsentRecord[]>([]);
   const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
   const [showNewRecord, setShowNewRecord] = useState(false);
   const [showNewVersion, setShowNewVersion] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // New record form state
   const [newRecord, setNewRecord] = useState({
@@ -60,29 +65,22 @@ export default function ConsentRecordsPage() {
     contentHash: '',
   });
 
-  const load = useCallback(async () => {
-    if (!currentStudyId) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/consent?studyId=${currentStudyId}`);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setVersions(data.versions || []);
-      setRecords(data.records || []);
-      if (!selectedVersionId && data.versions?.length > 0) {
-        setSelectedVersionId(data.versions[0].id);
-      }
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentStudyId, selectedVersionId]);
+  const swrKey = currentStudyId ? `consent:${currentStudyId}` : null;
+  const { data, isLoading: loading, error: swrError, mutate: mutateConsent } = useSWR(
+    swrKey,
+    () => fetchConsent(currentStudyId!)
+  );
+  const versions = data?.versions ?? [];
+  const records = data?.records ?? [];
+  const error = actionError ?? (swrError ? (swrError as Error).message : null);
 
+  // Auto-select the first version once data arrives, if nothing selected yet.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load();
-  }, [load]);
+    if (!selectedVersionId && versions.length > 0) {
+      setSelectedVersionId(versions[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [versions]);
 
   const visibleRecords = selectedVersionId
     ? records.filter(r => r.form_version_id === selectedVersionId)
@@ -91,12 +89,17 @@ export default function ConsentRecordsPage() {
   const handleCreateRecord = async () => {
     if (!currentStudyId || !selectedVersionId) return;
     setSaving(true);
-    setError(null);
+    setActionError(null);
     try {
       const res = await fetch('/api/consent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          // fable_system_review: this call was missing `action`, which
+          // POST /api/consent requires to route the request - it always hit
+          // the "Unknown action." 400 branch and consent recording never
+          // actually worked. Found and fixed while converting this page to SWR.
+          action: 'record_consent',
           participantId: newRecord.participantId,
           studyId: currentStudyId,
           formVersionId: selectedVersionId,
@@ -110,9 +113,9 @@ export default function ConsentRecordsPage() {
       if (data.error) throw new Error(data.error);
       setShowNewRecord(false);
       setNewRecord({ participantId: '', method: 'written', copyDelivered: false, witnessedBy: '', notes: '' });
-      load();
+      mutateConsent();
     } catch (e) {
-      setError((e as Error).message);
+      setActionError((e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -121,13 +124,16 @@ export default function ConsentRecordsPage() {
   const handleCreateVersion = async () => {
     if (!currentStudyId) return;
     setSaving(true);
-    setError(null);
+    setActionError(null);
     try {
       const res = await fetch('/api/consent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'version',
+          // fable_system_review: this sent `type: 'version'`, but the route
+          // switches on `action === 'create_version'` - same bug as above,
+          // version creation always 400'd. Fixed alongside the SWR conversion.
+          action: 'create_version',
           studyId: currentStudyId,
           version: newVersion.version,
           irbApprovedAt: newVersion.irbApprovedAt || undefined,
@@ -138,15 +144,15 @@ export default function ConsentRecordsPage() {
       if (data.error) throw new Error(data.error);
       setShowNewVersion(false);
       setNewVersion({ version: '', irbApprovedAt: '', contentHash: '' });
-      load();
+      mutateConsent();
     } catch (e) {
-      setError((e as Error).message);
+      setActionError((e as Error).message);
     } finally {
       setSaving(false);
     }
   };
 
-  if (!COMPLIANCE_ROLES.includes(userRole)) {
+  if (!hasRole(userRole, READABLE_ROLES)) {
     return (
       <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>
         You do not have access to consent records.
@@ -154,7 +160,13 @@ export default function ConsentRecordsPage() {
     );
   }
 
-  const canEdit = ['admin', 'mentor', 'investigator', 'site_coordinator'].includes(userRole);
+  // fable_system_review §2.2: consent FORM VERSIONING (protocol-level
+  // document control) is a narrower capability than recording an individual
+  // participant's consent - these used to share one `canEdit` flag, which
+  // showed the "+ New Version" button (mentor/admin-only per the API/RLS) to
+  // investigators/site_coordinators, who would then hit a 403 on submit.
+  const canCreateVersion = hasRole(userRole, CONSENT_VERSION_ROLES);
+  const canRecordConsent = hasRole(userRole, EDIT_ROLES);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '8px' }}>
@@ -188,7 +200,7 @@ export default function ConsentRecordsPage() {
             <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Form Versions
             </span>
-            {canEdit && (
+            {canCreateVersion && (
               <button
                 onClick={() => setShowNewVersion(v => !v)}
                 style={{ fontSize: '11px', color: 'var(--accent-soft)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }}
@@ -280,7 +292,7 @@ export default function ConsentRecordsPage() {
               <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '8px' }}>({visibleRecords.length})</span>
             </span>
             <div style={{ display: 'flex', gap: '6px' }}>
-              {canEdit && selectedVersionId && (
+              {canRecordConsent && selectedVersionId && (
                 <button
                   onClick={() => setShowNewRecord(r => !r)}
                   style={{ fontSize: '11px', padding: '3px 8px', background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer' }}

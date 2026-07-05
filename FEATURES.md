@@ -118,8 +118,6 @@ Computed statistics: RMSE, MAE, bias, SD of difference, 95% limits of agreement,
 
 **Data endorsement** — investigators and mentors can electronically endorse the analysis dataset. The "Endorse Data" button opens a modal that requires re-entry of the user's password before writing a signed record (see **Electronic Signatures** below).
 
-**AI chat assistant** — powered by Google Gemini. The user can ask questions about the data; the current statistics are injected as context.
-
 ---
 
 ## Audit Trail
@@ -219,7 +217,7 @@ The participant table's old boolean `consent` column has been replaced. The part
 ## System Inventory Register
 
 - **`/system-inventory` dashboard page** — visible to `mentor` and `sponsor_admin` only
-- Lists all software components (Next.js, Supabase, Vercel, Google AI, Chart.js, etc.) with their GAMP 5 category, version, supplier, and validation status
+- Lists all software components (Next.js, Supabase, Vercel, Chart.js, etc.) with their GAMP 5 category, version, supplier, and validation status
 - Serves as the META-04 computerised system register
 
 ---
@@ -262,7 +260,6 @@ All API and Server Action inputs are validated with Zod schemas defined centrall
 | `/api/admin/export` | GET | Full JSON export + SHA-256 |
 | `/api/admin/destruction-request` | POST | Data destruction record |
 | `/api/admin/delegations` | GET, POST | Delegation log |
-| `/api/chat` | POST | AI analysis chat (Gemini) |
 
 ---
 

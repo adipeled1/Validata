@@ -47,23 +47,18 @@ export default function LoginControl() {
     setErrorMessage('');
     setSuccessMessage('');
 
-    // Handle Auth if Supabase is not configured
+    // Handle Auth if Supabase is not configured (demo mode fallback - only
+    // takes effect server-side if NEXT_PUBLIC_DEMO_ENABLED=true; see
+    // /api/auth/demo-login and fable_system_review §6.1).
     if (!isSupabaseConfigured) {
-      setTimeout(() => {
-        // Fallback demo logins if user tries to login with demo credentials manually
-        if (email === 'mentor@demo.com' && password === 'demo123') {
-          performDemoLogin('mentor', email);
-          setSuccessMessage('Demo logged in successfully!');
-          setTimeout(() => { router.push('/'); router.refresh(); }, 1000);
-        } else if (email === 'team@demo.com' && password === 'demo123') {
-          performDemoLogin('team_member', email);
-          setSuccessMessage('Demo logged in successfully!');
-          setTimeout(() => { router.push('/'); router.refresh(); }, 1000);
-        } else {
-          setErrorMessage('Invalid credentials. (Note: Supabase is not configured. Use mentor@demo.com / demo123 or team@demo.com / demo123).');
-          setIsLoading(false);
-        }
-      }, 800);
+      try {
+        await performDemoLogin(email, password);
+        setSuccessMessage('Demo logged in successfully!');
+        setTimeout(() => { router.push('/'); router.refresh(); }, 1000);
+      } catch (err: any) {
+        setErrorMessage(err.message || 'Invalid credentials. (Note: Supabase is not configured. Use mentor@demo.com / demo123 or team@demo.com / demo123).');
+        setIsLoading(false);
+      }
       return;
     }
 

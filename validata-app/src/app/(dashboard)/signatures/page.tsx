@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 import { Download } from 'lucide-react';
-
-const COMPLIANCE_ROLES = ['monitor', 'auditor', 'admin', 'mentor', 'investigator', 'irb_reviewer'];
+import { READABLE_ROLES, hasRole } from '../../../lib/permissions';
 
 const colHeaderStyle: React.CSSProperties = {
   padding: '0 10px 6px',
@@ -38,29 +38,24 @@ interface Signature {
   meaning: string;
 }
 
+// fable_system_review §3.2: standardized on SWR instead of a bare useEffect fetch.
+async function fetchSignatures(studyId: string): Promise<Signature[]> {
+  const res = await fetch(`/api/signatures?studyId=${studyId}`);
+  if (!res.ok) throw new Error(res.statusText);
+  const data = await res.json();
+  return data ?? [];
+}
+
 export default function SignaturesPage() {
   const { userRole, isDemoMode } = useSession();
   const { currentStudyId } = useStudy();
 
-  const [signatures, setSignatures] = useState<Signature[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const load = useCallback(() => {
-    if (!currentStudyId) return;
-    setLoading(true);
-    setError('');
-    fetch(`/api/signatures?studyId=${currentStudyId}`)
-      .then((r) => r.ok ? r.json() : Promise.reject(r.statusText))
-      .then((data: Signature[]) => setSignatures(data ?? []))
-      .catch((e) => setError(String(e)))
-      .finally(() => setLoading(false));
-  }, [currentStudyId]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load();
-  }, [load]);
+  const swrKey = currentStudyId ? `signatures:${currentStudyId}` : null;
+  const { data: signatures = [], isLoading: loading, error: swrError } = useSWR(
+    swrKey,
+    () => fetchSignatures(currentStudyId!)
+  );
+  const error = swrError ? String(swrError) : '';
 
   const handleExportCSV = () => {
     const header = 'Signed At (UTC),Signer,Record Type,Record ID,Milestone,Meaning\n';
@@ -85,7 +80,11 @@ export default function SignaturesPage() {
     URL.revokeObjectURL(url);
   };
 
-  if (!COMPLIANCE_ROLES.includes(userRole)) {
+  // fable_system_review §2.1: standardized to the same READABLE_ROLES set
+  // GET /api/signatures now enforces (it previously had no role check
+  // there at all, and this page's set was missing site_coordinator/
+  // data_manager relative to every other compliance-page gate).
+  if (!hasRole(userRole, READABLE_ROLES)) {
     return (
       <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>
         You do not have access to the electronic signatures register.

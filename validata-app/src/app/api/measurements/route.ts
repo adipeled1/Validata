@@ -1,7 +1,8 @@
 import { verifySession } from '@/lib/auth-server';
 import { listMeasurements } from '@/lib/repositories/measurements';
+import { listParticipants } from '@/lib/repositories/participants';
+import { mapParticipants, mapMeasurements } from '@/lib/mappers';
 import { analysisRequestSchema, formatValidationError } from '@/lib/schemas';
-import mockData from '@/mockData.json';
 import analysisData from './analysisData';
 import {
   normalizeRecord,
@@ -39,6 +40,10 @@ export async function GET(request: Request): Promise<Response> {
 
 // POST: Calculate analysis (measurement mutations moved to Server Actions -
 // see src/app/actions/measurements.ts)
+// fable_system_review §4.3: participants/measurements are read from the DB by
+// studyId (under RLS) rather than trusted from the request body - previously
+// a client could POST arbitrary arrays and get back an "official" analysis
+// computed on fabricated numbers.
 export async function POST(request: Request): Promise<Response> {
   try {
     const session = await verifySession();
@@ -53,25 +58,31 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const threshold = parseFloat(String(parsed.data.threshold)) || 5;
-    const rawMeasurements = parsed.data.measurements;
-    const participants = parsed.data.participants;
+    const { studyId } = parsed.data;
+
+    const [rawParticipants, rawMeasurements] = await Promise.all([
+      listParticipants(session, studyId),
+      listMeasurements(session, studyId),
+    ]);
+    const participants = mapParticipants(rawParticipants, session.isDemo);
+    const measurements = mapMeasurements(rawMeasurements, session.isDemo);
 
     const progressData = getProgressChartData(
       participants as Array<{ id: string; [key: string]: unknown }>,
-      rawMeasurements
+      measurements
     );
     const statusData = getStatusChartData(participants as Array<{ status: string; [key: string]: unknown }>);
     const aiResult = generateAnalysisText(
       participants as Array<{ status: string; [key: string]: unknown }>,
-      rawMeasurements
+      measurements
     );
 
     let normalizedData;
-    if (session.isDemo && (!rawMeasurements.length || rawMeasurements === (mockData.measurements as unknown as typeof rawMeasurements))) {
+    if (session.isDemo && !measurements.length) {
        normalizedData = analysisData;
     } else {
        // Measurements flagged invalid are excluded from every statistic/chart.
-       normalizedData = rawMeasurements
+       normalizedData = measurements
          .filter((m) => m.isValid !== false)
          .map(normalizeRecord)
          .filter((m) => m.goniometerAngle > 0 && m.aiAngle > 0);

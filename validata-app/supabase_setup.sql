@@ -670,6 +670,42 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Mirrors permissions.ts::DELEGATION_ROLES (fable_system_review §2.2): the
+-- delegations_insert/update policies used to be is_mentor()-only while the
+-- API allowed investigators too, so an investigator's delegation always hit
+-- an RLS 403 despite the UI offering the form. Investigators legitimately
+-- delegate duties to site staff (ACC-03), so this is the app-layer's
+-- permissive check made authoritative, not the DB's restrictive one.
+CREATE OR REPLACE FUNCTION public.can_manage_delegations()
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE public.profiles.id = auth.uid()
+          AND public.profiles.role IN ('admin', 'mentor', 'investigator')
+          AND public.profiles.status = 'active'
+          AND public.profiles.deleted_at IS NULL
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Mirrors permissions.ts::QUERY_MUTATE_ROLES (fable_system_review §2.3): the
+-- queries_update policy used to reuse can_read_only(), which let auditor/
+-- irb_reviewer - roles that must stay read-only - answer/resolve/close
+-- queries. This is the same role set already used for creating a query.
+CREATE OR REPLACE FUNCTION public.can_mutate_queries()
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE public.profiles.id = auth.uid()
+          AND public.profiles.role IN ('admin', 'mentor', 'investigator', 'data_manager', 'monitor')
+          AND public.profiles.status = 'active'
+          AND public.profiles.deleted_at IS NULL
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Per-study scoping: mentor is a global admin (unrestricted across all studies
 -- by design); every other role must additionally be listed in study_members
 -- for the specific study being accessed. Without this, Study Access Control
@@ -922,13 +958,15 @@ WITH CHECK (
     AND public.is_study_member(study_id)
 );
 
--- Data editors and monitors can update queries (answer / resolve / close)
+-- Data editors and monitors can update queries (answer / resolve / close).
+-- fable_system_review §2.3: this used to reuse can_read_only(), which let
+-- auditor/irb_reviewer - roles that must stay read-only - mutate queries.
 DROP POLICY IF EXISTS "queries_update" ON public.queries;
 CREATE POLICY "queries_update"
 ON public.queries
 FOR UPDATE
 TO authenticated
-USING (public.can_read_only() AND public.is_study_member(study_id));
+USING (public.can_mutate_queries() AND public.is_study_member(study_id));
 
 -- Query changes are logged by the audit trigger
 DROP TRIGGER IF EXISTS audit_queries ON public.queries;
@@ -1186,12 +1224,12 @@ USING (public.can_read_only() AND public.is_study_member(study_id));
 DROP POLICY IF EXISTS "delegations_insert" ON public.delegations;
 CREATE POLICY "delegations_insert"
 ON public.delegations FOR INSERT TO authenticated
-WITH CHECK (public.is_mentor());
+WITH CHECK (public.can_manage_delegations());
 
 DROP POLICY IF EXISTS "delegations_update" ON public.delegations;
 CREATE POLICY "delegations_update"
 ON public.delegations FOR UPDATE TO authenticated
-USING (public.is_mentor());
+USING (public.can_manage_delegations());
 
 DROP TRIGGER IF EXISTS audit_delegations ON public.delegations;
 CREATE TRIGGER audit_delegations
@@ -1384,33 +1422,26 @@ BEGIN
 END;
 $$;
 
--- 30. Profile status change audit — skips candidate pre-activation rows
-CREATE OR REPLACE FUNCTION public.log_profile_status_change()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-  -- Skip audit for pre-activation state (candidates were never real users)
-  IF OLD.status = 'candidate' THEN
-    RETURN NEW;
-  END IF;
-  INSERT INTO public.audit_log (
-    study_id, table_name, record_id, action, actor_id,
-    old_value, new_value, reason, created_at
-  ) VALUES (
-    NULL,
-    'profiles',
-    NEW.id::TEXT,
-    'STATUS_CHANGE',
-    auth.uid(),
-    jsonb_build_object('status', OLD.status, 'role', OLD.role),
-    jsonb_build_object('status', NEW.status, 'role', NEW.role),
-    NEW.change_reason,
-    NOW()
-  );
-  RETURN NEW;
-END;
-$$;
+-- 30. (Removed) log_profile_status_change() was dead code: never attached to a
+-- trigger, not SECURITY DEFINER (would have failed under RLS like
+-- audit_study_members() below), and referenced a non-existent audit_log.created_at
+-- column. STATUS_CHANGE audit rows for profiles are already produced by
+-- log_audit_event() via the audit_profiles trigger (see §16 above).
+DROP FUNCTION IF EXISTS public.log_profile_status_change();
 
--- 31. Study Members table
+-- 31. Study Members table.
+-- fable_system_review §7.4: study_role is an immutable snapshot of the
+-- user's global profile.role at the moment they were granted access to this
+-- study - it is NEVER updated afterward, even if the user's global role
+-- later changes. It exists purely as historical grant-time context (e.g.
+-- "what role did this person have when they joined this study") and MUST
+-- NOT be treated as the user's current role - always read profiles.role
+-- (joined live) for anything authorization- or display-related. Both
+-- current call sites already do this correctly (study-members/route.ts's
+-- GET joins profiles(role); StudyManagement.tsx's roleName display prefers
+-- `m.profiles?.role` and only falls back to `m.study_role` if that join is
+-- ever missing) - kept as a documented convention rather than removing the
+-- column, since it's still useful audit context.
 CREATE TABLE IF NOT EXISTS public.study_members (
   study_id     UUID NOT NULL REFERENCES public.studies(id) ON DELETE CASCADE,
   user_id      UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -1436,15 +1467,20 @@ CREATE POLICY "study_members_write" ON public.study_members
   FOR ALL USING (public.is_mentor());
 
 -- Audit trigger for study_members
+-- SECURITY DEFINER is required: audit_log has RLS enabled with only a SELECT
+-- policy, so a SECURITY INVOKER trigger running as `authenticated` has no
+-- INSERT grant and this insert (and therefore the whole grant/revoke
+-- transaction on study_members) would roll back. See fable_system_review §5.1.
+-- Also fixed: audit_log has no `created_at` column (it's `occurred_at`).
 CREATE OR REPLACE FUNCTION public.audit_study_members()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    INSERT INTO public.audit_log (study_id, table_name, record_id, action, actor_id, new_value, created_at)
+    INSERT INTO public.audit_log (study_id, table_name, record_id, action, actor_id, new_value, occurred_at)
     VALUES (NEW.study_id, 'study_members', NEW.user_id::TEXT, 'INSERT', auth.uid(),
             jsonb_build_object('user_id', NEW.user_id, 'study_role', NEW.study_role), NOW());
   ELSIF TG_OP = 'DELETE' THEN
-    INSERT INTO public.audit_log (study_id, table_name, record_id, action, actor_id, old_value, created_at)
+    INSERT INTO public.audit_log (study_id, table_name, record_id, action, actor_id, old_value, occurred_at)
     VALUES (OLD.study_id, 'study_members', OLD.user_id::TEXT, 'DELETE', auth.uid(),
             jsonb_build_object('user_id', OLD.user_id, 'study_role', OLD.study_role), NOW());
   END IF;
@@ -1502,3 +1538,224 @@ CREATE POLICY "study_members_write" ON public.study_members
         AND public.profiles.deleted_at IS NULL
     )
   );
+
+-- ============================================================
+-- 33. Enforce clinical-data immutability at the DB level (fable_system_review §4.4)
+--     Schema comments have long asserted measurements/participants are
+--     "never edited in place," but the UPDATE RLS policies above are
+--     column-blind — anyone with an authenticated Supabase client and a
+--     valid session can overwrite raw goniometer/ai_model/demographic
+--     values directly, bypassing the repository layer that is the only
+--     thing currently enforcing the restriction. These BEFORE UPDATE
+--     triggers make the restriction a real DB constraint: only the columns
+--     the application actually uses for in-place updates may change.
+-- ============================================================
+
+-- Measurements: only is_valid / validity_reason may be updated in place
+-- (see src/lib/repositories/measurements.ts::updateMeasurementValidity).
+CREATE OR REPLACE FUNCTION public.enforce_measurements_immutability()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.participant_id IS DISTINCT FROM OLD.participant_id
+     OR NEW.study_id IS DISTINCT FROM OLD.study_id
+     OR NEW.goniometer IS DISTINCT FROM OLD.goniometer
+     OR NEW.ai_model IS DISTINCT FROM OLD.ai_model
+     OR NEW.notes IS DISTINCT FROM OLD.notes
+     OR NEW.timestamp IS DISTINCT FROM OLD.timestamp
+     OR NEW.test_date IS DISTINCT FROM OLD.test_date
+     OR NEW.created_by IS DISTINCT FROM OLD.created_by
+     OR NEW.capture_method IS DISTINCT FROM OLD.capture_method
+  THEN
+    RAISE EXCEPTION 'measurements is immutable: only is_valid and validity_reason may be updated (attempted change on record %)', OLD.id
+      USING ERRCODE = 'raise_exception';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS enforce_measurements_immutability ON public.measurements;
+CREATE TRIGGER enforce_measurements_immutability
+  BEFORE UPDATE ON public.measurements
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_measurements_immutability();
+
+-- Participants: only status / status_reason may be updated in place
+-- (see src/lib/repositories/participants.ts::updateParticipantStatus).
+CREATE OR REPLACE FUNCTION public.enforce_participants_immutability()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.study_id IS DISTINCT FROM OLD.study_id
+     OR NEW.consent IS DISTINCT FROM OLD.consent
+     OR NEW.age IS DISTINCT FROM OLD.age
+     OR NEW.gender IS DISTINCT FROM OLD.gender
+     OR NEW.health_status IS DISTINCT FROM OLD.health_status
+     OR NEW.enrollment_date IS DISTINCT FROM OLD.enrollment_date
+     OR NEW.created_by IS DISTINCT FROM OLD.created_by
+  THEN
+    RAISE EXCEPTION 'participants is immutable: only status and status_reason may be updated (attempted change on record %)', OLD.id
+      USING ERRCODE = 'raise_exception';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS enforce_participants_immutability ON public.participants;
+CREATE TRIGGER enforce_participants_immutability
+  BEFORE UPDATE ON public.participants
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_participants_immutability();
+
+-- Records a DESTRUCTION_REQUEST audit entry directly (fable_system_review
+-- §5.2). admin/destruction-request/route.ts used to work around the lack of
+-- an audit_log INSERT policy for `authenticated` by overwriting the study's
+-- `lock_reason` column instead - which corrupted Study Lock Control's
+-- "Reason" display and recorded the action as a plain studies UPDATE rather
+-- than the DESTRUCTION_REQUEST action the schema defines. SECURITY DEFINER
+-- lets this insert bypass RLS the same way log_audit_event() does, without
+-- touching any other column on the study.
+CREATE OR REPLACE FUNCTION public.record_destruction_request(p_study_id UUID, p_reason TEXT)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+    INSERT INTO public.audit_log (study_id, table_name, record_id, action, actor_id, reason, occurred_at)
+    VALUES (p_study_id, 'studies', p_study_id::TEXT, 'DESTRUCTION_REQUEST', auth.uid(), p_reason, NOW());
+END;
+$$;
+
+-- ============================================================
+-- 34. Signing tokens — atomic electronic-signature re-authentication
+--     (fable_system_review §2.4, §6.3). Previously POST /api/auth/verify-
+--     credentials and POST /api/signatures were two unlinked requests -
+--     nothing forced the verify to precede the sign, so a script (or a
+--     replayed/direct request) could call /api/signatures with a valid
+--     session and never present a password. A signing token is minted only
+--     after a successful password re-check, is single-use, and expires
+--     quickly; /api/signatures now requires and atomically consumes one.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.signing_tokens (
+    token       TEXT PRIMARY KEY,
+    user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    purpose     TEXT NOT NULL DEFAULT 'signature',
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at  TIMESTAMPTZ NOT NULL,
+    consumed_at TIMESTAMPTZ
+);
+
+ALTER TABLE public.signing_tokens ENABLE ROW LEVEL SECURITY;
+
+-- Users may only mint/read/consume their own tokens. There is no DELETE
+-- policy - expired/consumed rows are cheap to keep and are useful audit
+-- evidence of when re-authentication actually happened.
+DROP POLICY IF EXISTS "signing_tokens_insert" ON public.signing_tokens;
+CREATE POLICY "signing_tokens_insert" ON public.signing_tokens
+  FOR INSERT TO authenticated
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "signing_tokens_select" ON public.signing_tokens;
+CREATE POLICY "signing_tokens_select" ON public.signing_tokens
+  FOR SELECT TO authenticated
+  USING (user_id = auth.uid());
+
+-- UPDATE is restricted to consuming (setting consumed_at) a still-valid,
+-- unconsumed token belonging to the caller - see consumeSigningToken() in
+-- src/lib/signing-tokens.ts, which relies on this being atomic (the UPDATE's
+-- own WHERE clause re-checks consumed_at/expires_at at execution time, so
+-- two concurrent consume attempts can't both succeed).
+DROP POLICY IF EXISTS "signing_tokens_update" ON public.signing_tokens;
+CREATE POLICY "signing_tokens_update" ON public.signing_tokens
+  FOR UPDATE TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+-- ============================================================
+-- 35. Indexes (fable_system_review §4.6) — supabase_setup.sql previously
+--     created zero indexes. Every clinical table is filtered by study_id on
+--     essentially every query, and is_study_member() (used in most RLS
+--     policies above) does a study_members lookup on every row access.
+--     Without these, all of that degrades to sequential scans as data grows,
+--     and the audit log's `ORDER BY occurred_at DESC LIMIT 500` sorts the
+--     whole table.
+-- ============================================================
+CREATE INDEX IF NOT EXISTS idx_participants_study_id ON public.participants(study_id);
+CREATE INDEX IF NOT EXISTS idx_measurements_study_id ON public.measurements(study_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_study_id ON public.audit_log(study_id);
+CREATE INDEX IF NOT EXISTS idx_queries_study_id ON public.queries(study_id);
+CREATE INDEX IF NOT EXISTS idx_signatures_study_id ON public.signatures(study_id);
+CREATE INDEX IF NOT EXISTS idx_adverse_events_study_id ON public.adverse_events(study_id);
+CREATE INDEX IF NOT EXISTS idx_delegations_study_id ON public.delegations(study_id);
+CREATE INDEX IF NOT EXISTS idx_consent_records_study_id ON public.consent_records(study_id);
+CREATE INDEX IF NOT EXISTS idx_consent_form_versions_study_id ON public.consent_form_versions(study_id);
+
+-- Composite: every is_study_member(study_id) call filters on both columns.
+CREATE INDEX IF NOT EXISTS idx_study_members_study_user ON public.study_members(study_id, user_id);
+
+-- audit_log is append-only and unbounded; GET /api/audit-log always orders
+-- by occurred_at DESC (optionally filtered by study_id) with LIMIT 500.
+CREATE INDEX IF NOT EXISTS idx_audit_log_occurred_at ON public.audit_log(occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_study_occurred ON public.audit_log(study_id, occurred_at DESC);
+
+-- ============================================================
+-- 36. DB-side participant ID allocation (fable_system_review §4.5) —
+--     createParticipant() used to compute `max+1` over existing participant
+--     ids in application code (a SELECT then an INSERT as two separate
+--     round trips). Two concurrent enrollments for the same study can read
+--     the same max and generate the same "P-N" id, hitting the composite
+--     PK (id, study_id) and failing one enrollment. On Vercel's serverless
+--     platform (many concurrent lambdas), this is not theoretical.
+--
+--     Fix: an atomic per-study counter table. INSERT ... ON CONFLICT DO
+--     UPDATE ... RETURNING is a well-known atomic-increment pattern in
+--     Postgres - the row lock taken by the conflicting UPDATE serializes
+--     concurrent callers, so two simultaneous calls always return distinct
+--     values. Starts at 1001 to match the existing numbering convention.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.participant_id_counters (
+    study_id UUID PRIMARY KEY REFERENCES public.studies(id) ON DELETE CASCADE,
+    last_id  INTEGER NOT NULL DEFAULT 1000
+);
+
+-- No direct access - only reachable through next_participant_id() below.
+ALTER TABLE public.participant_id_counters ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION public.next_participant_id(p_study_id UUID)
+RETURNS TEXT LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+    v_next INTEGER;
+BEGIN
+    INSERT INTO public.participant_id_counters (study_id, last_id)
+    VALUES (p_study_id, 1001)
+    ON CONFLICT (study_id) DO UPDATE
+        SET last_id = public.participant_id_counters.last_id + 1
+    RETURNING last_id INTO v_next;
+
+    RETURN 'P-' || v_next;
+END;
+$$;
+
+-- ============================================================
+-- 37. Scheduled candidate cleanup (fable_system_review §5.4) — this used to
+--     run as an un-awaited side effect of GET /api/profiles (a read endpoint
+--     hard-deleting rows from auth.users on every mentor page load, outside
+--     any request context that would show up in an audit trail). Moved to
+--     pg_cron, which runs inside Postgres on a schedule with no app-layer
+--     involvement. POST /api/admin/cleanup-candidates remains available for
+--     an on-demand manual trigger.
+--
+--     Requires the pg_cron extension to be enabled for this project (Supabase
+--     dashboard: Database > Extensions > pg_cron, or
+--     `CREATE EXTENSION IF NOT EXISTS pg_cron;` if you have the privileges to
+--     run it directly). This block is guarded so the rest of this script
+--     still runs cleanly if pg_cron isn't enabled yet - re-run it after
+--     enabling the extension to pick up the schedule.
+-- ============================================================
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+        PERFORM cron.unschedule(jobid) FROM cron.job WHERE jobname = 'cleanup-expired-candidates';
+        PERFORM cron.schedule(
+            'cleanup-expired-candidates',
+            '0 3 * * *', -- daily at 03:00 UTC
+            $cron$SELECT public.cleanup_expired_candidates();$cron$
+        );
+    ELSE
+        RAISE NOTICE 'pg_cron extension is not enabled - skipping cleanup-expired-candidates schedule. Enable pg_cron and re-run this script to activate it.';
+    END IF;
+END;
+$$;

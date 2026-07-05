@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useTabs } from '../../../context/TabContext';
+import { ADMIN_ROLES, READABLE_ROLES, hasRole } from '../../../lib/permissions';
 
 interface Study {
   id: string;
@@ -15,9 +16,6 @@ interface PrimarySidebarProps {
   currentStudyId: string | null;
   onSwitchStudy: (id: string) => void;
 }
-
-const ADMIN_ROLES = ['admin', 'mentor'];
-const COMPLIANCE_ROLES = ['monitor', 'auditor', 'admin', 'mentor', 'investigator', 'site_coordinator', 'data_manager', 'irb_reviewer'];
 
 type NavEntry = { label: string; path: string; highlight?: boolean; badge?: number };
 
@@ -147,8 +145,8 @@ export default function PrimarySidebar({
 }: PrimarySidebarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const showCompliance = COMPLIANCE_ROLES.includes(userRole);
-  const showAdmin = ADMIN_ROLES.includes(userRole);
+  const showCompliance = hasRole(userRole, READABLE_ROLES);
+  const showAdmin = hasRole(userRole, ADMIN_ROLES);
   const showSystem = userRole === 'mentor' || userRole === 'admin';
 
   // Surface "someone is waiting for approval" without the mentor having to
@@ -276,7 +274,6 @@ export default function PrimarySidebar({
                   { label: 'Study Management', path: '/study-management' },
                   { label: 'User Registry', path: '/user-management', badge: pendingCount },
                   { label: 'Delegation Log', path: '/delegation-log' },
-                  { label: 'Study Lock Control', path: '/study-lock-control' },
                 ]}
               />
             </div>

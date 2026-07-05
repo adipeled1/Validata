@@ -1,10 +1,15 @@
 "use client";
 
+// fable_system_review §3.1: Study Lock Control used to be a separate
+// top-level route. Lock state is a property of a study, so it belongs as a
+// section inside Study Management, not its own administration screen -
+// folded in here as a self-contained panel (keeps its own data fetching,
+// since it needs the full studies list with lock fields, which
+// StudyManagement's own state doesn't carry).
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from '../../../context/SessionContext';
-import { useStudy } from '../../../context/StudyContext';
 
-interface Study {
+interface LockableStudy {
   id: string;
   name: string;
   lock_state?: string;
@@ -14,11 +19,22 @@ interface Study {
   deleted_at?: string | null;
 }
 
-const ADMIN_ROLES = ['admin', 'mentor'];
+const thStyle: React.CSSProperties = {
+  padding: '6px 8px', textAlign: 'left',
+  fontSize: '10px', fontWeight: 600, color: 'var(--text-secondary)',
+  textTransform: 'uppercase', letterSpacing: '0.06em',
+  borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap',
+};
 
-export default function StudyLockControlPage() {
-  const { userRole, isDemoMode } = useSession();
-  const [studies, setStudies] = useState<Study[]>([]);
+const tdStyle: React.CSSProperties = {
+  padding: '0 8px', height: 'var(--row-height)',
+  color: 'var(--text-primary)', borderBottom: '1px solid var(--border)',
+  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+};
+
+export default function LockControlPanel() {
+  const { isDemoMode } = useSession();
+  const [studies, setStudies] = useState<LockableStudy[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionState, setActionState] = useState<Record<string, { saving: boolean; reason: string; show: boolean }>>({});
@@ -29,7 +45,7 @@ export default function StudyLockControlPage() {
       const res = await fetch('/api/studies');
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setStudies(Array.isArray(data) ? data.filter((s: Study) => !s.deleted_at) : []);
+      setStudies(Array.isArray(data) ? data.filter((s: LockableStudy) => !s.deleted_at) : []);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -48,7 +64,7 @@ export default function StudyLockControlPage() {
     setActionState(prev => ({ ...prev, [id]: { ...getState(id), ...patch } }));
   };
 
-  const handleLockToggle = async (study: Study) => {
+  const handleLockToggle = async (study: LockableStudy) => {
     const isLocked = study.lock_state === 'locked';
     const state = getState(study.id);
     if (!state.reason.trim()) return;
@@ -72,30 +88,19 @@ export default function StudyLockControlPage() {
     }
   };
 
-  if (!ADMIN_ROLES.includes(userRole)) {
-    return (
-      <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>
-        You do not have access to study lock control.
-      </div>
-    );
-  }
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '8px' }}>
-      {/* Header */}
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
-            ADMINISTRATION / Study Lock Control
-          </div>
-          <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-            Study Lock Control
-          </h1>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '8px 12px', borderBottom: '1px solid var(--border)',
+      }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
+          Study Lock Control
         </div>
       </div>
 
       {error && (
-        <div style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid var(--color-error)', padding: '8px 12px', fontSize: '12px', color: 'var(--color-error)', flexShrink: 0 }}>
+        <div style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid var(--color-error)', padding: '8px 12px', fontSize: '12px', color: 'var(--color-error)' }}>
           {error}
         </div>
       )}
@@ -103,7 +108,7 @@ export default function StudyLockControlPage() {
       {loading ? (
         <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>Loading…</div>
       ) : (
-        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--border)' }}>
+        <div style={{ maxHeight: '260px', overflowY: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
             <thead>
               <tr style={{ background: 'var(--bg-surface)', position: 'sticky', top: 0, zIndex: 1 }}>
@@ -124,7 +129,7 @@ export default function StudyLockControlPage() {
                 const state = getState(study.id);
                 return (
                   <React.Fragment key={study.id}>
-                  <tr style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-surface)', height: 'var(--row-height)' }}>
+                    <tr style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-surface)', height: 'var(--row-height)' }}>
                       <td style={{ ...tdStyle, fontWeight: 600 }}>{study.name}</td>
                       <td style={tdStyle}>
                         <span style={{
@@ -214,16 +219,3 @@ export default function StudyLockControlPage() {
     </div>
   );
 }
-
-const thStyle: React.CSSProperties = {
-  padding: '6px 8px', textAlign: 'left',
-  fontSize: '10px', fontWeight: 600, color: 'var(--text-secondary)',
-  textTransform: 'uppercase', letterSpacing: '0.06em',
-  borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap',
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: '0 8px', height: 'var(--row-height)',
-  color: 'var(--text-primary)', borderBottom: '1px solid var(--border)',
-  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-};

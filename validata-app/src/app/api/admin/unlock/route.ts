@@ -12,7 +12,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     if (!isMentor(session)) {
-      return Response.json({ error: 'Forbidden. Admin role required to unlock a study.' }, { status: 403 });
+      return Response.json({ error: 'Forbidden. Mentor or admin role required to unlock a study.' }, { status: 403 });
     }
 
     const body = await request.json();

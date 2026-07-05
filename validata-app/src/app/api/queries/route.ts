@@ -1,5 +1,6 @@
 import { verifySession, canReadOnly } from '@/lib/auth-server';
 import { createQuerySchema, formatValidationError } from '@/lib/schemas';
+import { QUERY_MUTATE_ROLES, hasRole } from '@/lib/permissions';
 
 // GET /api/queries?studyId=...
 // Returns all queries for a study. Accessible to any operational role (ICH E6(R3) CAP-04).
@@ -49,8 +50,7 @@ export async function POST(request: Request): Promise<Response> {
       return Response.json({ error: session.error }, { status: session.status });
     }
 
-    const allowedRoles = ['admin', 'mentor', 'data_manager', 'monitor', 'investigator'];
-    if (!allowedRoles.includes(session.profile.role)) {
+    if (!hasRole(session.profile.role, QUERY_MUTATE_ROLES)) {
       return Response.json({ error: 'Forbidden. Insufficient role to raise a query.' }, { status: 403 });
     }
 

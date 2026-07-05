@@ -30,7 +30,6 @@ const NAV_COMMANDS: Array<{ label: string; path: string; description: string }> 
   { label: 'Study Management', path: '/study-management', description: 'Administration' },
   { label: 'User Registry', path: '/user-management', description: 'Administration' },
   { label: 'Delegation Log', path: '/delegation-log', description: 'Administration' },
-  { label: 'Study Lock Control', path: '/study-lock-control', description: 'Administration' },
   { label: 'System Inventory', path: '/system-inventory', description: 'System' },
 ];
 

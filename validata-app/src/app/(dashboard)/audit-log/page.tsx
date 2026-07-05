@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
-
-// ICH E6(R3) AUDIT-05: Audit trail viewer.
-// Restricted to mentor, monitor, and auditor roles.
-const AUDIT_VIEWER_ROLES = ['admin', 'mentor', 'monitor', 'auditor'];
+import { AUDIT_VIEWER_ROLES, hasRole } from '../../../lib/permissions';
 
 const ACTION_COLORS: Record<string, string> = {
   INSERT: 'var(--status-insert)',
@@ -31,33 +29,34 @@ const inputStyle: React.CSSProperties = {
   outline: 'none',
 };
 
+// fable_system_review §3.2: standardized on SWR instead of a bare useEffect
+// fetch - the key encodes every filter param so changing a filter is just a
+// new SWR key (and thus a fresh cache entry) rather than an imperative reload.
+async function fetchAuditLogs(params: URLSearchParams): Promise<any[]> {
+  const res = await fetch(`/api/audit-log?${params}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export default function AuditLogPage() {
   const { userRole } = useSession();
   const { currentStudyId } = useStudy();
-  const [logs, setLogs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [actionFilter, setActionFilter] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
-  const canView = AUDIT_VIEWER_ROLES.includes(userRole);
+  const canView = hasRole(userRole, AUDIT_VIEWER_ROLES);
 
-  const loadLogs = useCallback(async () => {
-    if (!currentStudyId) return;
-    setLoading(true);
-    const params = new URLSearchParams({ studyId: currentStudyId });
+  const swrKey = currentStudyId
+    ? `audit-log:${currentStudyId}:${actionFilter}:${fromDate}:${toDate}`
+    : null;
+  const { data: logs = [], isLoading: loading, mutate: refreshLogs } = useSWR(swrKey, () => {
+    const params = new URLSearchParams({ studyId: currentStudyId! });
     if (actionFilter) params.set('action', actionFilter);
     if (fromDate) params.set('from', fromDate);
     if (toDate) params.set('to', toDate);
-    const res = await fetch(`/api/audit-log?${params}`);
-    if (res.ok) setLogs(await res.json());
-    setLoading(false);
-  }, [currentStudyId, actionFilter, fromDate, toDate]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadLogs();
-  }, [loadLogs]);
+    return fetchAuditLogs(params);
+  });
 
   const downloadCsv = async () => {
     if (!currentStudyId) return;
@@ -140,7 +139,7 @@ export default function AuditLogPage() {
           <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={inputStyle} aria-label="To date" />
         </div>
         <button
-          onClick={loadLogs}
+          onClick={() => refreshLogs()}
           style={{
             padding: '5px 12px',
             background: 'var(--accent)',

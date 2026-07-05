@@ -15,7 +15,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const session = await verifySession();
     if ('error' in session) return Response.json({ error: session.error }, { status: session.status });
-    if (!isMentor(session)) return Response.json({ error: 'Forbidden. Admin role required.' }, { status: 403 });
+    if (!isMentor(session)) return Response.json({ error: 'Forbidden. Mentor or admin role required.' }, { status: 403 });
 
     const body = await request.json();
     const parsed = createDestructionRequestSchema.safeParse(body);
@@ -45,18 +45,17 @@ export async function POST(request: Request): Promise<Response> {
       }, { status: 400 });
     }
 
-    // Record the destruction request in the audit log
-    // The trigger does not cover this action since no table row is being modified.
-    // We insert directly into audit_log via the application client (which can INSERT but not UPDATE/DELETE).
-    // Note: The application user cannot INSERT into audit_log because no INSERT RLS policy was created.
-    // The correct implementation requires the service role or a specific RPC function.
-    // For now, update the study row so the trigger captures it.
-    const { error: updateErr } = await session.supabaseClient!
-      .from('studies')
-      .update({ lock_reason: `DESTRUCTION_REQUESTED: ${reason}` })
-      .eq('id', studyId);
+    // Record the destruction request in the audit log as its own
+    // DESTRUCTION_REQUEST action. fable_system_review §5.2: this used to
+    // overwrite the study's lock_reason as a workaround for the lack of an
+    // audit_log INSERT policy, which corrupted Study Lock Control's "Reason"
+    // display and recorded a plain UPDATE instead of the real action.
+    // record_destruction_request() is SECURITY DEFINER (bypasses RLS for
+    // this one insert only), matching the pattern used by log_audit_event().
+    const { error: rpcErr } = await session.supabaseClient!
+      .rpc('record_destruction_request', { p_study_id: studyId, p_reason: reason });
 
-    if (updateErr) throw updateErr;
+    if (rpcErr) throw rpcErr;
 
     return Response.json({
       success: true,

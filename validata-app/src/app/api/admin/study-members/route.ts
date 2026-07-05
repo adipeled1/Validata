@@ -16,7 +16,7 @@ export async function GET(request: Request): Promise<Response> {
   try {
     const session = await verifySession();
     if ('error' in session) return Response.json({ error: session.error }, { status: session.status });
-    if (!isMentor(session)) return Response.json({ error: 'Forbidden. Admin role required.' }, { status: 403 });
+    if (!isMentor(session)) return Response.json({ error: 'Forbidden. Mentor or admin role required.' }, { status: 403 });
 
     const { searchParams } = new URL(request.url);
     const studyId = searchParams.get('studyId');
@@ -45,7 +45,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const session = await verifySession();
     if ('error' in session) return Response.json({ error: session.error }, { status: session.status });
-    if (!isMentor(session)) return Response.json({ error: 'Forbidden. Admin role required.' }, { status: 403 });
+    if (!isMentor(session)) return Response.json({ error: 'Forbidden. Mentor or admin role required.' }, { status: 403 });
 
     const body = await request.json();
     const { studyId, userId } = body;
@@ -57,7 +57,10 @@ export async function POST(request: Request): Promise<Response> {
       return Response.json({ study_id: studyId, user_id: userId, study_role: 'team_member' }, { status: 201 });
     }
 
-    // Derive study_role from the user's platform role (annotation only — roles are global).
+    // study_role is a point-in-time snapshot of the user's platform role at
+    // grant time - it is never updated afterward and must not be treated as
+    // authoritative (see supabase_setup.sql §31). Always read profiles.role
+    // for the user's current role.
     const { data: profile } = await session.supabaseClient!
       .from('profiles')
       .select('role, status')
@@ -97,7 +100,7 @@ export async function DELETE(request: Request): Promise<Response> {
   try {
     const session = await verifySession();
     if ('error' in session) return Response.json({ error: session.error }, { status: session.status });
-    if (!isMentor(session)) return Response.json({ error: 'Forbidden. Admin role required.' }, { status: 403 });
+    if (!isMentor(session)) return Response.json({ error: 'Forbidden. Mentor or admin role required.' }, { status: 403 });
 
     const body = await request.json();
     const { studyId, userId } = body;

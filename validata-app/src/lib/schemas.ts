@@ -112,6 +112,9 @@ export const createSignatureSchema = z.object({
   recordId: z.string().min(1),
   milestone: z.string().min(1),
   meaning: z.string().min(1),
+  // fable_system_review §2.4: binds this request to a prior, successful
+  // POST /api/auth/verify-credentials call - see signing-tokens.ts.
+  signingToken: z.string().min(1),
 });
 
 // Phase 2 schemas
@@ -159,10 +162,12 @@ export const createDestructionRequestSchema = z.object({
   reason: z.string().min(1, 'Destruction reason is required (ICH E6(R3) RET-02)'),
 });
 
+// fable_system_review §4.3: analysis is computed from the DB by studyId, not
+// from client-submitted participants/measurements arrays - a client used to
+// be able to POST arbitrary data and get back an "official" analysis.
 export const analysisRequestSchema = z.object({
+  studyId: z.string().min(1),
   threshold: idOrNumber.optional(),
-  measurements: z.array(z.record(z.string(), z.any())).optional().default([]),
-  participants: z.array(z.record(z.string(), z.any())).optional().default([]),
 });
 
 // Formats a ZodError into a single readable message for toasts/API responses,

@@ -85,7 +85,7 @@ async function fetchMeasurements(studyId: string, isDemoMode: boolean): Promise<
 // Studies, participants, measurements, and every CRUD handler that operates
 // on them — shared across every dashboard route via context.
 //
-// Initial data comes from (dashboard)/layout.js (a Server Component) via the
+// Initial data comes from (dashboard)/layout.tsx (a Server Component) via the
 // `initial*` props, seeded into SWR's cache through the `fallback` map below
 // so the very first render already has data — no client-side fetch waterfall.
 function StudyProviderInner({ children, initialCurrentStudyId }: { children: React.ReactNode; initialCurrentStudyId: string | null }) {

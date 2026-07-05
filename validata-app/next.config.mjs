@@ -21,7 +21,11 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self'",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com",
+              // fable_system_review §7.3: generativelanguage.googleapis.com removed -
+              // no generative-AI code path exists in this app (api/chat/ was an
+              // empty stub, now deleted; generateAnalysisText() is a deterministic
+              // template, not an AI call).
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

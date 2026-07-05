@@ -53,8 +53,9 @@ Create `validata-app/.env.local`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-GOOGLE_GENERATIVE_AI_API_KEY=your-google-ai-key
+# Demo mode is opt-in and off by default - omit these two entirely in any real deployment.
 NEXT_PUBLIC_DEMO_ENABLED=true
+DEMO_SESSION_SECRET=a-long-random-dev-only-secret
 ```
 
 For the full Supabase project setup, follow [`docs/infrastructure/supabase_bootstrap.md`](docs/infrastructure/supabase_bootstrap.md).

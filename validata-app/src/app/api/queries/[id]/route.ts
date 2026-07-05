@@ -1,5 +1,6 @@
-import { verifySession, canReadOnly } from '@/lib/auth-server';
+import { verifySession } from '@/lib/auth-server';
 import { updateQuerySchema, formatValidationError } from '@/lib/schemas';
+import { QUERY_MUTATE_ROLES, hasRole } from '@/lib/permissions';
 
 // PATCH /api/queries/:id
 // Advance the lifecycle of a query (answer → resolve → close) (ICH E6(R3) CAP-04, COR-02).
@@ -13,7 +14,9 @@ export async function PATCH(
       return Response.json({ error: session.error }, { status: session.status });
     }
 
-    if (!canReadOnly(session)) {
+    // fable_system_review §2.3: this used to accept canReadOnly(), which let
+    // auditor/irb_reviewer - roles that must stay read-only - mutate queries.
+    if (!hasRole(session.profile.role, QUERY_MUTATE_ROLES)) {
       return Response.json({ error: 'Forbidden. Insufficient role.' }, { status: 403 });
     }
 

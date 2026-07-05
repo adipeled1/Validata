@@ -16,6 +16,6 @@ Validata is a Next.js (App Router) clinical research EDC platform for project D-
 
 ## Conventions
 - Environment variables go in `.env.local` (see `README.md` for required keys — Supabase
-  URL/anon key, Google AI key). Never commit secrets.
+  URL/anon key). Never commit secrets.
 - Database schema and RLS policies live in `supabase_setup.sql` — keep it in sync with any
   schema change.

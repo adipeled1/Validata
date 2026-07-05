@@ -13,7 +13,7 @@ const keyToUse = supabaseAnonKey || 'placeholder-key';
 
 // Browser client for Client Components - stores the session in cookies
 // (via @supabase/ssr) instead of localStorage, so the server can read the
-// same session (see src/lib/supabase/server.ts and src/proxy.js).
+// same session (see src/lib/supabase/server.ts and src/proxy.ts).
 export function createClient() {
   return createBrowserClient(urlToUse, keyToUse);
 }

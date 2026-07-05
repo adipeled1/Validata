@@ -5,11 +5,28 @@ import { createHash } from 'crypto';
 // Produces a JSON archival export of all study data with a SHA-256 integrity hash
 // and generation timestamp (ICH E6(R3) RET-01, RET-03).
 // Restricted to mentor.
+//
+// fable_system_review §6.5: this used to fetch everything, JSON.stringify it
+// TWICE (once to hash, once to embed the hash and stringify again), and hold
+// the whole archive as one in-memory string before responding - for a study
+// with a large audit log this risks the lambda's memory ceiling and/or
+// wall-clock timeout, and produces nothing if it's hit mid-request.
+//
+// Fix: stream the response. The body is built incrementally as a sequence of
+// JSON fragments; each fragment is fed into a running SHA-256 hash as it's
+// enqueued, then a final `,"sha256":"<hash>"}` fragment closes the object -
+// so the hash still covers exactly the same `payload` (everything except the
+// sha256 field itself) as before, without ever holding the full JSON string
+// in memory at once. The hash can no longer also be exposed as a response
+// header (HTTP headers must be sent before the body, and the digest isn't
+// final until the body is) - it's now only available inside the JSON body's
+// trailing "sha256" field, which is the one place a consumer needs it to
+// verify the archive anyway.
 export async function GET(request: Request): Promise<Response> {
   try {
     const session = await verifySession();
     if ('error' in session) return Response.json({ error: session.error }, { status: session.status });
-    if (!isMentor(session)) return Response.json({ error: 'Forbidden. Admin role required.' }, { status: 403 });
+    if (!isMentor(session)) return Response.json({ error: 'Forbidden. Mentor or admin role required.' }, { status: 403 });
 
     const { searchParams } = new URL(request.url);
     const studyId = searchParams.get('studyId');
@@ -30,29 +47,51 @@ export async function GET(request: Request): Promise<Response> {
         session.supabaseClient!.from('adverse_events').select('*').eq('study_id', studyId),
       ]);
 
-    const payload = {
-      export_version: '1.0',
-      generated_at: new Date().toISOString(),
-      generated_by: session.user.email,
-      study: studyRes.data,
-      participants: participantsRes.data ?? [],
-      measurements: measurementsRes.data ?? [],
-      audit_log: auditRes.data ?? [],
-      signatures: signaturesRes.data ?? [],
-      queries: queriesRes.data ?? [],
-      adverse_events: aeRes.data ?? [],
-    };
+    const sections: Array<[string, unknown[]]> = [
+      ['participants', participantsRes.data ?? []],
+      ['measurements', measurementsRes.data ?? []],
+      ['audit_log', auditRes.data ?? []],
+      ['signatures', signaturesRes.data ?? []],
+      ['queries', queriesRes.data ?? []],
+      ['adverse_events', aeRes.data ?? []],
+    ];
 
-    const json = JSON.stringify(payload, null, 2);
-    const hash = createHash('sha256').update(json).digest('hex');
-    const envelope = { ...payload, sha256: hash };
-    const envelopeJson = JSON.stringify(envelope, null, 2);
+    const hash = createHash('sha256');
+    const encoder = new TextEncoder();
 
-    return new Response(envelopeJson, {
+    const stream = new ReadableStream({
+      start(controller) {
+        const emit = (chunk: string) => {
+          hash.update(chunk);
+          controller.enqueue(encoder.encode(chunk));
+        };
+
+        emit('{"export_version":"1.0"');
+        emit(`,"generated_at":${JSON.stringify(new Date().toISOString())}`);
+        emit(`,"generated_by":${JSON.stringify(session.user.email)}`);
+        emit(`,"study":${JSON.stringify(studyRes.data)}`);
+
+        for (const [key, rows] of sections) {
+          emit(`,"${key}":[`);
+          rows.forEach((row, i) => {
+            emit((i > 0 ? ',' : '') + JSON.stringify(row));
+          });
+          emit(']');
+        }
+
+        // Everything up to here is exactly `payload` from the pre-streaming
+        // version - the digest is final now, computed without ever building
+        // the whole JSON string in memory.
+        const digest = hash.digest('hex');
+        controller.enqueue(encoder.encode(`,"sha256":${JSON.stringify(digest)}}`));
+        controller.close();
+      },
+    });
+
+    return new Response(stream, {
       headers: {
         'Content-Type': 'application/json',
         'Content-Disposition': `attachment; filename="validata-export-${studyId}-${Date.now()}.json"`,
-        'X-Content-SHA256': hash,
       },
     });
   } catch (e) {

@@ -1,5 +1,7 @@
 import { cookies } from 'next/headers';
 import { createClient } from './supabase/server';
+import { verifyDemoSession } from './demoSession';
+import { ADMIN_ROLES, EDIT_ROLES, READABLE_ROLES, hasRole } from './permissions';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type Profile = {
@@ -23,9 +25,17 @@ export type SessionError = {
 export type Session = ResolvedSession | SessionError;
 
 // ICH E6(R3) SEC-01 / AUTH-01: Demo Mode must be disabled in production
-// deployments. Set NEXT_PUBLIC_DEMO_ENABLED=false in Vercel production env
-// vars. When absent or set to 'true', demo mode is available (dev/staging only).
-const DEMO_ENABLED = process.env.NEXT_PUBLIC_DEMO_ENABLED !== 'false';
+// deployments, and must fail closed - so it is opt-IN (default disabled),
+// not opt-out. Set NEXT_PUBLIC_DEMO_ENABLED=true to enable it in dev/staging.
+// A missing/misnamed env var now means demo mode is OFF, not on.
+const DEMO_ENABLED = process.env.NEXT_PUBLIC_DEMO_ENABLED === 'true';
+
+if (DEMO_ENABLED && process.env.NODE_ENV === 'production') {
+  console.warn(
+    '[SECURITY WARNING] NEXT_PUBLIC_DEMO_ENABLED=true in a production build. ' +
+    'Demo mode should never be enabled in a real deployment - remove this env var.'
+  );
+}
 
 // Resolves who's making the request (demo or real Supabase user) and their
 // profile, without judging whether their account status is allowed to
@@ -36,20 +46,22 @@ async function resolveSession(): Promise<Session> {
   const cookieStore = await cookies();
   const demoSessionCookie = cookieStore.get('demo-session')?.value;
 
-  // ICH E6(R3) SEC-01: reject the demo cookie when demo mode is disabled in
-  // production so a tampered cookie cannot bypass real authentication.
+  // ICH E6(R3) SEC-01: reject the demo cookie when demo mode is disabled, AND
+  // reject it if its HMAC signature doesn't verify - it is minted only by
+  // POST /api/auth/demo-login (see demoSession.ts), so an unsigned or
+  // tampered cookie (e.g. hand-written via document.cookie with role=admin)
+  // cannot bypass real authentication.
   if (demoSessionCookie && DEMO_ENABLED) {
-    try {
-      const sessionData = JSON.parse(demoSessionCookie);
+    const sessionData = await verifyDemoSession(demoSessionCookie);
+    if (sessionData) {
       return {
         user: { id: 'demo-user-id', email: sessionData.email },
         profile: { role: sessionData.role, status: 'active' },
         isDemo: true,
         supabaseClient: null
       };
-    } catch {
-      // Failed to parse, proceed to real auth checks
     }
+    // Signature invalid/missing secret - fall through to real auth checks.
   }
 
   // The session lives in cookies managed by @supabase/ssr (kept fresh by
@@ -133,22 +145,22 @@ export async function getDashboardSession(): Promise<Session> {
 // or remove a mentor/admin account, so mentors can't lock each other out).
 // It carries every mentor capability plus that one extra power, so isMentor()
 // and canEditData() both treat admin as a superset of mentor.
+// These are thin wrappers over the canonical role sets in permissions.ts -
+// see that file for the single source of truth this is built on.
 export function isAdmin(session: ResolvedSession): boolean {
   return session.profile.role === 'admin';
 }
 
 export function isMentor(session: ResolvedSession): boolean {
-  return session.profile.role === 'mentor' || session.profile.role === 'admin';
+  return hasRole(session.profile.role, ADMIN_ROLES);
 }
 
 export function canEditData(session: ResolvedSession): boolean {
-  return ['admin', 'mentor', 'investigator', 'site_coordinator', 'data_manager'].includes(
-    session.profile.role
-  );
+  return hasRole(session.profile.role, EDIT_ROLES);
 }
 
 export function canReadOnly(session: ResolvedSession): boolean {
-  return canEditData(session) || ['monitor', 'auditor', 'irb_reviewer'].includes(session.profile.role);
+  return hasRole(session.profile.role, READABLE_ROLES);
 }
 
 // Mentors can still promote someone to mentor (e.g. approving a co-PI) — that

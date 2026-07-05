@@ -1,19 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { FlaskConical, Plus, Trash2, CheckCircle2, ShieldAlert, UserMinus, Target, Users, ArrowRight } from 'lucide-react';
+import { FlaskConical, Plus, Trash2, CheckCircle2, Target, Users, ArrowRight } from 'lucide-react';
 import HoverTooltip from '../common/HoverTooltip';
+import LockControlPanel from './LockControlPanel';
+import RetentionPanel from './RetentionPanel';
 import { useStudy } from '../../../context/StudyContext';
 import { useSession } from '../../../context/SessionContext';
+import { useTabs } from '../../../context/TabContext';
 import { updateStudyGoalAction } from '../../../app/actions/studies';
 
-interface DeletedStudy {
-  id: string;
-  name: string;
-  deleted_at: string;
-  retention_hold: boolean;
-  created_at: string;
-}
 
 interface Member {
   user_id: string;
@@ -24,12 +20,6 @@ interface Member {
   email?: string;
 }
 
-interface ProfileItem {
-  id: string;
-  email: string;
-  role: string;
-  status: string;
-}
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -75,27 +65,19 @@ const cellStyle: React.CSSProperties = {
 const StudyManagement = () => {
   const { studies, currentStudyId, addStudy, deleteStudy, switchStudy } = useStudy();
   const { isDemoMode } = useSession();
+  const { openTab } = useTabs();
 
   const [selectedStudyId, setSelectedStudyId] = useState<string | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
-  const [allProfiles, setAllProfiles] = useState<ProfileItem[]>([]);
   const [participantsCount, setParticipantsCount] = useState<number>(0);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
   const [newStudyName, setNewStudyName] = useState('');
   const [newStudyGoal, setNewStudyGoal] = useState('');
-  const [deletedStudies, setDeletedStudies] = useState<DeletedStudy[]>([]);
-  const [destructionMessage, setDestructionMessage] = useState<Record<string, string>>({});
 
   // Inline Goal Editing state
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState('');
-
-  // Add Member state
-  const [showAddMember, setShowAddMember] = useState(false);
-  const [addUserId, setAddUserId] = useState('');
-  const [addError, setAddError] = useState('');
-  const [addLoading, setAddLoading] = useState(false);
 
   // Auto-select study
   useEffect(() => {
@@ -103,15 +85,6 @@ const StudyManagement = () => {
       setSelectedStudyId(currentStudyId ?? studies[0].id);
     }
   }, [studies, selectedStudyId, currentStudyId]);
-
-  const fetchDeletedStudies = useCallback(async () => {
-    try {
-      const res = await fetch('/api/studies?deleted=true');
-      if (res.ok) setDeletedStudies(await res.json());
-    } catch {
-      // Non-fatal
-    }
-  }, []);
 
   const fetchStudyDetails = useCallback(async (studyId: string) => {
     setLoadingDetails(true);
@@ -151,53 +124,11 @@ const StudyManagement = () => {
     }
   }, [isDemoMode]);
 
-  const fetchProfiles = useCallback(async () => {
-    try {
-      if (isDemoMode) {
-        setAllProfiles([
-          { id: '1', email: 'admin@demo.com', role: 'admin', status: 'active' },
-          { id: '2', email: 'mentor@demo.com', role: 'mentor', status: 'active' },
-          { id: '3', email: 'investigator@demo.com', role: 'investigator', status: 'active' },
-          { id: '4', email: 'coordinator@demo.com', role: 'site_coordinator', status: 'active' },
-        ]);
-        return;
-      }
-      const res = await fetch('/api/profiles');
-      if (res.ok) {
-        const data = await res.json();
-        setAllProfiles((data as ProfileItem[]).filter((p) => p.status === 'active'));
-      }
-    } catch {
-      setAllProfiles([]);
-    }
-  }, [isDemoMode]);
-
-  useEffect(() => {
-    fetchDeletedStudies();
-    fetchProfiles();
-  }, [fetchDeletedStudies, fetchProfiles]);
-
   useEffect(() => {
     if (selectedStudyId) {
       fetchStudyDetails(selectedStudyId);
     }
   }, [selectedStudyId, fetchStudyDetails]);
-
-  const handleRequestDestruction = async (studyId: string) => {
-    const reason = window.prompt('Reason for destruction request (ICH E6(R3) RET-02):');
-    if (!reason) return;
-    try {
-      const res = await fetch('/api/admin/destruction-request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studyId, reason }),
-      });
-      const data = await res.json();
-      setDestructionMessage((prev) => ({ ...prev, [studyId]: data.error ?? data.message ?? 'Request submitted.' }));
-    } catch (e: any) {
-      setDestructionMessage((prev) => ({ ...prev, [studyId]: e.message }));
-    }
-  };
 
   const handleCreateStudy = (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,76 +181,8 @@ const StudyManagement = () => {
     }
   };
 
-  const handleAddMember = async () => {
-    if (!selectedStudyId || !addUserId) return;
-    setAddLoading(true);
-    setAddError('');
-    try {
-      if (isDemoMode) {
-        const profile = allProfiles.find(p => p.id === addUserId);
-        if (profile) {
-          const newMember: Member = {
-            user_id: profile.id,
-            study_id: selectedStudyId,
-            study_role: profile.role,
-            granted_at: new Date().toISOString(),
-            profiles: { email: profile.email, role: profile.role }
-          };
-          setMembers(prev => [...prev, newMember]);
-        }
-        setShowAddMember(false);
-        setAddUserId('');
-      } else {
-        const res = await fetch('/api/admin/study-members', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ studyId: selectedStudyId, userId: addUserId }),
-        });
-        if (!res.ok) {
-          const err = await res.json();
-          setAddError(err.error ?? 'Failed to add member.');
-        } else {
-          setShowAddMember(false);
-          setAddUserId('');
-          fetchStudyDetails(selectedStudyId);
-        }
-      }
-    } catch (e: any) {
-      setAddError(e.message);
-    } finally {
-      setAddLoading(false);
-    }
-  };
-
-  const handleRemoveMember = async (userId: string) => {
-    if (!selectedStudyId) return;
-    const member = members.find(m => m.user_id === userId);
-    const email = member?.profiles?.email ?? member?.email ?? userId;
-
-    if (!window.confirm(`Remove staff access for "${email}" from this study?`)) return;
-
-    try {
-      if (isDemoMode) {
-        setMembers(prev => prev.filter(m => m.user_id !== userId));
-      } else {
-        await fetch('/api/admin/study-members', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ studyId: selectedStudyId, userId, reason: 'Removed access via Study Management portal' }),
-        });
-        fetchStudyDetails(selectedStudyId);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   const selectedStudy = studies.find((s) => s.id === selectedStudyId);
   const isSelectedActiveWorkspace = selectedStudyId === currentStudyId;
-
-  // Filter assignable staff (not already members)
-  const currentMemberIds = new Set(members.map(m => m.user_id));
-  const assignableProfiles = allProfiles.filter(p => !currentMemberIds.has(p.id));
 
   // Recruitment Goal percentage calculations
   const goalValue = selectedStudy?.recruitment_goal ?? 50;
@@ -648,7 +511,15 @@ const StudyManagement = () => {
                 </div>
               </div>
 
-              {/* Staff Access Registry (ICH E6(R3) AUTH-05) */}
+              {/* Staff Access Registry (ICH E6(R3) AUTH-05) — read-only here.
+                  fable_system_review §3.1: membership was editable in two
+                  places (here and User Registry), two code paths hitting the
+                  same API with two local caches that could disagree, and a
+                  mentor confirming a new investigator's role in User Registry
+                  had no way to know they needed to switch screens to also
+                  assign them to a study. User Registry is now the single
+                  owner of add/remove; this panel just shows current roster
+                  with a link to go manage it. */}
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
                 <div style={{
                   display: 'flex',
@@ -662,7 +533,7 @@ const StudyManagement = () => {
                     Authorized Research Staff
                   </div>
                   <button
-                    onClick={() => setShowAddMember(v => !v)}
+                    onClick={() => openTab('/user-management', 'User Registry')}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -677,74 +548,17 @@ const StudyManagement = () => {
                       cursor: 'pointer',
                     }}
                   >
-                    <Plus size={10} /> Add Staff Member
+                    Manage in User Registry <ArrowRight size={10} />
                   </button>
                 </div>
 
-                {/* Add member box */}
-                {showAddMember && (
-                  <div style={{
-                    padding: '12px',
-                    background: 'var(--bg-surface-alt)',
-                    borderBottom: '1px solid var(--border)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                  }}>
-                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                      Grant a registered research staff member access to this study.
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <select
-                        value={addUserId}
-                        onChange={(e) => setAddUserId(e.target.value)}
-                        style={{
-                          background: 'var(--bg-input)',
-                          border: '1px solid var(--border)',
-                          color: 'var(--text-primary)',
-                          fontSize: '12px',
-                          padding: '4px 6px',
-                          borderRadius: 'var(--radius)',
-                          fontFamily: 'var(--font-ui)',
-                          flex: 1,
-                        }}
-                      >
-                        <option value="">— Select researcher —</option>
-                        {assignableProfiles.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.email} ({p.role.replace(/_/g, ' ')})
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={handleAddMember}
-                        disabled={!addUserId || addLoading}
-                        style={{
-                          padding: '5px 12px',
-                          background: 'var(--status-active)',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: 'var(--radius)',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          cursor: !addUserId || addLoading ? 'not-allowed' : 'pointer',
-                          opacity: !addUserId || addLoading ? 0.6 : 1,
-                        }}
-                      >
-                        {addLoading ? 'Adding...' : 'Grant Access'}
-                      </button>
-                    </div>
-                    {addError && <div style={{ fontSize: '10px', color: 'var(--status-dropped)' }}>{addError}</div>}
-                  </div>
-                )}
-
-                {/* Roster table */}
+                {/* Roster table (read-only) */}
                 <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
                   {loadingDetails ? (
                     <div style={{ padding: '24px', textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)' }}>Loading roster...</div>
                   ) : members.length === 0 ? (
                     <div style={{ padding: '24px', textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)' }}>
-                      No staff members assigned yet. Click &quot;Add Staff Member&quot; to authorize a researcher.
+                      No staff members assigned yet. Use &quot;Manage in User Registry&quot; to authorize a researcher.
                     </div>
                   ) : (
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -753,7 +567,6 @@ const StudyManagement = () => {
                           <th style={colHeaderStyle}>Email</th>
                           <th style={colHeaderStyle}>System Role</th>
                           <th style={colHeaderStyle}>Granted At</th>
-                          <th style={{ ...colHeaderStyle, textAlign: 'right' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -771,22 +584,6 @@ const StudyManagement = () => {
                               <td style={{ ...cellStyle, fontFamily: 'var(--font-data)', color: 'var(--text-timestamp)', fontSize: '11px' }}>
                                 {new Date(m.granted_at).toLocaleDateString()}
                               </td>
-                              <td style={{ ...cellStyle, textAlign: 'right' }}>
-                                <button
-                                  onClick={() => handleRemoveMember(m.user_id)}
-                                  title="Revoke study access"
-                                  style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: 'var(--status-dropped)',
-                                    cursor: 'pointer',
-                                    padding: '3px',
-                                    display: 'inline-flex',
-                                  }}
-                                >
-                                  <UserMinus size={13} />
-                                </button>
-                              </td>
                             </tr>
                           );
                         })}
@@ -795,6 +592,8 @@ const StudyManagement = () => {
                   )}
                 </div>
               </div>
+
+              <LockControlPanel />
             </div>
           ) : (
             <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '48px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', borderRadius: 'var(--radius)' }}>
@@ -805,45 +604,7 @@ const StudyManagement = () => {
       </div>
 
       {/* Deleted studies — retention & destruction-request workflow (RET-02, RET-03) */}
-      {deletedStudies.length > 0 && (
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '8px 12px', borderBottom: '1px solid var(--border)',
-          }}>
-            <ShieldAlert size={13} style={{ color: 'var(--text-muted)' }} />
-            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
-              Deleted Studies — Retention
-            </span>
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', padding: '8px 12px' }}>
-            Soft-deleted studies are retained for a minimum of 15 years before physical destruction can be requested.
-          </div>
-          {deletedStudies.map((s, i) => (
-            <div key={s.id} style={{
-              padding: '8px 12px',
-              background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
-              borderTop: '1px solid var(--border)',
-              display: 'flex', flexDirection: 'column', gap: '4px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                <span style={{ fontSize: '12px', fontFamily: 'var(--font-data)' }}>
-                  {s.name} {s.retention_hold && <span style={{ fontSize: '10px', color: 'var(--status-warning)' }}>(retention hold)</span>}
-                </span>
-                <button
-                  onClick={() => handleRequestDestruction(s.id)}
-                  style={{ fontSize: '10px', padding: '3px 8px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--status-dropped)', cursor: 'pointer' }}
-                >
-                  Request Destruction
-                </button>
-              </div>
-              {destructionMessage[s.id] && (
-                <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{destructionMessage[s.id]}</div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      <RetentionPanel />
     </div>
   );
 };

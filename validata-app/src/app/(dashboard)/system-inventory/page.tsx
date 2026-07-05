@@ -2,9 +2,9 @@
 
 import { useSession } from '../../../context/SessionContext';
 import DataGrid from '../../components/ui/DataGrid';
+import { ADMIN_ROLES, hasRole } from '../../../lib/permissions';
 
 // ICH E6(R3) META-04: System inventory register.
-const ADMIN_ROLES = ['admin', 'mentor'];
 
 const SYSTEM_COMPONENTS = [
   {
@@ -41,7 +41,7 @@ const SYSTEM_COMPONENTS = [
     vendor: 'Vercel Inc.',
     gampCategory: '3 — Non-configured Software',
     validationStatus: 'Vendor SOC 2 Type II certified; HTTPS enforced',
-    notes: 'Demo mode disabled via NEXT_PUBLIC_DEMO_ENABLED=false in production',
+    notes: 'Demo mode is opt-in and off by default: requires NEXT_PUBLIC_DEMO_ENABLED=true and DEMO_SESSION_SECRET, both absent in production',
   },
   {
     name: 'Supabase Auth',
@@ -50,7 +50,7 @@ const SYSTEM_COMPONENTS = [
     vendor: 'Supabase Inc.',
     gampCategory: '4 — Configurable Software',
     validationStatus: 'Vendor-managed; email/password with JWT sessions',
-    notes: 'Demo mode bypass gated by NEXT_PUBLIC_DEMO_ENABLED env var',
+    notes: 'Demo mode bypass requires an explicit opt-in env var and a signed, HttpOnly session cookie minted server-side',
   },
   {
     name: 'Zod Schema Validation',
@@ -79,7 +79,7 @@ const columns = [
 export default function SystemInventoryPage() {
   const { userRole } = useSession();
 
-  if (!ADMIN_ROLES.includes(userRole)) {
+  if (!hasRole(userRole, ADMIN_ROLES)) {
     return (
       <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>
         You do not have access to the system inventory register.

@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react';
 import AnalysisDisplay from './display';
 import EndorseDataModal from '../common/EndorseDataModal';
 import { fetchAnalysisData } from './service';
+import { SIGNING_ROLES, hasRole } from '../../../lib/permissions';
 
 interface AnalysisControlProps {
-  participants: any[];
-  measurements: any[];
   isDemoMode: boolean;
   threshold?: number;
   studyId?: string;
@@ -15,8 +14,6 @@ interface AnalysisControlProps {
 
 // Controller component manages local state and fetches processed data from the API
 const AnalysisControl = ({
-  participants,
-  measurements,
   isDemoMode,
   threshold = 5,
   studyId,
@@ -31,19 +28,21 @@ const AnalysisControl = ({
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [localThreshold, setLocalThreshold] = useState(threshold);
 
-  const canSign = userRole && ['admin', 'mentor', 'investigator'].includes(userRole);
+  const canSign = hasRole(userRole, SIGNING_ROLES);
 
-  // Analysis uses client-side fetch-on-mount by design — analysis data is
-  // computed from the participants+measurements props passed in (not from the
-  // Server Component layout), and it re-fetches whenever threshold or mode
-  // changes, so a Server Component initial load would not help here. This is
-  // an intentional exception to the Server Component pattern used elsewhere.
+  // Analysis uses client-side fetch-on-mount by design — the server computes
+  // the analysis from the DB by studyId (fable_system_review §4.3), and it
+  // re-fetches whenever threshold/study changes, so a Server Component
+  // initial load would not help here. This is an intentional exception to
+  // the Server Component pattern used elsewhere.
   useEffect(() => {
+    if (!studyId) return;
+
     // We fetch even in demo mode because the server handles demo data calculation too
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAnalysisData(null); // Set to null to indicate loading
 
-    fetchAnalysisData(localThreshold, participants, measurements)
+    fetchAnalysisData(localThreshold, studyId)
       .then((data) => {
         if (!data.error) {
           setAnalysisData(data);
@@ -71,7 +70,7 @@ const AnalysisControl = ({
         });
         setLastUpdated(new Date());
       });
-  }, [localThreshold, isDemoMode, participants, measurements]);
+  }, [localThreshold, isDemoMode, studyId]);
 
   const isLoadingCharts = analysisData === null;
 

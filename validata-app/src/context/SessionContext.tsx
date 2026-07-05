@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../lib/supabase/client';
-import { getCookie, setCookie, deleteCookie } from '../lib/cookies';
+import { setCookie, deleteCookie } from '../lib/cookies';
 
 const supabase = createClient();
 
@@ -28,7 +28,7 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 // Resolves auth/session once for every dashboard route (moved out of the old
 // single-page component so each route under (dashboard)/ can share it without
 // prop drilling). When `initialSession` is provided (resolved server-side by
-// (dashboard)/layout.js via getDashboardSession()), it's used as-is and the
+// (dashboard)/layout.tsx via getDashboardSession()), it's used as-is and the
 // client-side re-check below is skipped entirely - it only runs as a
 // fallback for the rare case no initial session was resolved.
 export function SessionProvider({ children, initialSession }: { children: React.ReactNode; initialSession?: InitialSession }) {
@@ -64,57 +64,55 @@ export function SessionProvider({ children, initialSession }: { children: React.
     const initializeAuth = async () => {
       setIsLoading(true);
 
-      const demoSessionStr = getCookie('demo-session');
-
+      // Note: the demo-session cookie is HttpOnly (fable_system_review §6.1
+      // fix - it's server-verified, not client-trusted), so it can no longer
+      // be read/parsed here. This fallback only runs when the server-side
+      // dashboard layout didn't already resolve a session (see
+      // (dashboard)/layout.tsx's getDashboardSession()), so it always falls
+      // through to the real Supabase check below - a demo user without an
+      // initialSession will correctly fail this and be redirected to /login.
       let email = '';
       let role = 'team_member';
       let status = 'pending';
       let isDemo = false;
 
-      if (demoSessionStr) {
-        try {
-          const ds = JSON.parse(demoSessionStr);
-          email = ds.email;
-          role = ds.role;
-          status = ds.status;
-          isDemo = true;
-        } catch (e) {
+      try {
+        // The session lives in cookies managed by @supabase/ssr (kept
+        // fresh by src/proxy.ts), so no token needs passing here.
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
           router.push('/login');
           return;
         }
-      } else {
-        try {
-          // The session lives in cookies managed by @supabase/ssr (kept
-          // fresh by src/proxy.js), so no token needs passing here.
-          const { data: { user }, error: userError } = await supabase.auth.getUser();
-          if (userError || !user) {
-            router.push('/login');
-            return;
-          }
 
-          email = user.email ?? '';
+        email = user.email ?? '';
 
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
 
-          if (profileError || !profile) {
-            console.warn('Profile fetch warning/error, falling back to cookies:', profileError?.message);
-            role = getCookie('user-role') || 'team_member';
-            status = getCookie('user-status') || 'pending';
-          } else {
-            role = profile.role;
-            status = profile.status;
-            setCookie('user-role', role, 7);
-            setCookie('user-status', status, 7);
-          }
-        } catch (e: any) {
-          console.warn('Session verification failed, logging out:', e.message);
+        if (profileError || !profile) {
+          // fable_system_review §2.5: this used to fall back to the
+          // client-writable user-role/user-status cookies, so breaking the
+          // profile fetch (or just writing the cookies directly via
+          // document.cookie) could force an elevated role into the sidebar.
+          // Role/status must come from the DB or not be trusted at all -
+          // treat a failed fetch as a session error and log out.
+          console.warn('Profile fetch failed; logging out rather than trusting client-side role cookies:', profileError?.message);
           if (!cancelled) await handleLogout();
           return;
+        } else {
+          role = profile.role;
+          status = profile.status;
+          setCookie('user-role', role, 7);
+          setCookie('user-status', status, 7);
         }
+      } catch (e: any) {
+        console.warn('Session verification failed, logging out:', e.message);
+        if (!cancelled) await handleLogout();
+        return;
       }
 
       if (cancelled) return;

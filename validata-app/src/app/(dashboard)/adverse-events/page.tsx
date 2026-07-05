@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
-
-const COMPLIANCE_ROLES = ['monitor', 'auditor', 'admin', 'mentor', 'investigator', 'site_coordinator', 'data_manager', 'irb_reviewer'];
-const CREATE_ROLES = ['admin', 'mentor', 'investigator', 'site_coordinator', 'data_manager'];
+import { READABLE_ROLES, EDIT_ROLES, hasRole } from '../../../lib/permissions';
 
 interface AdverseEvent {
   id: string;
@@ -62,40 +61,32 @@ const EMPTY_FORM = {
   notes: '',
 };
 
+// fable_system_review §3.2: standardized on SWR instead of a bare useEffect fetch.
+async function fetchAdverseEvents(studyId: string): Promise<AdverseEvent[]> {
+  const res = await fetch(`/api/adverse-events?studyId=${studyId}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return Array.isArray(data) ? data : [];
+}
+
 export default function AdverseEventsPage() {
   const { userRole, isDemoMode } = useSession();
   const { currentStudyId, participants } = useStudy();
 
-  const [events, setEvents] = useState<AdverseEvent[]>([]);
-  const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [error, setError] = useState<string | null>(null);
   const [showPanel, setShowPanel] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const canCreate = CREATE_ROLES.includes(userRole);
+  const canCreate = hasRole(userRole, EDIT_ROLES);
 
-  const load = useCallback(async () => {
-    if (!currentStudyId) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/adverse-events?studyId=${currentStudyId}`);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setEvents(Array.isArray(data) ? data : []);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentStudyId]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load();
-  }, [load]);
+  const swrKey = currentStudyId ? `adverse-events:${currentStudyId}` : null;
+  const { data: events = [], isLoading: loading, error: swrError, mutate: mutateEvents } = useSWR(
+    swrKey,
+    () => fetchAdverseEvents(currentStudyId!)
+  );
+  const error = swrError ? (swrError as Error).message : null;
 
   const toggleBand = (key: string) => setCollapsed(c => ({ ...c, [key]: !c[key] }));
 
@@ -124,7 +115,7 @@ export default function AdverseEventsPage() {
       if (!res.ok) throw new Error(data.error ?? 'Failed to create adverse event.');
       setShowPanel(false);
       setForm(EMPTY_FORM);
-      load();
+      mutateEvents();
     } catch (e) {
       setFormError((e as Error).message);
     } finally {
@@ -139,13 +130,13 @@ export default function AdverseEventsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ authoritySubmittedAt: new Date().toISOString() }),
       });
-      load();
+      mutateEvents();
     } catch {
       // ignore
     }
   };
 
-  if (!COMPLIANCE_ROLES.includes(userRole)) {
+  if (!hasRole(userRole, READABLE_ROLES)) {
     return (
       <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>
         You do not have access to adverse events.

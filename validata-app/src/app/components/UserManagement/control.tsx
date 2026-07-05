@@ -16,6 +16,7 @@ interface User {
   email: string;
   role: string;
   status: string;
+  deleted_at?: string | null;
 }
 
 const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: UserManagementControlProps) => {

@@ -11,7 +11,7 @@ export async function GET(request: Request): Promise<Response> {
     const { searchParams } = new URL(request.url);
     if (searchParams.get('deleted') === 'true') {
       if (!isMentor(session)) {
-        return Response.json({ error: 'Forbidden. Admin role required.' }, { status: 403 });
+        return Response.json({ error: 'Forbidden. Mentor or admin role required.' }, { status: 403 });
       }
       const deleted = await listDeletedStudies(session);
       return Response.json(deleted);

@@ -99,6 +99,9 @@ export async function createMeasurement(
 // Toggle a measurement's valid/invalid flag, or bulk-invalidate every
 // measurement for a participant (used when a participant is dropped).
 // ICH E6(R3) COR-01: reason is captured and flows to the audit_log trigger.
+// Only is_valid/validity_reason may ever be written here — this is now also
+// enforced at the DB level by enforce_measurements_immutability() in
+// supabase_setup.sql, which rejects any UPDATE touching another column.
 export async function updateMeasurementValidity(
   session: ResolvedSession,
   { id, isValid, participantId, studyId, reason }: UpdateMeasurementValidityInput

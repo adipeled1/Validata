@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { verifyDemoSession } from './lib/demoSession';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -7,9 +8,10 @@ const isValidUrl = supabaseUrl.startsWith('http://') || supabaseUrl.startsWith('
 const urlToUse = isValidUrl ? supabaseUrl : 'https://placeholder.supabase.co';
 const keyToUse = supabaseAnonKey || 'placeholder-key';
 
-// ICH E6(R3) SEC-01 / AUTH-01: Demo Mode must be disabled in production.
-// Set NEXT_PUBLIC_DEMO_ENABLED=false in Vercel production environment variables.
-const DEMO_ENABLED = process.env.NEXT_PUBLIC_DEMO_ENABLED !== 'false';
+// ICH E6(R3) SEC-01 / AUTH-01: Demo Mode must fail closed - opt-IN via
+// NEXT_PUBLIC_DEMO_ENABLED=true, not opt-out. A missing/misnamed env var
+// now means demo mode is OFF.
+const DEMO_ENABLED = process.env.NEXT_PUBLIC_DEMO_ENABLED === 'true';
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -43,10 +45,11 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  // ICH E6(R3) SEC-01: demo cookie is only honoured when demo mode is enabled.
-  // In production (NEXT_PUBLIC_DEMO_ENABLED=false) it is silently ignored so a
-  // tampered cookie cannot bypass Supabase authentication.
-  const demoSession = DEMO_ENABLED ? request.cookies.get('demo-session')?.value : undefined;
+  // ICH E6(R3) SEC-01: demo cookie is only honoured when demo mode is enabled
+  // AND its HMAC signature verifies (see lib/demoSession.ts) - an unsigned or
+  // tampered cookie is treated as absent, so it cannot bypass authentication.
+  const demoSessionCookie = DEMO_ENABLED ? request.cookies.get('demo-session')?.value : undefined;
+  const demoSession = demoSessionCookie ? await verifyDemoSession(demoSessionCookie) : null;
   let isAuthenticated = !!demoSession;
 
   if (!isAuthenticated) {
@@ -70,17 +73,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // 4. Handle authenticated requests but check user status if present
-  const userStatus = request.cookies.get('user-status')?.value;
-
-  if (userStatus && userStatus !== 'active') {
-    if (pathname.startsWith('/api/') && !pathname.includes('/api/profiles/current')) {
-      return NextResponse.json(
-        { error: `Access Denied. Account status is: ${userStatus}` },
-        { status: 403 }
-      );
-    }
-  }
+  // Note: an account-status gate used to live here, keyed off the
+  // client-writable `user-status` cookie (fable_system_review §2.5 - a
+  // suspended user could set `user-status=active` via document.cookie and
+  // pass this check). It's been removed: verifySession() in auth-server.ts
+  // already re-reads status from the DB on every API route and rejects
+  // non-active accounts there, so this was a redundant gate whose only
+  // effect was to make a decision on a value the adversary controls.
 
   return response;
 }

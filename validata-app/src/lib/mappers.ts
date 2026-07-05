@@ -1,6 +1,6 @@
 // Maps DB/mock participant and measurement rows to the frontend's expected
 // camelCase shape. Used both server-side (the initial load in
-// (dashboard)/layout.js) and client-side (StudyContext.js's SWR fetchers) so
+// (dashboard)/layout.tsx) and client-side (StudyContext.tsx's SWR fetchers) so
 // there's exactly one place that knows how to translate either shape,
 // instead of the client and server each carrying their own copy.
 
@@ -65,9 +65,13 @@ export function mapMeasurements(rawMeasurements: any[], isDemoMode: boolean): an
 // Joins each measurement's participant's enrollmentDate onto it (by
 // participant id) - kept as a separate step since it depends on the
 // participants list, not just the raw measurement row.
+// fable_system_review §5.6: this used to call participants.find() inside the
+// measurements.map(), an O(n*m) scan re-run on every render via useMemo.
+// Building the lookup Map once first makes each join O(1).
 export function withEnrollmentDates(measurements: any[], participants: any[]): any[] {
-  return measurements.map((m) => {
-    const participantRecord = participants.find((p) => p.id === m.participant);
-    return { ...m, enrollmentDate: participantRecord?.enrollmentDate || null };
-  });
+  const enrollmentDateById = new Map(participants.map((p) => [p.id, p.enrollmentDate]));
+  return measurements.map((m) => ({
+    ...m,
+    enrollmentDate: enrollmentDateById.get(m.participant) || null,
+  }));
 }

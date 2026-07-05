@@ -4,6 +4,7 @@ import {
   createConsentFormVersionSchema,
   formatValidationError,
 } from '@/lib/schemas';
+import { CONSENT_VERSION_ROLES, hasRole } from '@/lib/permissions';
 
 // GET /api/consent?studyId=&participantId=
 // Returns consent form versions and consent records (ICH E6(R3) CONSENT-01 to CONSENT-04).
@@ -49,7 +50,13 @@ export async function POST(request: Request): Promise<Response> {
     const body = await request.json();
 
     if (body.action === 'create_version') {
-      if (!canEditData(session)) return Response.json({ error: 'Forbidden.' }, { status: 403 });
+      // fable_system_review §2.2: consent FORM VERSIONING is protocol-level
+      // document control (mentor/admin), distinct from recording an
+      // individual participant's consent below - canEditData() was too
+      // broad here and RLS (mentor/admin-only) silently rejected the rest.
+      if (!hasRole(session.profile.role, CONSENT_VERSION_ROLES)) {
+        return Response.json({ error: 'Forbidden. Mentor or admin role required to create a consent form version.' }, { status: 403 });
+      }
       const parsed = createConsentFormVersionSchema.safeParse(body);
       if (!parsed.success) return Response.json({ error: formatValidationError(parsed.error) }, { status: 400 });
       const { studyId, version, irbApprovedAt, activatedAt, contentHash } = parsed.data;

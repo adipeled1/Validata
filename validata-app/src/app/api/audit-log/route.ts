@@ -1,6 +1,5 @@
 import { verifySession } from '@/lib/auth-server';
-
-const AUDIT_VIEWER_ROLES = ['admin', 'mentor', 'monitor', 'auditor'];
+import { AUDIT_VIEWER_ROLES, hasRole } from '@/lib/permissions';
 
 // GET /api/audit-log?studyId=&actor=&action=&from=&to=&format=csv
 // Returns the audit trail filtered by optional params (ICH E6(R3) AUDIT-05).
@@ -12,7 +11,7 @@ export async function GET(request: Request): Promise<Response> {
       return Response.json({ error: session.error }, { status: session.status });
     }
 
-    if (!AUDIT_VIEWER_ROLES.includes(session.profile.role)) {
+    if (!hasRole(session.profile.role, AUDIT_VIEWER_ROLES)) {
       return Response.json({ error: 'Forbidden. Audit trail is restricted to monitors and auditors.' }, { status: 403 });
     }
 

@@ -129,10 +129,10 @@ export default function StatusBar({
       {canAdmin ? (
         <button
           style={{ ...clickableSegmentStyle, color: isLocked ? 'var(--status-dropped)' : 'inherit' }}
-          onClick={() => router.push('/study-lock-control')}
+          onClick={() => router.push('/study-management')}
           onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.textDecoration = 'underline')}
           onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.textDecoration = 'none')}
-          title="Study Lock Control"
+          title="Study Lock Control (now in Study Management)"
         >
           {isLocked ? '🔐 Locked' : '🔓 Unlocked'}
         </button>

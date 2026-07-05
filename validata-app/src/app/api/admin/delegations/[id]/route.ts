@@ -1,4 +1,5 @@
-import { verifySession, isMentor } from '@/lib/auth-server';
+import { verifySession } from '@/lib/auth-server';
+import { DELEGATION_ROLES, hasRole } from '@/lib/permissions';
 
 // PATCH /api/admin/delegations/:id — revoke a delegation (ICH E6(R3) ACC-03)
 export async function PATCH(
@@ -8,8 +9,8 @@ export async function PATCH(
   try {
     const session = await verifySession();
     if ('error' in session) return Response.json({ error: session.error }, { status: session.status });
-    if (!isMentor(session) && session.profile.role !== 'investigator') {
-      return Response.json({ error: 'Forbidden. Investigator or admin role required.' }, { status: 403 });
+    if (!hasRole(session.profile.role, DELEGATION_ROLES)) {
+      return Response.json({ error: 'Forbidden. Investigator, mentor, or admin role required.' }, { status: 403 });
     }
 
     const { id } = await params;

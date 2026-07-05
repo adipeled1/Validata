@@ -13,8 +13,37 @@ const MEANING =
   'is accurate, complete, and ready for use in the study report. This constitutes a legally binding ' +
   'electronic signature in accordance with ICH E6(R3) section 4.9.';
 
+const overlayStyle: React.CSSProperties = {
+  position: 'fixed', inset: 0, zIndex: 50, display: 'flex',
+  alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)',
+};
+
+const modalStyle: React.CSSProperties = {
+  background: 'var(--bg-surface)', border: '1px solid var(--border)',
+  width: '100%', maxWidth: '440px', padding: '20px', display: 'flex',
+  flexDirection: 'column', gap: '14px',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)',
+  textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px',
+};
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', background: 'var(--bg-editor)', border: '1px solid var(--border)',
+  color: 'var(--text-primary)', padding: '6px 8px', fontSize: '12px',
+};
+
+const btnBase: React.CSSProperties = {
+  padding: '6px 14px', fontSize: '12px', fontWeight: 600, border: '1px solid var(--border)',
+  cursor: 'pointer', background: 'transparent', color: 'var(--text-secondary)',
+};
+
 // Modal that re-authenticates the user (ICH E6(R3) SIG-01) then submits an
 // electronic signature for the current study's analysis data (SIG-02, SIG-03).
+// fable_system_review §3.4: this was the one screen in the app styled with
+// Tailwind utility classes in a light theme, clashing with the rest of the
+// dark, inline-style "IDE" idiom used everywhere else - restyled to match.
 export default function EndorseDataModal({ studyId, signerEmail, onClose, onSuccess }: Props) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +53,8 @@ export default function EndorseDataModal({ studyId, signerEmail, onClose, onSucc
     setError(null);
     setLoading(true);
 
-    // Step 1: verify credentials
+    // Step 1: verify credentials, receiving a short-lived signing token that
+    // binds this re-authentication to the signature request below.
     const verifyRes = await fetch('/api/auth/verify-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -36,6 +66,7 @@ export default function EndorseDataModal({ studyId, signerEmail, onClose, onSucc
       setLoading(false);
       return;
     }
+    const { signingToken } = await verifyRes.json();
 
     // Step 2: record the signature
     const sigRes = await fetch('/api/signatures', {
@@ -47,6 +78,7 @@ export default function EndorseDataModal({ studyId, signerEmail, onClose, onSucc
         recordId: studyId,
         milestone: 'data_lock',
         meaning: MEANING,
+        signingToken,
       }),
     });
     if (!sigRes.ok) {
@@ -62,60 +94,59 @@ export default function EndorseDataModal({ studyId, signerEmail, onClose, onSucc
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Endorse Study Data</h2>
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
+        <h2 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+          Endorse Study Data
+        </h2>
 
-        <p className="text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded p-3">{MEANING}</p>
+        <p style={{ fontSize: '11px', color: 'var(--text-secondary)', background: 'var(--bg-editor)', border: '1px solid var(--border)', padding: '8px 10px', margin: 0 }}>
+          {MEANING}
+        </p>
 
-        <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded p-2">
+        <p style={{ fontSize: '10px', color: 'var(--text-muted)', border: '1px solid var(--border)', padding: '6px 8px', margin: 0 }}>
           This creates a permanent, timestamped audit record only — it does not lock the study or notify
           anyone. Data can still be edited afterward. Use Study Lock Control separately if you need to
           prevent further changes.
         </p>
 
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700" htmlFor="endorse-email">
-            Email
-          </label>
+        <div>
+          <label style={labelStyle} htmlFor="endorse-email">Email</label>
           <input
             id="endorse-email"
             type="email"
             value={signerEmail}
             readOnly
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-gray-50 text-gray-500"
+            style={{ ...inputStyle, color: 'var(--text-muted)', cursor: 'default' }}
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700" htmlFor="endorse-password">
-            Password
-          </label>
+        <div>
+          <label style={labelStyle} htmlFor="endorse-password">Password</label>
           <input
             id="endorse-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter your password to confirm"
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            style={inputStyle}
             onKeyDown={(e) => e.key === 'Enter' && !loading && password && handleSign()}
           />
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p style={{ fontSize: '11px', color: 'var(--color-error)', margin: 0 }}>{error}</p>}
 
-        <div className="flex gap-3 justify-end pt-2">
-          <button
-            onClick={onClose}
-            disabled={loading}
-            className="px-4 py-2 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          >
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', paddingTop: '4px' }}>
+          <button onClick={onClose} disabled={loading} style={{ ...btnBase, opacity: loading ? 0.5 : 1 }}>
             Cancel
           </button>
           <button
             onClick={handleSign}
             disabled={loading || !password}
-            className="px-4 py-2 text-sm rounded bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50"
+            style={{
+              ...btnBase, background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)',
+              opacity: loading || !password ? 0.5 : 1,
+            }}
           >
             {loading ? 'Signing…' : 'Sign'}
           </button>

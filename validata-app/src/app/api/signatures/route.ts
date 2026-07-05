@@ -1,12 +1,15 @@
-import { verifySession } from '@/lib/auth-server';
+import { verifySession, canReadOnly } from '@/lib/auth-server';
 import { createSignatureSchema, formatValidationError } from '@/lib/schemas';
-
-const SIGNING_ROLES = ['admin', 'mentor', 'investigator'];
+import { consumeSigningToken } from '@/lib/signing-tokens';
+import { SIGNING_ROLES, hasRole } from '@/lib/permissions';
 
 // POST /api/signatures
 // Records an electronic signature for a data milestone (ICH E6(R3) SIG-01, SIG-02, SIG-03).
-// The caller must have already passed re-authentication via POST /api/auth/verify-credentials
-// before calling this endpoint. Signatures are append-only (no UPDATE/DELETE RLS policy).
+// fable_system_review §2.4: re-authentication is now enforced here, not just
+// choreographed by the client - a signingToken minted by a prior, successful
+// POST /api/auth/verify-credentials is required and atomically consumed
+// (single use), so this endpoint can't be called directly to sign without
+// ever presenting a password. Signatures are append-only (no UPDATE/DELETE RLS policy).
 export async function POST(request: Request): Promise<Response> {
   try {
     const session = await verifySession();
@@ -14,7 +17,7 @@ export async function POST(request: Request): Promise<Response> {
       return Response.json({ error: session.error }, { status: session.status });
     }
 
-    if (!SIGNING_ROLES.includes(session.profile.role)) {
+    if (!hasRole(session.profile.role, SIGNING_ROLES)) {
       return Response.json(
         { error: 'Forbidden. Only investigators and sponsor admins may sign data.' },
         { status: 403 }
@@ -26,7 +29,15 @@ export async function POST(request: Request): Promise<Response> {
     if (!parsed.success) {
       return Response.json({ error: formatValidationError(parsed.error) }, { status: 400 });
     }
-    const { studyId, recordType, recordId, milestone, meaning } = parsed.data;
+    const { studyId, recordType, recordId, milestone, meaning, signingToken } = parsed.data;
+
+    const tokenValid = await consumeSigningToken(session, signingToken);
+    if (!tokenValid) {
+      return Response.json(
+        { error: 'Re-authentication required or expired. Please re-enter your password and try again.' },
+        { status: 401 }
+      );
+    }
 
     if (session.isDemo) {
       return Response.json(
@@ -65,6 +76,14 @@ export async function GET(request: Request): Promise<Response> {
     const session = await verifySession();
     if ('error' in session) {
       return Response.json({ error: session.error }, { status: session.status });
+    }
+
+    // fable_system_review §2.1: this endpoint previously had no role check at
+    // all while the signatures log page restricted viewing to compliance
+    // roles - any authenticated active user could list every signature for a
+    // study. Aligned to the same READABLE_ROLES set used everywhere else.
+    if (!canReadOnly(session)) {
+      return Response.json({ error: 'Forbidden.' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

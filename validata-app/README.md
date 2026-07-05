@@ -20,6 +20,10 @@ Create `.env.local` in this directory:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-GOOGLE_GENERATIVE_AI_API_KEY=your-google-ai-key
+# Demo mode is opt-IN and fails closed: omit these two entirely in any real
+# deployment. Setting NEXT_PUBLIC_DEMO_ENABLED=true without DEMO_SESSION_SECRET
+# still leaves demo mode unusable (POST /api/auth/demo-login refuses to issue
+# a session without a secret to sign it with) - see src/lib/demoSession.ts.
 NEXT_PUBLIC_DEMO_ENABLED=true
+DEMO_SESSION_SECRET=a-long-random-dev-only-secret
 ```

@@ -31,10 +31,8 @@ export const PATH_LABELS: Record<string, string> = {
   '/consent-records': 'Consent Records',
   '/adverse-events': 'Adverse Events',
   '/study-management': 'Study Management',
-  '/study-access-control': 'Study Access Control',
   '/user-management': 'User Registry',
   '/delegation-log': 'Delegation Log',
-  '/study-lock-control': 'Study Lock Control',
   '/system-inventory': 'System Inventory',
 };
 

@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
+import { QUERY_MUTATE_ROLES, hasRole } from '../../../lib/permissions';
 
-// ICH E6(R3) CAP-04, COR-01, COR-02: Query management page.
-// Accessible to data_manager, monitor, investigator, and mentor.
-const QUERY_ROLES = [
-  'admin', 'mentor', 'investigator',
-  'data_manager', 'monitor',
-];
+// fable_system_review §3.2: standardized on SWR (shared cache, no bespoke
+// per-page fetch/loading/error triplet) instead of a bare useEffect fetch.
+async function fetchQueries(studyId: string) {
+  const res = await fetch(`/api/queries?studyId=${studyId}`);
+  if (!res.ok) throw new Error('Failed to load queries.');
+  return res.json();
+}
 
 const SEVERITY_COLOR: Record<string, string> = {
   minor: 'var(--status-pending)',
@@ -39,26 +42,17 @@ const inputStyle: React.CSSProperties = {
 export default function QueriesPage() {
   const { userRole } = useSession();
   const { currentStudyId } = useStudy();
-  const [queries, setQueries] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [answerText, setAnswerText] = useState<Record<number, string>>({});
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedQuery, setSelectedQuery] = useState<any | null>(null);
 
-  const canRaiseQuery = QUERY_ROLES.includes(userRole);
+  const canRaiseQuery = hasRole(userRole, QUERY_MUTATE_ROLES);
 
-  const loadQueries = useCallback(async () => {
-    if (!currentStudyId) return;
-    setLoading(true);
-    const res = await fetch(`/api/queries?studyId=${currentStudyId}`);
-    if (res.ok) setQueries(await res.json());
-    setLoading(false);
-  }, [currentStudyId]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadQueries();
-  }, [loadQueries]);
+  const swrKey = currentStudyId ? `queries:${currentStudyId}` : null;
+  const { data: queries = [], isLoading: loading, mutate: mutateQueries } = useSWR(
+    swrKey,
+    () => fetchQueries(currentStudyId!)
+  );
 
   if (!canRaiseQuery) {
     return (
@@ -76,7 +70,7 @@ export default function QueriesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    loadQueries();
+    mutateQueries();
     if (selectedQuery?.id === id) {
       setSelectedQuery((prev: any) => prev ? { ...prev, status } : null);
     }

@@ -46,8 +46,9 @@ export const signInWithSupabase = async (email: string, password: string): Promi
   }
 
   // @supabase/ssr already persisted the session itself (in its own cookies,
-  // kept fresh by src/proxy.js); these are just our own role/status cache
-  // for the proxy.js status gate and SessionContext's profile-fetch fallback.
+  // kept fresh by src/proxy.ts); these are just our own role/status cache,
+  // read only as a UI hint (SessionContext) - not trusted for access
+  // decisions server-side (fable_system_review §2.5).
   setCookie('user-role', role, 7);
   setCookie('user-status', status, 7);
 
@@ -64,11 +65,27 @@ export const signUpWithSupabase = async (email: string, password: string): Promi
   return { success: true };
 };
 
-export const performDemoLogin = (role: string, email: string): { success: boolean } => {
-  // page.js and auth-server.js both parse this cookie as JSON ({ email, role,
-  // status }) to build the demo session - it must not be a bare string.
-  setCookie('demo-session', JSON.stringify({ email, role, status: 'active' }), 7);
-  setCookie('user-role', role, 7);
+export const performDemoLogin = async (email: string, password: string): Promise<{ success: boolean; role?: string }> => {
+  // fable_system_review §6.1: the demo-session cookie is no longer written
+  // directly by the client - it's minted server-side (HMAC-signed) by
+  // POST /api/auth/demo-login after checking DEMO_ENABLED and the fixed demo
+  // credential list, and set as HttpOnly so it can't be read/forged from
+  // devtools. See lib/demoSession.ts.
+  const response = await fetch('/api/auth/demo-login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Demo login failed.');
+  }
+
+  // user-role/user-status remain client-readable UI-only hints (see
+  // SessionContext.tsx); server-side authority now always comes from the
+  // signed demo-session cookie, verified in auth-server.ts/proxy.ts.
+  setCookie('user-role', data.role, 7);
   setCookie('user-status', 'active', 7);
-  return { success: true };
+  return { success: true, role: data.role };
 };
