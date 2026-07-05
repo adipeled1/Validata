@@ -14,10 +14,14 @@ The platform manages study participants, records and validates measurements, and
 ```
 Validata/
 ├── README.md                  ← you are here (overview)
-├── FEATURES.md                ← full feature and technical description
 ├── DISCLAIMER.md              ← ICH / compliance / open-source disclaimer
 ├── LICENSE
 ├── docs/                      ← all technical documentation (see docs/README.md)
+│   ├── getting-started/       — features, capabilities map
+│   ├── technical/             — frontend, backend, database, auth, data flow
+│   ├── compliance/            — ICH E6(R3) gap analysis & implementation
+│   ├── infrastructure/        — Supabase setup & connection guides
+│   └── quality/               — VMP, disaster recovery runbook, periodic review
 └── validata-app/              ← Next.js application
     ├── src/
     │   ├── app/
@@ -26,8 +30,7 @@ Validata/
     │   │   └── components/    — React UI components
     │   ├── lib/               — auth, repositories, schemas, mappers
     │   └── context/           — React context (session, study)
-    ├── supabase_setup.sql     — full database schema (run once on new project)
-    └── docs/                  — app-level guides (bootstrap, VMP, DR runbook)
+    └── supabase_setup.sql     — full database schema (run once on new project)
 ```
 
 ---
@@ -39,7 +42,6 @@ Validata/
 - **Vercel** (deployment + edge middleware)
 - **Chart.js / Recharts** — analysis dashboards
 - **SheetJS (`xlsx`)** — spreadsheet import
-- **Google Gemini** (`@ai-sdk/google`) — AI analysis assistant
 - **Zod** — runtime schema validation
 
 ---
@@ -61,9 +63,9 @@ GOOGLE_GENERATIVE_AI_API_KEY=your-google-ai-key
 NEXT_PUBLIC_DEMO_ENABLED=true
 ```
 
-For the full Supabase project setup, follow [`validata-app/docs/supabase_bootstrap.md`](validata-app/docs/supabase_bootstrap.md).
+For the full Supabase project setup, follow [`docs/infrastructure/supabase_bootstrap.md`](docs/infrastructure/supabase_bootstrap.md).
 
-For a full description of every feature, see [`FEATURES.md`](FEATURES.md).
+For a full description of every feature, see [`docs/getting-started/FEATURES.md`](docs/getting-started/FEATURES.md).
 
 For system explainers (how each part works), see [`docs/`](docs/README.md).
 

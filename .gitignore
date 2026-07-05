@@ -1,6 +1,12 @@
 # ─── Claude Code internal ────────────────────────────────────────────────────
 .claude/
 
+# ─── Local development files (notes, WIP, archives — not for portfolio) ──────
+.local/
+
+#temporary
+docs/
+
 # ─── Node / npm ───────────────────────────────────────────────────────────────
 node_modules/
 npm-debug.log*

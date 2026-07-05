@@ -288,13 +288,12 @@ All API and Server Action inputs are validated with Zod schemas defined centrall
 | File | Purpose |
 |---|---|
 | `validata-app/supabase_setup.sql` | Full Postgres schema, 26 sections, run once on a new project |
-| `validata-app/docs/supabase_bootstrap.md` | Step-by-step new Supabase project setup guide |
-| `validata-app/docs/validation_master_plan.md` | VMP skeleton (student reference; IQ/OQ/PQ templates) |
-| `validata-app/docs/disaster_recovery_runbook.md` | DR plan (RPO 15 min, RTO 4 hours, 4 scenarios) |
-| `validata-app/docs/csv_periodic_review.md` | Annual computer system review checklist |
-| `road_to_compliance_plan.md` | ICH E6(R3) gap analysis, 117 requirements |
-| `compliance_todo.md` | 39-task implementation checklist (Phases 0–3) |
-| `ich_compliance_report.md` | Per-task implementation report |
+| `docs/infrastructure/supabase_bootstrap.md` | Step-by-step new Supabase project setup guide |
+| `docs/quality/validation_master_plan.md` | VMP skeleton (student reference; IQ/OQ/PQ templates) |
+| `docs/quality/disaster_recovery_runbook.md` | DR plan (RPO 15 min, RTO 4 hours, 4 scenarios) |
+| `docs/quality/csv_periodic_review.md` | Annual computer system review checklist |
+| `docs/compliance/road_to_compliance_plan.md` | ICH E6(R3) gap analysis, 117 requirements |
+| `docs/compliance/ich_compliance_report.md` | Per-task implementation report |
 
 ---
 
@@ -321,8 +320,8 @@ The following features were added after a structured gap analysis against ICH E6
 | SEC-02 (Cookies) | `SameSite=Strict`; conditional `Secure` flag via `secureFlag()` helper |
 | RET-04 (Export) | `/api/admin/export` returns JSON + SHA-256 integrity hash |
 | META-04 (System Reg.) | `/system-inventory` page lists all components with GAMP 5 category and validation status |
-| BCP-01–02 | `docs/disaster_recovery_runbook.md` (RPO 15 min / RTO 4 h); Supabase PITR instructions |
-| CSV-01–04 | `docs/validation_master_plan.md` (VMP/IQ/OQ/PQ skeleton); `docs/csv_periodic_review.md` |
+| BCP-01–02 | `docs/quality/disaster_recovery_runbook.md` (RPO 15 min / RTO 4 h); Supabase PITR instructions |
+| CSV-01–04 | `docs/quality/validation_master_plan.md` (VMP/IQ/OQ/PQ skeleton); `docs/quality/csv_periodic_review.md` |
 | ACC-01 | `/api/admin/access-registry` listing with CSV export |
 | DEL-01 | `delegations` table + API route |
 | BLIND-01–02 | `treatment_assignments` (mentor-only RLS); `unblinding_events` table |

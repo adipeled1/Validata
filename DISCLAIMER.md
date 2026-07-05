@@ -36,7 +36,7 @@ We are students at Braude College of Engineering. The features listed above refl
 
 - **Regulatory jurisdiction.** Requirements differ between the FDA (21 CFR Part 11), EMA, and other health authorities. This project does not target any specific regulatory submission pathway and has not been reviewed by any regulatory authority.
 
-- **System validation.** A validated computerised system requires executed Installation Qualification (IQ), Operational Qualification (OQ), and Performance Qualification (PQ) test protocols, signed by qualified personnel, against a locked and controlled production environment. The `docs/validation_master_plan.md` file in this repository is a skeleton template for learning purposes only — it has not been executed, signed, or reviewed by any qualified person.
+- **System validation.** A validated computerised system requires executed Installation Qualification (IQ), Operational Qualification (OQ), and Performance Qualification (PQ) test protocols, signed by qualified personnel, against a locked and controlled production environment. The `docs/quality/validation_master_plan.md` file in this repository is a skeleton template for learning purposes only — it has not been executed, signed, or reviewed by any qualified person.
 
 - **Security audit.** This code has not undergone an independent penetration test or security audit. Do not rely on it to protect sensitive clinical data without an independent review.
 
