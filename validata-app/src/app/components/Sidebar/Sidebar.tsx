@@ -6,7 +6,6 @@ import PrimarySidebar from '../Shell/PrimarySidebar';
 interface SidebarProps {
   userRole: string;
   currentUserEmail: string;
-  onLogout: () => void;
   studies?: any[];
   currentStudyId?: string | null;
   onSwitchStudy: (id: string) => void;

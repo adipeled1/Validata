@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { Sun, Moon, PanelBottomOpen, PanelBottomClose } from 'lucide-react';
+import { Sun, Moon, PanelBottomOpen, PanelBottomClose, LogOut } from 'lucide-react';
 
 interface StatusBarProps {
   userRole: string;
@@ -14,6 +14,7 @@ interface StatusBarProps {
   onToggleTheme: () => void;
   isPanelOpen?: boolean;
   onTogglePanel?: () => void;
+  onLogout?: () => void;
 }
 
 const ROLE_NAMES: Record<string, string> = {
@@ -57,6 +58,7 @@ export default function StatusBar({
   onToggleTheme,
   isPanelOpen,
   onTogglePanel,
+  onLogout,
 }: StatusBarProps) {
   const router = useRouter();
   const roleName = ROLE_NAMES[userRole] || userRole;
@@ -150,8 +152,7 @@ export default function StatusBar({
           <Sep />
         </>
       )}
-      <span style={{ fontWeight: 600, letterSpacing: '0.03em' }}>ICH E6(R3) ✓</span>
-      <Sep />
+
       {onTogglePanel && (
         <>
           <button
@@ -192,6 +193,35 @@ export default function StatusBar({
       >
         {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
       </button>
+      {onLogout && (
+        <>
+          <Sep />
+          <button
+            onClick={onLogout}
+            title="Sign Out"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--statusbar-fg)',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0 2px',
+              opacity: 0.85,
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--status-dropped)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.opacity = '0.85';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--statusbar-fg)';
+            }}
+          >
+            <LogOut size={13} />
+          </button>
+        </>
+      )}
     </div>
   );
 }

@@ -254,7 +254,6 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         <Sidebar
           userRole={userRole}
           currentUserEmail={currentUserEmail}
-          onLogout={handleLogout}
           studies={studies}
           currentStudyId={currentStudyId}
           onSwitchStudy={switchStudy}
@@ -300,6 +299,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         onToggleTheme={toggleTheme}
         isPanelOpen={isPanelOpen}
         onTogglePanel={() => setIsPanelOpen((v) => !v)}
+        onLogout={handleLogout}
       />
 
       {/* Command palette */}
