@@ -16,12 +16,6 @@ Validata/
 ├── README.md                  ← you are here (overview)
 ├── DISCLAIMER.md              ← ICH / compliance / open-source disclaimer
 ├── LICENSE
-├── docs/                      ← all technical documentation (see docs/README.md)
-│   ├── getting-started/       — features, capabilities map
-│   ├── technical/             — frontend, backend, database, auth, data flow
-│   ├── compliance/            — ICH E6(R3) gap analysis & implementation
-│   ├── infrastructure/        — Supabase setup & connection guides
-│   └── quality/               — VMP, disaster recovery runbook, periodic review
 └── validata-app/              ← Next.js application
     ├── src/
     │   ├── app/
