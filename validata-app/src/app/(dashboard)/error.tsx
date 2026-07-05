@@ -29,10 +29,10 @@ export default function DashboardError({ error, reset }: { error: Error; reset: 
         <AlertTriangle size={24} />
       </div>
       <div>
-        <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+        <h2 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
           Something went wrong
         </h2>
-        <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+        <p style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-secondary)' }}>
           {error?.message || 'An unexpected error occurred.'}
         </p>
       </div>
@@ -43,7 +43,7 @@ export default function DashboardError({ error, reset }: { error: Error; reset: 
           background: 'var(--accent)',
           color: '#fff',
           border: 'none',
-          fontSize: '12px',
+          fontSize: 'var(--font-size-md)',
           fontWeight: 600,
           cursor: 'pointer',
           borderRadius: 'var(--radius)',

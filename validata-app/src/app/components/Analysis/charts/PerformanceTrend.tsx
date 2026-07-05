@@ -9,7 +9,7 @@ import YLabelChart from './YLabelChart';
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: '11px' }}>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: 'var(--font-size-sm)' }}>
       <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Session: {label}</p>
       {payload.map((p: any) => (
         <p key={p.dataKey} style={{ color: p.color }}>
@@ -33,7 +33,7 @@ const PerformanceTrend = ({ data }: { data?: { sessions: any[] } }) => {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         height: '200px', background: 'var(--bg-surface-alt)',
         border: '1px dashed var(--border)',
-        fontSize: '11px', color: 'var(--text-ghost)', textAlign: 'center', padding: '16px',
+        fontSize: 'var(--font-size-sm)', color: 'var(--text-ghost)', textAlign: 'center', padding: '16px',
       }}>
         At least 2 sessions needed to show a trend
       </div>

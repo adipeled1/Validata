@@ -59,7 +59,7 @@ export default function StudyOverviewPage() {
         <div>
           <div
             style={{
-              fontSize: '10px',
+              fontSize: 'var(--font-size-xs)',
               color: 'var(--text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
@@ -78,7 +78,7 @@ export default function StudyOverviewPage() {
             {currentStudy?.name ?? 'Study Overview'}
           </h1>
           {currentStudy?.site && (
-            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px' }}>
               {currentStudy.site}
               {currentStudy.recruitment_goal && (
                 <span style={{ marginLeft: '8px' }}>
@@ -89,10 +89,10 @@ export default function StudyOverviewPage() {
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--status-active)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--status-active)', display: 'flex', alignItems: 'center', gap: '4px' }}>
             &#x25CF; Active
           </span>
-          <span style={{ fontSize: '11px', color: isLocked ? 'var(--status-dropped)' : 'var(--text-secondary)' }}>
+          <span style={{ fontSize: 'var(--font-size-sm)', color: isLocked ? 'var(--status-dropped)' : 'var(--text-secondary)' }}>
             {isLocked ? '🔒 Locked' : '🔓 Unlocked'}
           </span>
         </div>
@@ -106,7 +106,7 @@ export default function StudyOverviewPage() {
             style={{
               padding: '8px 12px',
               borderBottom: '1px solid var(--border)',
-              fontSize: '10px',
+              fontSize: 'var(--font-size-xs)',
               fontWeight: 600,
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
@@ -117,10 +117,10 @@ export default function StudyOverviewPage() {
           </div>
           <div style={{ overflowX: 'auto' }}>
             {loadingAudit && (
-              <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-muted)' }}>Loading…</div>
+              <div style={{ padding: '12px', fontSize: 'var(--font-size-md)', color: 'var(--text-muted)' }}>Loading…</div>
             )}
             {!loadingAudit && auditLogs.length === 0 && (
-              <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-muted)' }}>No audit events yet.</div>
+              <div style={{ padding: '12px', fontSize: 'var(--font-size-md)', color: 'var(--text-muted)' }}>No audit events yet.</div>
             )}
             {auditLogs.map((log, i) => (
               <div
@@ -133,7 +133,7 @@ export default function StudyOverviewPage() {
                   height: '24px',
                   background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
                   fontFamily: 'var(--font-data)',
-                  fontSize: '11px',
+                  fontSize: 'var(--font-size-sm)',
                   borderBottom: '1px solid var(--border)',
                 }}
               >
@@ -161,7 +161,7 @@ export default function StudyOverviewPage() {
               style={{
                 padding: '8px 12px',
                 borderBottom: '1px solid var(--border)',
-                fontSize: '10px',
+                fontSize: 'var(--font-size-xs)',
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
@@ -181,7 +181,7 @@ export default function StudyOverviewPage() {
                   justifyContent: 'space-between',
                   background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
                   borderBottom: '1px solid var(--border)',
-                  fontSize: '11px',
+                  fontSize: 'var(--font-size-sm)',
                 }}
               >
                 <span style={{ fontFamily: 'var(--font-data)', color: 'var(--text-id)' }}>
@@ -190,20 +190,20 @@ export default function StudyOverviewPage() {
                 <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, margin: '0 10px' }}>
                   {q.query_text}
                 </span>
-                <span style={{ color: q.status === 'open' ? 'var(--status-dropped)' : 'var(--accent-soft)', fontSize: '10px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                <span style={{ color: q.status === 'open' ? 'var(--status-dropped)' : 'var(--accent-soft)', fontSize: 'var(--font-size-xs)', fontWeight: 600, whiteSpace: 'nowrap' }}>
                   {q.status.toUpperCase()}
                 </span>
               </div>
             ))}
             {openQueries === 0 && (
-              <div style={{ padding: '12px', fontSize: '12px', color: 'var(--status-active)' }}>No open queries. Study is clean.</div>
+              <div style={{ padding: '12px', fontSize: 'var(--font-size-md)', color: 'var(--status-active)' }}>No open queries. Study is clean.</div>
             )}
           </div>
 
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '12px' }}>
             <div
               style={{
-                fontSize: '10px',
+                fontSize: 'var(--font-size-xs)',
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
@@ -213,7 +213,7 @@ export default function StudyOverviewPage() {
             >
               Last Signature
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-muted)' }}>
               See Electronic Signatures page for full endorsement registry.
             </div>
           </div>

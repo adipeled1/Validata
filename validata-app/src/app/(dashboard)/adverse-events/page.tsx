@@ -138,7 +138,7 @@ export default function AdverseEventsPage() {
 
   if (!hasRole(userRole, READABLE_ROLES)) {
     return (
-      <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>
+      <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>
         You do not have access to adverse events.
       </div>
     );
@@ -167,7 +167,7 @@ export default function AdverseEventsPage() {
       {/* Header */}
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
             COMPLIANCE / Adverse Events
           </div>
           <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
@@ -193,7 +193,7 @@ export default function AdverseEventsPage() {
           flexShrink: 0, border: '1px solid var(--accent)', background: 'var(--bg-surface)',
           padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px',
         }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             New Adverse Event
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
@@ -271,7 +271,7 @@ export default function AdverseEventsPage() {
             />
           </label>
           {formError && (
-            <div style={{ fontSize: '11px', color: '#dc2626' }}>{formError}</div>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: '#dc2626' }}>{formError}</div>
           )}
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
@@ -289,13 +289,13 @@ export default function AdverseEventsPage() {
       )}
 
       {error && (
-        <div style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid var(--color-error)', padding: '8px 12px', fontSize: '12px', color: 'var(--color-error)', flexShrink: 0 }}>
+        <div style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid var(--color-error)', padding: '8px 12px', fontSize: 'var(--font-size-md)', color: 'var(--color-error)', flexShrink: 0 }}>
           {error}
         </div>
       )}
 
       {loading ? (
-        <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>Loading…</div>
+        <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>Loading…</div>
       ) : (
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0' }}>
           {BANDS.map(band => {
@@ -314,12 +314,12 @@ export default function AdverseEventsPage() {
                     userSelect: 'none',
                   }}
                 >
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{isCollapsed ? '▶' : '▼'}</span>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>{isCollapsed ? '▶' : '▼'}</span>
+                  <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                     {band.label}
                   </span>
                   <span style={{
-                    fontSize: '10px', fontWeight: 600, padding: '1px 5px',
+                    fontSize: 'var(--font-size-xs)', fontWeight: 600, padding: '1px 5px',
                     background: bandEvents.length > 0 ? `${band.borderColor}22` : 'transparent',
                     color: bandEvents.length > 0 ? band.borderColor : 'var(--text-muted)',
                     border: `1px solid ${bandEvents.length > 0 ? band.borderColor : 'var(--border)'}`,
@@ -329,7 +329,7 @@ export default function AdverseEventsPage() {
                 </div>
 
                 {!isCollapsed && (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-md)' }}>
                     <thead>
                       <tr style={{ background: 'var(--bg-editor)' }}>
                         {['AE ID', 'Participant', 'Severity', 'Causality', 'Expectedness', 'Reported', 'Deadline', 'Submitted'].map(col => (
@@ -340,7 +340,7 @@ export default function AdverseEventsPage() {
                     <tbody>
                       {bandEvents.length === 0 ? (
                         <tr>
-                          <td colSpan={8} style={{ padding: '10px 12px', color: 'var(--text-muted)', fontSize: '11px' }}>
+                          <td colSpan={8} style={{ padding: '10px 12px', color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)' }}>
                             {isDemoMode ? `No ${band.label} events (demo mode)` : `No ${band.label} events recorded.`}
                           </td>
                         </tr>
@@ -348,14 +348,14 @@ export default function AdverseEventsPage() {
                         const dlStatus = deadlineStatus(e.authority_deadline);
                         return (
                           <tr key={e.id} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-surface)', height: 'var(--row-height)' }}>
-                            <td style={{ ...tdStyle, fontFamily: 'var(--font-data)', fontSize: '11px' }}>{e.id.slice(0, 8)}</td>
+                            <td style={{ ...tdStyle, fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)' }}>{e.id.slice(0, 8)}</td>
                             <td style={tdStyle}>{e.participant_id}</td>
                             <td style={{ ...tdStyle, color: severityColor(e.severity) }}>{SEVERITY_LABELS[e.severity] ?? e.severity}</td>
                             <td style={tdStyle}>{CAUSALITY_LABELS[e.causality] ?? e.causality}</td>
                             <td style={tdStyle}>{e.expectedness}</td>
-                            <td style={{ ...tdStyle, fontFamily: 'var(--font-data)', fontSize: '11px' }}>{e.report_date}</td>
+                            <td style={{ ...tdStyle, fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)' }}>{e.report_date}</td>
                             <td style={{
-                              ...tdStyle, fontFamily: 'var(--font-data)', fontSize: '11px',
+                              ...tdStyle, fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)',
                               color: dlStatus === 'red' ? 'var(--color-error)' : dlStatus === 'yellow' ? 'var(--color-warning)' : 'var(--text-primary)',
                               fontWeight: dlStatus ? 600 : 400,
                             }}>
@@ -369,7 +369,7 @@ export default function AdverseEventsPage() {
                                 <button
                                   onClick={() => handleMarkSubmitted(e.id)}
                                   title="Mark as submitted to authority"
-                                  style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '10px', padding: '1px 6px' }}
+                                  style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 'var(--font-size-xs)', padding: '1px 6px' }}
                                 >
                                   Mark
                                 </button>
@@ -403,14 +403,14 @@ function severityColor(severity: string): string {
 }
 
 const btnSecondary: React.CSSProperties = {
-  padding: '4px 10px', fontSize: '11px',
+  padding: '4px 10px', fontSize: 'var(--font-size-sm)',
   background: 'var(--bg-surface)', color: 'var(--text-secondary)',
   border: '1px solid var(--border)', cursor: 'pointer',
 };
 
 const thStyle: React.CSSProperties = {
   padding: '5px 8px', textAlign: 'left',
-  fontSize: '10px', fontWeight: 600,
+  fontSize: 'var(--font-size-xs)', fontWeight: 600,
   color: 'var(--text-secondary)', textTransform: 'uppercase',
   letterSpacing: '0.06em', borderBottom: '1px solid var(--border)',
   whiteSpace: 'nowrap',
@@ -424,12 +424,12 @@ const tdStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   display: 'flex', flexDirection: 'column', gap: '3px',
-  fontSize: '10px', fontWeight: 600, textTransform: 'uppercase',
+  fontSize: 'var(--font-size-xs)', fontWeight: 600, textTransform: 'uppercase',
   letterSpacing: '0.06em', color: 'var(--text-secondary)',
 };
 
 const inputStyle: React.CSSProperties = {
   background: 'var(--bg-input)', border: '1px solid var(--border)',
-  color: 'var(--text-primary)', fontSize: '12px', padding: '4px 8px',
+  color: 'var(--text-primary)', fontSize: 'var(--font-size-md)', padding: '4px 8px',
   fontFamily: 'var(--font-ui)', outline: 'none', width: '100%',
 };

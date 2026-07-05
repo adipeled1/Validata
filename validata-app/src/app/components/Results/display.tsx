@@ -17,7 +17,7 @@ const inputStyle: React.CSSProperties = {
   border: '1px solid var(--border)',
   borderRadius: 'var(--radius)',
   color: 'var(--text-primary)',
-  fontSize: '12px',
+  fontSize: 'var(--font-size-md)',
   padding: '4px 8px',
   fontFamily: 'var(--font-ui)',
   outline: 'none',
@@ -139,7 +139,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
             onClick={(e) => { e.stopPropagation(); handleMarkInvalidClick(m.id); }}
             style={{
               padding: '1px 8px',
-              fontSize: '11px',
+              fontSize: 'var(--font-size-sm)',
               background: 'transparent',
               color: 'var(--status-active)',
               border: '1px solid var(--status-active)',
@@ -150,7 +150,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
             Valid
           </button>
         ) : (
-          <span style={{ fontSize: '11px', color: 'var(--status-dropped)' }}>Invalid</span>
+          <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--status-dropped)' }}>Invalid</span>
         );
       },
     },
@@ -161,7 +161,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
       {/* Page header */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
             PARTICIPANTS & DATA / Results Table
           </div>
           <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -177,7 +177,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius)',
             color: 'var(--text-primary)',
-            fontSize: '12px',
+            fontSize: 'var(--font-size-md)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -191,7 +191,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
       {/* Filters */}
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <label style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <label style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Participant
           </label>
           <select
@@ -208,7 +208,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <label style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <label style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Enrollment Date
           </label>
           <input
@@ -221,7 +221,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <label style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <label style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Test Date
           </label>
           <input
@@ -242,7 +242,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
               background: 'transparent',
               border: 'none',
               color: 'var(--text-muted)',
-              fontSize: '11px',
+              fontSize: 'var(--font-size-sm)',
               cursor: 'pointer',
               textDecoration: 'underline',
             }}
@@ -251,7 +251,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
           </button>
         )}
 
-        <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'var(--text-muted)' }}>
+        <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>
           {displayMeasurements.length} / {sortedMeasurements.length} measurements
         </span>
       </div>

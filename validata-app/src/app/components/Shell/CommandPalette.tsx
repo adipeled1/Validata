@@ -146,7 +146,7 @@ export default function CommandPalette({
             border: 'none',
             borderBottom: '1px solid var(--border)',
             color: 'var(--text-primary)',
-            fontSize: '13px',
+            fontSize: 'var(--font-size-base)',
             fontFamily: 'var(--font-data)',
             outline: 'none',
           }}
@@ -158,7 +158,7 @@ export default function CommandPalette({
               style={{
                 padding: '12px 14px',
                 color: 'var(--text-muted)',
-                fontSize: '12px',
+                fontSize: 'var(--font-size-md)',
               }}
             >
               No results.
@@ -183,7 +183,7 @@ export default function CommandPalette({
             >
               <span
                 style={{
-                  fontSize: '13px',
+                  fontSize: 'var(--font-size-base)',
                   color: i === selectedIndex ? 'var(--text-primary)' : 'var(--text-secondary)',
                   fontFamily: 'var(--font-ui)',
                 }}
@@ -193,7 +193,7 @@ export default function CommandPalette({
               {cmd.description && (
                 <span
                   style={{
-                    fontSize: '10px',
+                    fontSize: 'var(--font-size-xs)',
                     color: 'var(--text-muted)',
                     fontFamily: 'var(--font-ui)',
                   }}
@@ -212,7 +212,7 @@ export default function CommandPalette({
             display: 'flex',
             gap: '12px',
             color: 'var(--text-ghost)',
-            fontSize: '10px',
+            fontSize: 'var(--font-size-xs)',
             fontFamily: 'var(--font-ui)',
           }}
         >

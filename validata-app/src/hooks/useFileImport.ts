@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { parseCSV } from '../lib/csvParser';
 import { createMeasurementsBatchAction } from '../app/actions/measurements';
+import { mapMeasurements } from '../lib/mappers';
 
 export interface ImportSummary {
   successCount: number;
@@ -12,18 +13,21 @@ export interface ImportSummary {
 
 interface FileImportDeps {
   participants: any[];
-  measurementsData: any[];
   currentStudyId: string | null;
-  isDemoMode: boolean;
   mutateMeasurementsData: (updater: any, options?: any) => void;
   triggerToast: (message: string) => void;
 }
 
+// fable_system_review §4.2: this used to build its own demo-mode measurement
+// shape (`validDemoRows`) separately from the live-mode path, which did its
+// own manual snake_case-to-UI-shape mapping of `savedBatch` - a third and
+// fourth independent copy of what mapMeasurements already does. Both demo
+// and live now go through createMeasurementsBatchAction -> repository
+// (whose isDemo branch returns the same raw-DB shape as the live insert) ->
+// mapMeasurements, so there's exactly one shape-building step for either mode.
 export function useFileImport({
   participants,
-  measurementsData,
   currentStudyId,
-  isDemoMode,
   mutateMeasurementsData,
   triggerToast,
 }: FileImportDeps) {
@@ -34,18 +38,12 @@ export function useFileImport({
     let errorCount = 0;
     const errors: string[] = [];
     const validPayloads: any[] = [];
-    const validDemoRows: any[] = [];
 
     const activeParticipantIds = new Set(
       participants
         .filter((p: any) => p.status.toLowerCase() === 'active')
         .map((p: any) => p.id.toLowerCase())
     );
-
-    const formattedTimestamp = (() => {
-      const d = new Date();
-      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-    })();
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -86,52 +84,16 @@ export function useFileImport({
         testDate: testDateValue || new Date().toISOString().split('T')[0],
         studyId: currentStudyId,
       });
-
-      validDemoRows.push({
-        participant: pId,
-        goniometer: `${parsedGoniometer.toFixed(1)}°`,
-        aiModel: `${parsedAiModel.toFixed(1)}°`,
-        notes,
-        timestamp: formattedTimestamp,
-        testDate: testDateValue || new Date().toISOString().split('T')[0],
-        isValid: true,
-      });
     }
 
     if (validPayloads.length > 0) {
-      if (isDemoMode) {
-        const baseId = measurementsData.length > 0
-          ? Math.max(...measurementsData.map((m: any) => parseInt(m.id) || 0))
-          : 0;
+      const savedBatch: any[] = await createMeasurementsBatchAction(validPayloads);
+      const newMeasurements = mapMeasurements(savedBatch);
 
-        const newMeasurements = validDemoRows.map((r, idx) => ({
-          id: baseId + idx + 1,
-          ...r,
-        }));
-
-        mutateMeasurementsData(
-          (current: any[] = []) => [...newMeasurements.reverse(), ...current],
-          { revalidate: false }
-        );
-      } else {
-        const savedBatch: any[] = await createMeasurementsBatchAction(validPayloads);
-
-        const newMeasurements = savedBatch.map((saved: any, idx: number) => ({
-          id: saved.id,
-          participant: saved.participant_id,
-          goniometer: `${parseFloat(saved.goniometer).toFixed(1)}°`,
-          aiModel: `${parseFloat(saved.ai_model).toFixed(1)}°`,
-          notes: saved.notes,
-          timestamp: validDemoRows[idx]?.timestamp ?? formattedTimestamp,
-          testDate: saved.test_date || validPayloads[idx]?.testDate || new Date().toISOString().split('T')[0],
-          isValid: true,
-        }));
-
-        mutateMeasurementsData(
-          (current: any[] = []) => [...newMeasurements.reverse(), ...current],
-          { revalidate: false }
-        );
-      }
+      mutateMeasurementsData(
+        (current: any[] = []) => [...newMeasurements.reverse(), ...current],
+        { revalidate: false }
+      );
     }
 
     return { successCount: validPayloads.length, errorCount, errors };

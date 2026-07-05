@@ -18,8 +18,8 @@
       "status": "Completed",
       "age": 45,
       "gender": "Female",
-      "healthStatus": "Healthy",
-      "enrollmentDate": "2026-05-01",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-01",
       "study_id": "demo-study-1"
     },
     {
@@ -28,8 +28,8 @@
       "status": "Active",
       "age": 62,
       "gender": "Male",
-      "healthStatus": "Ankle Injured",
-      "enrollmentDate": "2026-05-02",
+      "health_status": "Ankle Injured",
+      "enrollment_date": "2026-05-02",
       "study_id": "demo-study-1"
     },
     {
@@ -38,8 +38,8 @@
       "status": "Dropped",
       "age": 28,
       "gender": "Female",
-      "healthStatus": "Healthy",
-      "enrollmentDate": "2026-05-03",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-03",
       "study_id": "demo-study-1"
     },
     {
@@ -48,8 +48,8 @@
       "status": "Active",
       "age": 35,
       "gender": "Male",
-      "healthStatus": "Healthy",
-      "enrollmentDate": "2026-05-04",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-04",
       "study_id": "demo-study-1"
     },
     {
@@ -58,8 +58,8 @@
       "status": "Active",
       "age": 50,
       "gender": "Female",
-      "healthStatus": "Ankle Injured",
-      "enrollmentDate": "2026-05-05",
+      "health_status": "Ankle Injured",
+      "enrollment_date": "2026-05-05",
       "study_id": "demo-study-1"
     },
     {
@@ -68,8 +68,8 @@
       "status": "Active",
       "age": 19,
       "gender": "Male",
-      "healthStatus": "Healthy",
-      "enrollmentDate": "2026-05-06",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-06",
       "study_id": "demo-study-1"
     },
     {
@@ -78,8 +78,8 @@
       "status": "Dropped",
       "age": 41,
       "gender": "Female",
-      "healthStatus": "Ankle Injured",
-      "enrollmentDate": "2026-05-07",
+      "health_status": "Ankle Injured",
+      "enrollment_date": "2026-05-07",
       "study_id": "demo-study-1"
     },
     {
@@ -88,8 +88,8 @@
       "status": "Active",
       "age": 30,
       "gender": "Male",
-      "healthStatus": "Healthy",
-      "enrollmentDate": "2026-05-08",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-08",
       "study_id": "demo-study-1"
     },
     {
@@ -98,75 +98,88 @@
       "status": "Active",
       "age": 40,
       "gender": "Female",
-      "healthStatus": "Healthy",
-      "enrollmentDate": "2026-06-01",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-06-01",
       "study_id": "demo-study-2"
     }
   ],
   "measurements": [
     {
-      "participant": "P-1001",
-      "goniometer": "45.0°",
-      "aiModel": "44.9°",
+      "id": 1,
+      "participant_id": "P-1001",
+      "goniometer": 45.0,
+      "ai_model": 44.9,
       "notes": "Session completed successfully",
-      "timestamp": "12/05/2026 14:30",
-      "testDate": "2026-05-12",
-      "study_id": "demo-study-1"
-    },
-    {
-      "participant": "P-1001",
-      "goniometer": "46.0°",
-      "aiModel": "45.6°",
-      "notes": "Follow-up session, repeat measurement",
-      "timestamp": "19/05/2026 10:05",
-      "testDate": "2026-05-19",
-      "study_id": "demo-study-1"
-    },
-    {
-      "participant": "P-1004",
-      "goniometer": "30.0°",
-      "aiModel": "30.8°",
-      "notes": "Patient seemed tired but completed tasks",
-      "timestamp": "13/05/2026 09:15",
-      "testDate": "2026-05-13",
-      "study_id": "demo-study-1"
-    },
-    {
-      "participant": "P-1002",
-      "goniometer": "60.0°",
-      "aiModel": "60.1°",
-      "notes": "Standard reading",
-      "timestamp": "14/05/2026 11:45",
-      "testDate": "2026-05-14",
-      "study_id": "demo-study-1"
-    },
-    {
-      "participant": "P-1008",
-      "goniometer": "45.0°",
-      "aiModel": "45.0°",
-      "notes": "No issues reported",
-      "timestamp": "15/05/2026 16:00",
-      "testDate": "2026-05-15",
-      "study_id": "demo-study-1"
-    },
-    {
-      "participant": "P-1005",
-      "goniometer": "15.0°",
-      "aiModel": "15.7°",
-      "notes": "Follow-up required next week",
-      "timestamp": "16/05/2026 10:20",
-      "testDate": "2026-05-16",
+      "timestamp": "2026-05-12T14:30:00.000Z",
+      "test_date": "2026-05-12",
       "study_id": "demo-study-1",
-      "isValid": false
+      "is_valid": true
     },
     {
-      "participant": "P-2001",
-      "goniometer": "20.0°",
-      "aiModel": "19.8°",
+      "id": 2,
+      "participant_id": "P-1001",
+      "goniometer": 46.0,
+      "ai_model": 45.6,
+      "notes": "Follow-up session, repeat measurement",
+      "timestamp": "2026-05-19T10:05:00.000Z",
+      "test_date": "2026-05-19",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 3,
+      "participant_id": "P-1004",
+      "goniometer": 30.0,
+      "ai_model": 30.8,
+      "notes": "Patient seemed tired but completed tasks",
+      "timestamp": "2026-05-13T09:15:00.000Z",
+      "test_date": "2026-05-13",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 4,
+      "participant_id": "P-1002",
+      "goniometer": 60.0,
+      "ai_model": 60.1,
+      "notes": "Standard reading",
+      "timestamp": "2026-05-14T11:45:00.000Z",
+      "test_date": "2026-05-14",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 5,
+      "participant_id": "P-1008",
+      "goniometer": 45.0,
+      "ai_model": 45.0,
+      "notes": "No issues reported",
+      "timestamp": "2026-05-15T16:00:00.000Z",
+      "test_date": "2026-05-15",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 6,
+      "participant_id": "P-1005",
+      "goniometer": 15.0,
+      "ai_model": 15.7,
+      "notes": "Follow-up required next week",
+      "timestamp": "2026-05-16T10:20:00.000Z",
+      "test_date": "2026-05-16",
+      "study_id": "demo-study-1",
+      "is_valid": false
+    },
+    {
+      "id": 7,
+      "participant_id": "P-2001",
+      "goniometer": 20.0,
+      "ai_model": 19.8,
       "notes": "First session",
-      "timestamp": "02/06/2026 10:00",
-      "testDate": "2026-06-02",
-      "study_id": "demo-study-2"
+      "timestamp": "2026-06-02T10:00:00.000Z",
+      "test_date": "2026-06-02",
+      "study_id": "demo-study-2",
+      "is_valid": true
     }
   ]
 }

@@ -4,17 +4,9 @@ import { useRef, useState, useEffect } from 'react';
 import { useTabs } from '../../../context/TabContext';
 import { ADMIN_ROLES, READABLE_ROLES, hasRole } from '../../../lib/permissions';
 
-interface Study {
-  id: string;
-  name: string;
-}
-
 interface PrimarySidebarProps {
   userRole: string;
   currentPath: string;
-  studies: Study[];
-  currentStudyId: string | null;
-  onSwitchStudy: (id: string) => void;
 }
 
 type NavEntry = { label: string; path: string; highlight?: boolean; badge?: number };
@@ -25,7 +17,7 @@ function SectionHeader({ label, sectionRef }: { label: string; sectionRef?: Reac
       ref={sectionRef}
       style={{
         padding: '10px 10px 4px',
-        fontSize: '10px',
+        fontSize: 'var(--font-size-xs)',
         textTransform: 'uppercase',
         letterSpacing: '0.1em',
         color: 'var(--text-muted)',
@@ -63,7 +55,7 @@ function NavItem({
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 10px 0 14px',
-        fontSize: '13px',
+        fontSize: 'var(--font-size-base)',
         textAlign: 'left',
         background: isActive ? 'var(--bg-selection)' : 'transparent',
         color: highlight
@@ -90,7 +82,7 @@ function NavItem({
           style={{
             background: 'var(--accent-badge)',
             color: 'var(--accent-badge-fg)',
-            fontSize: '10px',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: 700,
             padding: '0 4px',
             borderRadius: '2px',
@@ -139,9 +131,6 @@ function Divider() {
 export default function PrimarySidebar({
   userRole,
   currentPath,
-  studies,
-  currentStudyId,
-  onSwitchStudy,
 }: PrimarySidebarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -179,36 +168,6 @@ export default function PrimarySidebar({
       }}
     >
       <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingTop: '4px' }}>
-
-        {/* Study Context */}
-        <div>
-          <SectionHeader label="Study Context" />
-          <div style={{ padding: '4px 10px 8px' }}>
-            <select
-              value={currentStudyId || ''}
-              onChange={(e) => onSwitchStudy(e.target.value)}
-              style={{
-                width: '100%',
-                background: 'var(--bg-input)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius)',
-                color: 'var(--text-primary)',
-                fontSize: '12px',
-                padding: '4px 6px',
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-            >
-              {studies.map((s) => (
-                <option key={s.id} value={s.id} style={{ background: 'var(--bg-input)' }}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <Divider />
 
         {/* Participants & Data */}
         <div>

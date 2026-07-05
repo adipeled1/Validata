@@ -64,8 +64,8 @@ export async function POST(request: Request): Promise<Response> {
       listParticipants(session, studyId),
       listMeasurements(session, studyId),
     ]);
-    const participants = mapParticipants(rawParticipants, session.isDemo);
-    const measurements = mapMeasurements(rawMeasurements, session.isDemo);
+    const participants = mapParticipants(rawParticipants);
+    const measurements = mapMeasurements(rawMeasurements);
 
     const progressData = getProgressChartData(
       participants as Array<{ id: string; [key: string]: unknown }>,

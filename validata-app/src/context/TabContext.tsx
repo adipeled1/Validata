@@ -14,6 +14,9 @@ interface TabContextValue {
   activeTabId: string | null;
   openTab: (path: string, label: string) => void;
   closeTab: (id: string) => void;
+  closeAllTabs: () => void;
+  closeOtherTabs: (id: string) => void;
+  closeTabsToRight: (id: string) => void;
   activateTab: (id: string) => void;
 }
 
@@ -115,6 +118,38 @@ export function TabProvider({ children }: { children: React.ReactNode }) {
     [router, tabs, pathname],
   );
 
+  const closeAllTabs = useCallback(() => {
+    setTabs([]);
+    saveTabs([]);
+    router.push('/participants');
+  }, [router]);
+
+  const closeOtherTabs = useCallback(
+    (id: string) => {
+      const keep = tabs.find((t) => t.id === id);
+      if (!keep) return;
+      const next = [keep];
+      setTabs(next);
+      saveTabs(next);
+      if (pathname !== keep.path) router.push(keep.path);
+    },
+    [router, tabs, pathname],
+  );
+
+  const closeTabsToRight = useCallback(
+    (id: string) => {
+      const idx = tabs.findIndex((t) => t.id === id);
+      if (idx === -1) return;
+      const next = tabs.slice(0, idx + 1);
+      setTabs(next);
+      saveTabs(next);
+      if (!next.some((t) => t.path === pathname)) {
+        router.push(next[next.length - 1].path);
+      }
+    },
+    [router, tabs, pathname],
+  );
+
   const activateTab = useCallback(
     (id: string) => {
       const tab = tabs.find((t) => t.id === id);
@@ -124,7 +159,9 @@ export function TabProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <TabContext.Provider value={{ tabs, activeTabId, openTab, closeTab, activateTab }}>
+    <TabContext.Provider
+      value={{ tabs, activeTabId, openTab, closeTab, closeAllTabs, closeOtherTabs, closeTabsToRight, activateTab }}
+    >
       {children}
     </TabContext.Provider>
   );

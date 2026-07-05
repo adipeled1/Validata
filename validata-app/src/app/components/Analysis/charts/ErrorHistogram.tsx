@@ -9,7 +9,7 @@ import YLabelChart from './YLabelChart';
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: '11px' }}>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: 'var(--font-size-sm)' }}>
       <p style={{ color: 'var(--text-secondary)', marginBottom: '2px' }}>Error starts at <strong>{label}°</strong></p>
       <p style={{ color: COLORS.primary }}>{payload[0].value} measurement{payload[0].value !== 1 ? 's' : ''}</p>
     </div>

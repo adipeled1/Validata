@@ -31,7 +31,7 @@ const inputStyle: React.CSSProperties = {
   border: '1px solid var(--border)',
   borderRadius: 'var(--radius)',
   color: 'var(--text-primary)',
-  fontSize: '12px',
+  fontSize: 'var(--font-size-md)',
   padding: '5px 8px',
   fontFamily: 'var(--font-ui)',
   outline: 'none',
@@ -39,7 +39,7 @@ const inputStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  fontSize: '10px',
+  fontSize: 'var(--font-size-xs)',
   fontWeight: 600,
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
@@ -105,7 +105,7 @@ function ContextMenuItem({
         background: hovered ? 'var(--bg-surface-hover)' : 'transparent',
         border: 'none',
         color: danger ? 'var(--status-dropped)' : 'var(--text-primary)',
-        fontSize: '12px',
+        fontSize: 'var(--font-size-md)',
         cursor: 'pointer',
         fontFamily: 'var(--font-ui)',
         whiteSpace: 'nowrap',
@@ -186,7 +186,7 @@ function ContextMenu({
         minWidth: '180px',
         padding: '4px 0',
         fontFamily: 'var(--font-ui)',
-        fontSize: '12px',
+        fontSize: 'var(--font-size-md)',
         visibility: ready ? 'visible' : 'hidden',
       }}
     >
@@ -194,7 +194,7 @@ function ContextMenu({
         style={{
           padding: '4px 12px 6px',
           color: 'var(--text-muted)',
-          fontSize: '10px',
+          fontSize: 'var(--font-size-xs)',
           fontFamily: 'var(--font-data)',
           letterSpacing: '0.05em',
         }}
@@ -308,7 +308,7 @@ const ParticipantsDisplay = ({
       render: (row: any) => {
         const s = String(row.status || '').toLowerCase();
         if (s === 'dropped')
-          return <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>Dropped</span>;
+          return <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)' }}>Dropped</span>;
         return (
           <div style={{ display: 'flex', gap: '6px' }}>
             <button
@@ -318,7 +318,7 @@ const ParticipantsDisplay = ({
               }}
               style={{
                 padding: '2px 0',
-                fontSize: '11px',
+                fontSize: 'var(--font-size-sm)',
                 background: s === 'completed' ? 'var(--status-active)' : 'var(--accent)',
                 color: '#fff',
                 border: 'none',
@@ -338,7 +338,7 @@ const ParticipantsDisplay = ({
               }}
               style={{
                 padding: '2px 8px',
-                fontSize: '11px',
+                fontSize: 'var(--font-size-sm)',
                 background: 'transparent',
                 color: 'var(--status-dropped)',
                 border: '1px solid var(--status-dropped)',
@@ -360,7 +360,7 @@ const ParticipantsDisplay = ({
     color: '#fff',
     border: 'none',
     borderRadius: 'var(--radius)',
-    fontSize: '11px',
+    fontSize: 'var(--font-size-sm)',
     fontWeight: 600,
     cursor: 'pointer',
   };
@@ -370,7 +370,7 @@ const ParticipantsDisplay = ({
     border: '1px solid var(--border)',
     borderRadius: 'var(--radius)',
     color: 'var(--text-primary)',
-    fontSize: '12px',
+    fontSize: 'var(--font-size-md)',
     padding: '4px 6px',
     fontFamily: 'var(--font-ui)',
     cursor: 'pointer',
@@ -393,7 +393,7 @@ const ParticipantsDisplay = ({
         <div>
           <div
             style={{
-              fontSize: '10px',
+              fontSize: 'var(--font-size-xs)',
               color: 'var(--text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
@@ -422,7 +422,7 @@ const ParticipantsDisplay = ({
               color: 'var(--text-primary)',
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius)',
-              fontSize: '12px',
+              fontSize: 'var(--font-size-md)',
               fontWeight: 600,
               cursor: 'pointer',
             }}
@@ -437,7 +437,7 @@ const ParticipantsDisplay = ({
               color: '#fff',
               border: 'none',
               borderRadius: 'var(--radius)',
-              fontSize: '12px',
+              fontSize: 'var(--font-size-md)',
               fontWeight: 600,
               cursor: 'pointer',
             }}
@@ -457,12 +457,12 @@ const ParticipantsDisplay = ({
           alignItems: 'center',
         }}
       >
-        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+        <span style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-secondary)' }}>
           Total: <strong style={{ color: 'var(--text-primary)' }}>{participants.length}</strong>
         </span>
         {recruitmentGoal && (
           <>
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            <span style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-secondary)' }}>
               Recruited:{' '}
               <strong style={{ color: 'var(--text-primary)' }}>{recruitedCount}</strong> /{' '}
               {recruitmentGoal}
@@ -487,7 +487,7 @@ const ParticipantsDisplay = ({
                 }}
               />
             </div>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{goalPercent}%</span>
+            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>{goalPercent}%</span>
           </>
         )}
 
@@ -512,7 +512,7 @@ const ParticipantsDisplay = ({
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius)',
                 color: 'var(--text-primary)',
-                fontSize: '11px',
+                fontSize: 'var(--font-size-sm)',
                 cursor: 'pointer',
               }}
             >
@@ -565,7 +565,7 @@ const ParticipantsDisplay = ({
               background: 'transparent',
               border: 'none',
               color: 'var(--text-muted)',
-              fontSize: '11px',
+              fontSize: 'var(--font-size-sm)',
               cursor: 'pointer',
               padding: '0 4px',
             }}
@@ -573,7 +573,7 @@ const ParticipantsDisplay = ({
             Clear filters
           </button>
         )}
-        <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'var(--text-muted)' }}>
+        <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>
           {filteredParticipants.length !== participants.length
             ? `${filteredParticipants.length} of ${participants.length}`
             : null}
@@ -595,7 +595,7 @@ const ParticipantsDisplay = ({
             flexShrink: 0,
           }}
         >
-          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+          <span style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-secondary)' }}>
             <strong style={{ color: 'var(--text-primary)' }}>{selectedKeys.size}</strong> selected
           </span>
           <button
@@ -618,7 +618,7 @@ const ParticipantsDisplay = ({
               background: 'transparent',
               border: 'none',
               color: 'var(--text-muted)',
-              fontSize: '11px',
+              fontSize: 'var(--font-size-sm)',
               cursor: 'pointer',
               padding: 0,
             }}
@@ -661,7 +661,7 @@ const ParticipantsDisplay = ({
       {/* Participant Detail InlinePanel */}
       <InlinePanel isOpen={!!selectedParticipant && !isPanelOpen} onClose={() => setSelectedParticipant(null)} title="Participant Detail">
         {selectedParticipant && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: 'var(--font-size-md)' }}>
             {[
               { label: 'ID', value: selectedParticipant.id },
               { label: 'Status', value: selectedParticipant.status ?? 'active' },
@@ -671,7 +671,7 @@ const ParticipantsDisplay = ({
               { label: 'Enrolled', value: selectedParticipant.enrollmentDateDisplay || selectedParticipant.enrollmentDate || '—' },
             ].map(({ label, value }) => (
               <div key={label}>
-                <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '2px' }}>
                   {label}
                 </div>
                 <div style={{ color: 'var(--text-primary)', fontFamily: label === 'ID' || label === 'Enrolled' ? 'var(--font-data)' : 'var(--font-ui)' }}>
@@ -698,7 +698,7 @@ const ParticipantsDisplay = ({
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius)',
               padding: '8px',
-              fontSize: '11px',
+              fontSize: 'var(--font-size-sm)',
               color: 'var(--text-secondary)',
               lineHeight: 1.5,
             }}
@@ -755,7 +755,7 @@ const ParticipantsDisplay = ({
               border: '1px solid var(--status-pending)',
               borderRadius: 'var(--radius)',
               padding: '8px',
-              fontSize: '10px',
+              fontSize: 'var(--font-size-xs)',
               color: 'var(--status-pending)',
               lineHeight: 1.5,
             }}
@@ -772,7 +772,7 @@ const ParticipantsDisplay = ({
               color: '#fff',
               border: 'none',
               borderRadius: 'var(--radius)',
-              fontSize: '13px',
+              fontSize: 'var(--font-size-base)',
               fontWeight: 600,
               cursor: 'pointer',
             }}

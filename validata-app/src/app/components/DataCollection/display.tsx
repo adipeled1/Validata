@@ -16,7 +16,7 @@ const inputStyle: React.CSSProperties = {
   border: '1px solid var(--border)',
   borderRadius: 'var(--radius)',
   color: 'var(--text-primary)',
-  fontSize: '12px',
+  fontSize: 'var(--font-size-md)',
   padding: '5px 8px',
   fontFamily: 'var(--font-ui)',
   outline: 'none',
@@ -24,7 +24,7 @@ const inputStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  fontSize: '10px',
+  fontSize: 'var(--font-size-xs)',
   fontWeight: 600,
   textTransform: 'uppercase' as const,
   letterSpacing: '0.08em',
@@ -85,7 +85,7 @@ const DataCollectionDisplay = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       {/* Page header */}
       <div>
-        <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
           PARTICIPANTS & DATA / Data Collection
         </div>
         <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -97,7 +97,7 @@ const DataCollectionDisplay = ({
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         {/* Measurement Log Form */}
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '16px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '6px' }}>
+          <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '6px' }}>
             Measurement Log
           </div>
           <form onSubmit={onSubmitLog} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -172,7 +172,7 @@ const DataCollectionDisplay = ({
                 color: '#fff',
                 border: 'none',
                 borderRadius: 'var(--radius)',
-                fontSize: '12px',
+                fontSize: 'var(--font-size-md)',
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
@@ -185,12 +185,12 @@ const DataCollectionDisplay = ({
         {/* File Upload */}
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '16px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '6px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
               Bulk Import (CSV, JSON, Excel)
             </div>
             <button
               onClick={handleDownloadTemplate}
-              style={{ background: 'transparent', border: 'none', color: 'var(--text-link)', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-link)', fontSize: 'var(--font-size-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
               <Download size={12} />
               Download Template
@@ -200,7 +200,7 @@ const DataCollectionDisplay = ({
           {isImporting ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
               <div style={{ width: '24px', height: '24px', border: '3px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Processing and importing file…</div>
+              <div style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-secondary)' }}>Processing and importing file…</div>
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           ) : importSummary ? (
@@ -210,7 +210,7 @@ const DataCollectionDisplay = ({
                 background: importSummary.errorCount === 0 ? 'rgba(78, 201, 176, 0.1)' : 'rgba(220, 220, 170, 0.1)',
                 border: `1px solid ${importSummary.errorCount === 0 ? 'var(--status-active)' : 'var(--status-pending)'}`,
                 borderRadius: 'var(--radius)',
-                fontSize: '12px',
+                fontSize: 'var(--font-size-md)',
                 color: 'var(--text-primary)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, marginBottom: '4px' }}>
@@ -222,7 +222,7 @@ const DataCollectionDisplay = ({
               </div>
 
               {importSummary.errors?.length > 0 && (
-                <div style={{ maxHeight: '120px', overflowY: 'auto', padding: '8px', background: 'var(--bg-panel)', border: '1px solid var(--status-dropped)', borderRadius: 'var(--radius)', fontSize: '11px', color: 'var(--status-dropped)', fontFamily: 'var(--font-data)' }}>
+                <div style={{ maxHeight: '120px', overflowY: 'auto', padding: '8px', background: 'var(--bg-panel)', border: '1px solid var(--status-dropped)', borderRadius: 'var(--radius)', fontSize: 'var(--font-size-sm)', color: 'var(--status-dropped)', fontFamily: 'var(--font-data)' }}>
                   {importSummary.errors.map((err: string, i: number) => (
                     <div key={i}>• {err}</div>
                   ))}
@@ -231,7 +231,7 @@ const DataCollectionDisplay = ({
 
               <button
                 onClick={onClearImportSummary}
-                style={{ padding: '6px 0', background: 'var(--bg-surface-hover)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', color: 'var(--text-primary)', fontSize: '12px', cursor: 'pointer', marginTop: 'auto' }}
+                style={{ padding: '6px 0', background: 'var(--bg-surface-hover)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', color: 'var(--text-primary)', fontSize: 'var(--font-size-md)', cursor: 'pointer', marginTop: 'auto' }}
               >
                 Import Another File
               </button>
@@ -258,10 +258,10 @@ const DataCollectionDisplay = ({
                 }}
               >
                 <UploadCloud size={32} style={{ color: 'var(--text-ghost)', marginBottom: '8px' }} />
-                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                <div style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-secondary)', textAlign: 'center' }}>
                   {isDragging ? 'Drop the file here' : 'Click or drag and drop a data file here'}
                 </div>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: '4px' }}>
                   CSV, Excel (.xlsx/.xls), JSON — up to 50 MB
                 </div>
                 <input
@@ -273,9 +273,9 @@ const DataCollectionDisplay = ({
                 />
               </div>
 
-              <div style={{ padding: '8px', background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', fontSize: '11px', color: 'var(--text-muted)' }}>
+              <div style={{ padding: '8px', background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>
                 <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Expected headers:</div>
-                <code style={{ fontFamily: 'var(--font-data)', color: 'var(--accent-soft)', fontSize: '11px' }}>
+                <code style={{ fontFamily: 'var(--font-data)', color: 'var(--accent-soft)', fontSize: 'var(--font-size-sm)' }}>
                   participant_id, goniometer, ai_model, test_date, notes
                 </code>
               </div>

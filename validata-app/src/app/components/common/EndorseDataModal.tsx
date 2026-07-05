@@ -25,17 +25,17 @@ const modalStyle: React.CSSProperties = {
 };
 
 const labelStyle: React.CSSProperties = {
-  display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)',
+  display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-secondary)',
   textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px',
 };
 
 const inputStyle: React.CSSProperties = {
   width: '100%', background: 'var(--bg-editor)', border: '1px solid var(--border)',
-  color: 'var(--text-primary)', padding: '6px 8px', fontSize: '12px',
+  color: 'var(--text-primary)', padding: '6px 8px', fontSize: 'var(--font-size-md)',
 };
 
 const btnBase: React.CSSProperties = {
-  padding: '6px 14px', fontSize: '12px', fontWeight: 600, border: '1px solid var(--border)',
+  padding: '6px 14px', fontSize: 'var(--font-size-md)', fontWeight: 600, border: '1px solid var(--border)',
   cursor: 'pointer', background: 'transparent', color: 'var(--text-secondary)',
 };
 
@@ -100,11 +100,11 @@ export default function EndorseDataModal({ studyId, signerEmail, onClose, onSucc
           Endorse Study Data
         </h2>
 
-        <p style={{ fontSize: '11px', color: 'var(--text-secondary)', background: 'var(--bg-editor)', border: '1px solid var(--border)', padding: '8px 10px', margin: 0 }}>
+        <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', background: 'var(--bg-editor)', border: '1px solid var(--border)', padding: '8px 10px', margin: 0 }}>
           {MEANING}
         </p>
 
-        <p style={{ fontSize: '10px', color: 'var(--text-muted)', border: '1px solid var(--border)', padding: '6px 8px', margin: 0 }}>
+        <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', border: '1px solid var(--border)', padding: '6px 8px', margin: 0 }}>
           This creates a permanent, timestamped audit record only — it does not lock the study or notify
           anyone. Data can still be edited afterward. Use Study Lock Control separately if you need to
           prevent further changes.
@@ -134,7 +134,7 @@ export default function EndorseDataModal({ studyId, signerEmail, onClose, onSucc
           />
         </div>
 
-        {error && <p style={{ fontSize: '11px', color: 'var(--color-error)', margin: 0 }}>{error}</p>}
+        {error && <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-error)', margin: 0 }}>{error}</p>}
 
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', paddingTop: '4px' }}>
           <button onClick={onClose} disabled={loading} style={{ ...btnBase, opacity: loading ? 0.5 : 1 }}>

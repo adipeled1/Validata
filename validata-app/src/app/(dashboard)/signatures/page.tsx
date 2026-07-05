@@ -9,7 +9,7 @@ import { READABLE_ROLES, hasRole } from '../../../lib/permissions';
 
 const colHeaderStyle: React.CSSProperties = {
   padding: '0 10px 6px',
-  fontSize: '10px',
+  fontSize: 'var(--font-size-xs)',
   fontWeight: 600,
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
@@ -22,7 +22,7 @@ const colHeaderStyle: React.CSSProperties = {
 const cellStyle: React.CSSProperties = {
   padding: '0 10px',
   height: '32px',
-  fontSize: '11px',
+  fontSize: 'var(--font-size-sm)',
   color: 'var(--text-primary)',
   verticalAlign: 'middle',
   whiteSpace: 'nowrap',
@@ -86,7 +86,7 @@ export default function SignaturesPage() {
   // data_manager relative to every other compliance-page gate).
   if (!hasRole(userRole, READABLE_ROLES)) {
     return (
-      <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>
+      <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>
         You do not have access to the electronic signatures register.
       </div>
     );
@@ -97,13 +97,13 @@ export default function SignaturesPage() {
       {/* Page header */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
             COMPLIANCE / Electronic Signatures
           </div>
           <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
             Electronic Signatures
           </h1>
-          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+          <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px' }}>
             Immutable record of all data endorsements. ICH E6(R3) SIG-01 — read-only.
           </div>
         </div>
@@ -118,7 +118,7 @@ export default function SignaturesPage() {
             background: 'var(--bg-surface)',
             border: '1px solid var(--border)',
             color: 'var(--text-secondary)',
-            fontSize: '11px',
+            fontSize: 'var(--font-size-sm)',
             cursor: signatures.length === 0 ? 'not-allowed' : 'pointer',
             opacity: signatures.length === 0 ? 0.5 : 1,
           }}
@@ -128,13 +128,13 @@ export default function SignaturesPage() {
       </div>
 
       {isDemoMode && (
-        <div style={{ padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border)', fontSize: '11px', color: 'var(--status-warning)' }}>
+        <div style={{ padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border)', fontSize: 'var(--font-size-sm)', color: 'var(--status-warning)' }}>
           Demo mode — no signatures exist in the demo environment. Connect to a real Supabase instance to see records.
         </div>
       )}
 
       {error && (
-        <div style={{ padding: '8px 12px', background: 'rgba(248,113,113,0.08)', border: '1px solid var(--status-dropped)', fontSize: '11px', color: 'var(--status-dropped)' }}>
+        <div style={{ padding: '8px 12px', background: 'rgba(248,113,113,0.08)', border: '1px solid var(--status-dropped)', fontSize: 'var(--font-size-sm)', color: 'var(--status-dropped)' }}>
           Failed to load signatures: {error}
         </div>
       )}
@@ -142,11 +142,11 @@ export default function SignaturesPage() {
       {/* Signatures table */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
         {loading ? (
-          <div style={{ padding: '32px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
+          <div style={{ padding: '32px', textAlign: 'center', fontSize: 'var(--font-size-md)', color: 'var(--text-muted)' }}>
             Loading…
           </div>
         ) : signatures.length === 0 ? (
-          <div style={{ padding: '32px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
+          <div style={{ padding: '32px', textAlign: 'center', fontSize: 'var(--font-size-md)', color: 'var(--text-muted)' }}>
             No electronic signatures recorded for this study yet.
           </div>
         ) : (

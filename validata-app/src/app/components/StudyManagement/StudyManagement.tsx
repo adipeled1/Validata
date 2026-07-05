@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { FlaskConical, Plus, Trash2, CheckCircle2, Target, Users, ArrowRight } from 'lucide-react';
 import HoverTooltip from '../common/HoverTooltip';
 import LockControlPanel from './LockControlPanel';
+import StudyLockModal from './StudyLockModal';
 import RetentionPanel from './RetentionPanel';
 import { useStudy } from '../../../context/StudyContext';
 import { useSession } from '../../../context/SessionContext';
@@ -27,7 +28,7 @@ const inputStyle: React.CSSProperties = {
   border: '1px solid var(--border)',
   borderRadius: 'var(--radius)',
   color: 'var(--text-primary)',
-  fontSize: '12px',
+  fontSize: 'var(--font-size-md)',
   padding: '5px 8px',
   fontFamily: 'var(--font-ui)',
   outline: 'none',
@@ -36,7 +37,7 @@ const inputStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  fontSize: '10px',
+  fontSize: 'var(--font-size-xs)',
   fontWeight: 600,
   textTransform: 'uppercase' as const,
   letterSpacing: '0.08em',
@@ -46,7 +47,7 @@ const labelStyle: React.CSSProperties = {
 
 const colHeaderStyle: React.CSSProperties = {
   padding: '6px 10px',
-  fontSize: '10px',
+  fontSize: 'var(--font-size-xs)',
   fontWeight: 600,
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
@@ -57,13 +58,13 @@ const colHeaderStyle: React.CSSProperties = {
 
 const cellStyle: React.CSSProperties = {
   padding: '6px 10px',
-  fontSize: '12px',
+  fontSize: 'var(--font-size-md)',
   color: 'var(--text-primary)',
   borderBottom: '1px solid var(--border)',
 };
 
 const StudyManagement = () => {
-  const { studies, currentStudyId, addStudy, deleteStudy, switchStudy } = useStudy();
+  const { studies, currentStudyId, addStudy, deleteStudy } = useStudy();
   const { isDemoMode } = useSession();
   const { openTab } = useTabs();
 
@@ -78,6 +79,8 @@ const StudyManagement = () => {
   // Inline Goal Editing state
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState('');
+
+  const [showLockModal, setShowLockModal] = useState(false);
 
   // Auto-select study
   useEffect(() => {
@@ -192,13 +195,13 @@ const StudyManagement = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       {/* Page header */}
       <div>
-        <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
           ADMINISTRATION / Study Management
         </div>
         <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
           Studies Hub & Management
         </h1>
-        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+        <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px' }}>
           Consolidated study workspace. Manage recruitment goals, track researcher rosters, and configure active research workspace study context.
         </div>
       </div>
@@ -211,7 +214,7 @@ const StudyManagement = () => {
           
           {/* Create Study Form */}
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '16px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '6px' }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '6px' }}>
               Create New Study
             </div>
             <form onSubmit={handleCreateStudy} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -251,7 +254,7 @@ const StudyManagement = () => {
                   color: '#fff',
                   border: 'none',
                   borderRadius: 'var(--radius)',
-                  fontSize: '12px',
+                  fontSize: 'var(--font-size-md)',
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}
@@ -270,11 +273,11 @@ const StudyManagement = () => {
               padding: '8px 12px',
               borderBottom: '1px solid var(--border)',
             }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
                 Studies List
               </span>
               <span style={{
-                fontSize: '10px',
+                fontSize: 'var(--font-size-xs)',
                 fontWeight: 600,
                 padding: '2px 8px',
                 background: 'var(--bg-surface-alt)',
@@ -286,7 +289,7 @@ const StudyManagement = () => {
             </div>
 
             {studies.length === 0 ? (
-              <div style={{ padding: '32px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
+              <div style={{ padding: '32px', textAlign: 'center', fontSize: 'var(--font-size-md)', color: 'var(--text-muted)' }}>
                 No studies yet. Create one to get started.
               </div>
             ) : (
@@ -315,7 +318,7 @@ const StudyManagement = () => {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                     <FlaskConical size={14} style={{ color: s.id === selectedStudyId ? 'var(--accent-soft)' : 'var(--text-ghost)', flexShrink: 0 }} />
-                    <span style={{ fontSize: '12px', fontWeight: s.id === selectedStudyId ? 600 : 400, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-data)' }}>
+                    <span style={{ fontSize: 'var(--font-size-md)', fontWeight: s.id === selectedStudyId ? 600 : 400, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-data)' }}>
                       {s.name}
                     </span>
                   </div>
@@ -325,7 +328,7 @@ const StudyManagement = () => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '2px',
-                        fontSize: '8px',
+                        fontSize: 'var(--font-size-2xs)',
                         fontWeight: 700,
                         textTransform: 'uppercase',
                         color: 'var(--status-active)',
@@ -354,12 +357,12 @@ const StudyManagement = () => {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <FlaskConical size={20} style={{ color: 'var(--accent-soft)' }} />
-                    <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-data)', margin: 0 }}>
+                    <h2 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-data)', margin: 0 }}>
                       {selectedStudy.name}
                     </h2>
-                    {isSelectedActiveWorkspace ? (
+                    {isSelectedActiveWorkspace && (
                       <span style={{
-                        fontSize: '9px',
+                        fontSize: 'var(--font-size-2xs)',
                         fontWeight: 700,
                         textTransform: 'uppercase',
                         color: 'var(--status-active)',
@@ -371,26 +374,6 @@ const StudyManagement = () => {
                       }}>
                         Active Workspace
                       </span>
-                    ) : (
-                      <button
-                        onClick={() => switchStudy(selectedStudy.id)}
-                        style={{
-                          fontSize: '10px',
-                          fontWeight: 600,
-                          padding: '3px 8px',
-                          background: 'var(--bg-surface-alt)',
-                          border: '1px solid var(--border)',
-                          borderRadius: 'var(--radius)',
-                          color: 'var(--text-primary)',
-                          cursor: 'pointer',
-                          marginLeft: '8px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        Activate Workspace <ArrowRight size={10} />
-                      </button>
                     )}
                   </div>
 
@@ -411,7 +394,7 @@ const StudyManagement = () => {
                         cursor: studies.length <= 1 ? 'not-allowed' : 'pointer',
                         padding: '4px 8px',
                         borderRadius: 'var(--radius)',
-                        fontSize: '11px',
+                        fontSize: 'var(--font-size-sm)',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px',
@@ -422,11 +405,17 @@ const StudyManagement = () => {
                     </button>
                   </HoverTooltip>
                 </div>
+
+                <div style={{ borderTop: '1px solid var(--border)', marginTop: '14px', paddingTop: '12px' }}>
+                  <LockControlPanel studyId={selectedStudy.id} onManage={() => setShowLockModal(true)} />
+                </div>
               </div>
+
+              {showLockModal && <StudyLockModal studyId={selectedStudy.id} onClose={() => setShowLockModal(false)} />}
 
               {/* Study Stats & Progress Overview */}
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '16px', borderRadius: 'var(--radius)' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '14px', borderBottom: '1px solid var(--border)', paddingBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '14px', borderBottom: '1px solid var(--border)', paddingBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Target size={12} style={{ color: 'var(--text-muted)' }} />
                   Recruitment Metrics & Performance
                 </div>
@@ -435,17 +424,17 @@ const StudyManagement = () => {
                   
                   {/* Left Column: Enrolled participants */}
                   <div style={{ background: 'var(--bg-surface-alt)', border: '1px solid var(--border)', padding: '12px', borderRadius: 'var(--radius)' }}>
-                    <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                       Enrolled Participants
                     </div>
-                    <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'var(--font-data)' }}>
+                    <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'var(--font-data)' }}>
                       {loadingDetails ? '...' : participantsCount}
                     </div>
                   </div>
 
                   {/* Right Column: Recruitment Goal */}
                   <div style={{ background: 'var(--bg-surface-alt)', border: '1px solid var(--border)', padding: '12px', borderRadius: 'var(--radius)' }}>
-                    <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>Target Goal</span>
                       {!editingGoal && (
                         <button
@@ -453,7 +442,7 @@ const StudyManagement = () => {
                             setGoalInput(String(goalValue));
                             setEditingGoal(true);
                           }}
-                          style={{ background: 'transparent', border: 'none', color: 'var(--accent-soft)', cursor: 'pointer', fontSize: '9px', fontWeight: 700 }}
+                          style={{ background: 'transparent', border: 'none', color: 'var(--accent-soft)', cursor: 'pointer', fontSize: 'var(--font-size-2xs)', fontWeight: 700 }}
                         >
                           Edit Goal
                         </button>
@@ -471,20 +460,20 @@ const StudyManagement = () => {
                         />
                         <button
                           type="submit"
-                          style={{ padding: '2px 8px', fontSize: '10px', border: 'none', borderRadius: 'var(--radius)', background: 'var(--status-active)', color: '#fff', cursor: 'pointer' }}
+                          style={{ padding: '2px 8px', fontSize: 'var(--font-size-xs)', border: 'none', borderRadius: 'var(--radius)', background: 'var(--status-active)', color: '#fff', cursor: 'pointer' }}
                         >
                           Save
                         </button>
                         <button
                           type="button"
                           onClick={() => setEditingGoal(false)}
-                          style={{ padding: '2px 8px', fontSize: '10px', border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                          style={{ padding: '2px 8px', fontSize: 'var(--font-size-xs)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}
                         >
                           Cancel
                         </button>
                       </form>
                     ) : (
-                      <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'var(--font-data)' }}>
+                      <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'var(--font-data)' }}>
                         {goalValue}
                       </div>
                     )}
@@ -493,7 +482,7 @@ const StudyManagement = () => {
 
                 {/* Progress bar */}
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
                     <span>Recruitment Progress</span>
                     <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{progressPercent}% reached</span>
                   </div>
@@ -528,7 +517,7 @@ const StudyManagement = () => {
                   padding: '8px 12px',
                   borderBottom: '1px solid var(--border)',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--font-size-sm)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
                     <Users size={12} style={{ color: 'var(--text-muted)' }} />
                     Authorized Research Staff
                   </div>
@@ -543,7 +532,7 @@ const StudyManagement = () => {
                       border: '1px solid var(--border)',
                       borderRadius: 'var(--radius)',
                       color: 'var(--text-secondary)',
-                      fontSize: '10px',
+                      fontSize: 'var(--font-size-xs)',
                       fontWeight: 600,
                       cursor: 'pointer',
                     }}
@@ -555,9 +544,9 @@ const StudyManagement = () => {
                 {/* Roster table (read-only) */}
                 <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
                   {loadingDetails ? (
-                    <div style={{ padding: '24px', textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)' }}>Loading roster...</div>
+                    <div style={{ padding: '24px', textAlign: 'center', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>Loading roster...</div>
                   ) : members.length === 0 ? (
-                    <div style={{ padding: '24px', textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)' }}>
+                    <div style={{ padding: '24px', textAlign: 'center', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>
                       No staff members assigned yet. Use &quot;Manage in User Registry&quot; to authorize a researcher.
                     </div>
                   ) : (
@@ -576,12 +565,12 @@ const StudyManagement = () => {
                           return (
                             <tr key={m.user_id} style={{ borderBottom: '1px solid var(--border)' }}>
                               <td style={cellStyle}>
-                                <span style={{ fontFamily: 'var(--font-data)', fontSize: '11px' }}>{email}</span>
+                                <span style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)' }}>{email}</span>
                               </td>
-                              <td style={{ ...cellStyle, textTransform: 'capitalize', color: 'var(--text-secondary)', fontSize: '11px' }}>
+                              <td style={{ ...cellStyle, textTransform: 'capitalize', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
                                 {roleName.replace(/_/g, ' ')}
                               </td>
-                              <td style={{ ...cellStyle, fontFamily: 'var(--font-data)', color: 'var(--text-timestamp)', fontSize: '11px' }}>
+                              <td style={{ ...cellStyle, fontFamily: 'var(--font-data)', color: 'var(--text-timestamp)', fontSize: 'var(--font-size-sm)' }}>
                                 {new Date(m.granted_at).toLocaleDateString()}
                               </td>
                             </tr>
@@ -592,11 +581,9 @@ const StudyManagement = () => {
                   )}
                 </div>
               </div>
-
-              <LockControlPanel />
             </div>
           ) : (
-            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '48px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', borderRadius: 'var(--radius)' }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '48px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)', borderRadius: 'var(--radius)' }}>
               Select a study from the left panel to display recruitment metrics and manage access credentials.
             </div>
           )}

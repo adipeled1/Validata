@@ -63,6 +63,7 @@ export async function createMeasurement(
 
   if (session.isDemo) {
     return {
+      id: Date.now(),
       participant_id: participantId,
       goniometer: parsedGoniometer,
       ai_model: parsedAiModel,
@@ -154,7 +155,8 @@ export async function createMeasurementsBatch(session: ResolvedSession, measurem
   if (!measurements.length) return [];
 
   if (session.isDemo) {
-    return measurements.map((m) => ({
+    return measurements.map((m, i) => ({
+      id: Date.now() + i,
       participant_id: m.participantId,
       goniometer: parseFloat(m.goniometer.toString().replace('°', '')) || 0.0,
       ai_model: parseFloat(m.aiModel.toString().replace('°', '')) || 0.0,

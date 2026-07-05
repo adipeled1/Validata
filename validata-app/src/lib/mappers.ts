@@ -3,10 +3,20 @@
 // (dashboard)/layout.tsx) and client-side (StudyContext.tsx's SWR fetchers) so
 // there's exactly one place that knows how to translate either shape,
 // instead of the client and server each carrying their own copy.
+//
+// fable_system_review §4.2: these used to take an `isDemoMode` flag and run
+// an entirely separate mapping branch for demo data, because mockData.json
+// stored participants/measurements in a different, already-"mapped" shape
+// (camelCase, pre-formatted "45.0°" strings) than the raw DB rows this file
+// otherwise expects. That meant demo and live data could describe the same
+// concept with different keys/formats and silently drift (e.g. a repository
+// mutation's demo branch returning `goniometer` as a raw number while this
+// file's demo branch expected an already-formatted string) - the exact
+// sprawl the review flagged. mockData.json now stores raw DB-shaped rows
+// (snake_case, unformatted numbers) just like a live Supabase query would
+// return, so a single mapping path handles both.
 
-export function mapParticipants(rawParticipants: any[], isDemoMode: boolean): any[] {
-  if (isDemoMode) return rawParticipants;
-
+export function mapParticipants(rawParticipants: any[]): any[] {
   return rawParticipants.map((p) => ({
     id: p.id,
     consent: p.consent,
@@ -14,24 +24,11 @@ export function mapParticipants(rawParticipants: any[], isDemoMode: boolean): an
     age: p.age,
     gender: p.gender,
     healthStatus: p.health_status,
-    enrollmentDate: p.enrollment_date || p.enrollmentDate || null
+    enrollmentDate: p.enrollment_date || null
   }));
 }
 
-export function mapMeasurements(rawMeasurements: any[], isDemoMode: boolean): any[] {
-  if (isDemoMode) {
-    return rawMeasurements.map((m, idx) => ({
-      id: rawMeasurements.length - idx,
-      participant: m.participant,
-      goniometer: m.goniometer,
-      aiModel: m.aiModel,
-      notes: m.notes,
-      timestamp: m.timestamp,
-      testDate: m.testDate || m.test_date || null,
-      isValid: m.isValid !== false
-    }));
-  }
-
+export function mapMeasurements(rawMeasurements: any[]): any[] {
   return rawMeasurements.map((m) => {
     let formattedDate = m.timestamp;
     try {
@@ -54,7 +51,7 @@ export function mapMeasurements(rawMeasurements: any[], isDemoMode: boolean): an
       notes: m.notes,
       timestamp: formattedDate,
       timestampUtc: m.timestamp, // ISO 8601 UTC — preserved for audit trail
-      testDate: m.test_date || m.testDate || null,
+      testDate: m.test_date || null,
       isValid: m.is_valid !== false,
       createdBy: m.created_by ?? null,
       captureMethod: m.capture_method ?? null,

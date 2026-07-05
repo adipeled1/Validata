@@ -109,7 +109,7 @@ export default function DelegationLogPage() {
 
   if (!hasRole(userRole, READABLE_ROLES)) {
     return (
-      <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>
+      <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>
         You do not have access to the delegation log.
       </div>
     );
@@ -122,7 +122,7 @@ export default function DelegationLogPage() {
       {/* Header */}
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
             ADMINISTRATION / Delegation Log
           </div>
           <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
@@ -133,7 +133,7 @@ export default function DelegationLogPage() {
           {canCreate && (
             <button
               onClick={() => setShowPanel(p => !p)}
-              style={{ padding: '4px 10px', fontSize: '11px', fontWeight: 600, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer' }}
+              style={{ padding: '4px 10px', fontSize: 'var(--font-size-sm)', fontWeight: 600, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer' }}
             >
               + New Delegation
             </button>
@@ -142,7 +142,7 @@ export default function DelegationLogPage() {
       </div>
 
       {error && (
-        <div style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid #dc2626', padding: '8px 12px', fontSize: '12px', color: '#dc2626', flexShrink: 0 }}>
+        <div style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid #dc2626', padding: '8px 12px', fontSize: 'var(--font-size-md)', color: '#dc2626', flexShrink: 0 }}>
           {error}
         </div>
       )}
@@ -150,7 +150,7 @@ export default function DelegationLogPage() {
       <div style={{ display: 'flex', flex: 1, gap: '0', minHeight: 0 }}>
         {/* Main table */}
         <div style={{ flex: 1, border: '1px solid var(--border)', overflowY: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-md)' }}>
             <thead>
               <tr style={{ background: 'var(--bg-surface)', position: 'sticky', top: 0, zIndex: 1 }}>
                 {['Delegated To', 'Role Delegated', 'Task', 'Delegated By', 'Study', 'From', 'To', 'Status', ''].map(col => (
@@ -163,7 +163,7 @@ export default function DelegationLogPage() {
                 <tr><td colSpan={8} style={{ padding: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>Loading…</td></tr>
               ) : delegations.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ padding: '16px', color: 'var(--text-muted)', textAlign: 'center', fontSize: '11px' }}>
+                  <td colSpan={9} style={{ padding: '16px', color: 'var(--text-muted)', textAlign: 'center', fontSize: 'var(--font-size-sm)' }}>
                     {isDemoMode
                       ? 'No delegation records (demo mode — database not connected)'
                       : 'No delegation entries for this study.'}
@@ -182,17 +182,17 @@ export default function DelegationLogPage() {
                     <td style={{ ...tdStyle, maxWidth: '200px' }} title={d.task_description}>{d.task_description}</td>
                     <td style={tdStyle}>{d.delegated_by}</td>
                     <td style={tdStyle}>{studyName}</td>
-                    <td style={{ ...tdStyle, fontFamily: 'var(--font-data)', fontSize: '11px' }}>{d.effective_from}</td>
-                    <td style={{ ...tdStyle, fontFamily: 'var(--font-data)', fontSize: '11px' }}>{d.effective_to ?? '—'}</td>
+                    <td style={{ ...tdStyle, fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)' }}>{d.effective_from}</td>
+                    <td style={{ ...tdStyle, fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)' }}>{d.effective_to ?? '—'}</td>
                     <td style={tdStyle}>
-                      <span style={{ color: statusColor, fontWeight: 600, fontSize: '11px' }}>● {statusLabel}</span>
+                      <span style={{ color: statusColor, fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>● {statusLabel}</span>
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'right', paddingRight: '8px' }}>
                       {canCreate && isActive && (
                         <button
                           onClick={() => handleRevoke(d.id)}
                           title="Revoke delegation"
-                          style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--status-dropped)', cursor: 'pointer', fontSize: '10px', padding: '1px 6px' }}
+                          style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--status-dropped)', cursor: 'pointer', fontSize: 'var(--font-size-xs)', padding: '1px 6px' }}
                         >
                           Revoke
                         </button>
@@ -213,8 +213,8 @@ export default function DelegationLogPage() {
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderBottom: '1px solid var(--border)' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>New Delegation Entry</span>
-              <button onClick={() => setShowPanel(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px' }}>×</button>
+              <span style={{ fontSize: 'var(--font-size-md)', fontWeight: 700, color: 'var(--text-primary)' }}>New Delegation Entry</span>
+              <button onClick={() => setShowPanel(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'var(--font-size-lg)' }}>×</button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
@@ -265,14 +265,14 @@ export default function DelegationLogPage() {
                 onClick={handleCreate}
                 disabled={saving || !form.delegatedTo || !form.taskDescription || !form.effectiveFrom}
                 style={{
-                  flex: 1, padding: '6px', fontSize: '12px', fontWeight: 600,
+                  flex: 1, padding: '6px', fontSize: 'var(--font-size-md)', fontWeight: 600,
                   background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer',
                   opacity: (saving || !form.delegatedTo || !form.taskDescription || !form.effectiveFrom) ? 0.5 : 1,
                 }}
               >
                 {saving ? 'Saving…' : 'Save Delegation'}
               </button>
-              <button onClick={() => setShowPanel(false)} style={{ padding: '6px 12px', fontSize: '12px', background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+              <button onClick={() => setShowPanel(false)} style={{ padding: '6px 12px', fontSize: 'var(--font-size-md)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)', cursor: 'pointer' }}>
                 Cancel
               </button>
             </div>
@@ -284,19 +284,19 @@ export default function DelegationLogPage() {
 }
 
 const inputStyle: React.CSSProperties = {
-  fontSize: '11px', padding: '5px 7px',
+  fontSize: 'var(--font-size-sm)', padding: '5px 7px',
   background: 'var(--bg-surface)', border: '1px solid var(--border)',
   color: 'var(--text-primary)', outline: 'none', width: '100%',
 };
 
 const labelStyle: React.CSSProperties = {
-  fontSize: '10px', color: 'var(--text-muted)',
+  fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)',
   textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px',
 };
 
 const thStyle: React.CSSProperties = {
   padding: '6px 8px', textAlign: 'left',
-  fontSize: '10px', fontWeight: 600, color: 'var(--text-secondary)',
+  fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--text-secondary)',
   textTransform: 'uppercase', letterSpacing: '0.06em',
   borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap',
 };

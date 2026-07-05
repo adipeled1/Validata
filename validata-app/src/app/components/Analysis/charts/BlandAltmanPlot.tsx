@@ -11,7 +11,7 @@ const CustomTooltip = ({ active, payload }: any) => {
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: '11px', lineHeight: 1.5 }}>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: 'var(--font-size-sm)', lineHeight: 1.5 }}>
       <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>{d.participantId || 'Unknown'}</p>
       <p style={{ color: 'var(--text-secondary)' }}>Mean angle: <strong>{d.mean?.toFixed(1)}°</strong></p>
       <p style={{ color: Number(d.diff) >= 0 ? COLORS.bias : COLORS.limit }}>

@@ -27,7 +27,7 @@ export default function StatusDot({ status }: StatusDotProps) {
           flexShrink: 0,
         }}
       />
-      <span style={{ color, textTransform: 'capitalize', fontSize: '12px' }}>{status}</span>
+      <span style={{ color, textTransform: 'capitalize', fontSize: 'var(--font-size-md)' }}>{status}</span>
     </span>
   );
 }

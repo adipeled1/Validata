@@ -50,11 +50,11 @@ export default function RetentionPanel() {
         padding: '8px 12px', borderBottom: '1px solid var(--border)',
       }}>
         <ShieldAlert size={13} style={{ color: 'var(--text-muted)' }} />
-        <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
+        <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
           Deleted Studies — Retention
         </span>
       </div>
-      <div style={{ fontSize: '11px', color: 'var(--text-muted)', padding: '8px 12px' }}>
+      <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', padding: '8px 12px' }}>
         Soft-deleted studies are retained for a minimum of 15 years before physical destruction can be requested.
       </div>
       {deletedStudies.map((s, i) => (
@@ -65,18 +65,18 @@ export default function RetentionPanel() {
           display: 'flex', flexDirection: 'column', gap: '4px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <span style={{ fontSize: '12px', fontFamily: 'var(--font-data)' }}>
-              {s.name} {s.retention_hold && <span style={{ fontSize: '10px', color: 'var(--status-warning)' }}>(retention hold)</span>}
+            <span style={{ fontSize: 'var(--font-size-md)', fontFamily: 'var(--font-data)' }}>
+              {s.name} {s.retention_hold && <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--status-warning)' }}>(retention hold)</span>}
             </span>
             <button
               onClick={() => handleRequestDestruction(s.id)}
-              style={{ fontSize: '10px', padding: '3px 8px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--status-dropped)', cursor: 'pointer' }}
+              style={{ fontSize: 'var(--font-size-xs)', padding: '3px 8px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--status-dropped)', cursor: 'pointer' }}
             >
               Request Destruction
             </button>
           </div>
           {destructionMessage[s.id] && (
-            <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{destructionMessage[s.id]}</div>
+            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>{destructionMessage[s.id]}</div>
           )}
         </div>
       ))}

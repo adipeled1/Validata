@@ -46,13 +46,13 @@ function AuditTab({ studyId }: { studyId: string | null }) {
 
   if (!studyId)
     return (
-      <div style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: '12px' }}>
+      <div style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>
         No study selected.
       </div>
     );
   if (loading && logs.length === 0)
     return (
-      <div style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: '12px' }}>
+      <div style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>
         Loading…
       </div>
     );
@@ -64,7 +64,7 @@ function AuditTab({ studyId }: { studyId: string | null }) {
           width: '100%',
           borderCollapse: 'collapse',
           fontFamily: 'var(--font-data)',
-          fontSize: '11px',
+          fontSize: 'var(--font-size-sm)',
         }}
       >
         <thead>
@@ -77,7 +77,7 @@ function AuditTab({ studyId }: { studyId: string | null }) {
                   textAlign: 'left',
                   color: 'var(--text-col-header)',
                   fontFamily: 'var(--font-ui)',
-                  fontSize: '10px',
+                  fontSize: 'var(--font-size-xs)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.07em',
                   fontWeight: 600,
@@ -185,7 +185,7 @@ export default function BottomPanel({ studyId, isOpen, onClose }: BottomPanelPro
       >
         <span style={{
           padding: '0 12px',
-          fontSize: '10px',
+          fontSize: 'var(--font-size-xs)',
           fontWeight: 700,
           letterSpacing: '0.07em',
           color: 'var(--text-secondary)',
@@ -204,7 +204,7 @@ export default function BottomPanel({ studyId, isOpen, onClose }: BottomPanelPro
               onClick={() => setActiveTab(tab.id)}
               style={{
                 padding: '0 12px',
-                fontSize: '10px',
+                fontSize: 'var(--font-size-xs)',
                 fontWeight: 600,
                 letterSpacing: '0.07em',
                 fontFamily: 'var(--font-ui)',
@@ -230,7 +230,7 @@ export default function BottomPanel({ studyId, isOpen, onClose }: BottomPanelPro
             border: 'none',
             color: 'var(--text-muted)',
             cursor: 'pointer',
-            fontSize: '14px',
+            fontSize: 'var(--font-size-lg)',
             display: 'flex',
             alignItems: 'center',
           }}
@@ -245,12 +245,12 @@ export default function BottomPanel({ studyId, isOpen, onClose }: BottomPanelPro
       <div style={{ flex: 1, overflow: 'hidden' }}>
         {activeTab === 'audit' && <AuditTab studyId={studyId} />}
         {activeTab === 'queries' && (
-          <div style={{ padding: '8px 12px', color: 'var(--text-secondary)', fontSize: '12px' }}>
+          <div style={{ padding: '8px 12px', color: 'var(--text-secondary)', fontSize: 'var(--font-size-md)' }}>
             Navigate to Query Management for full management.
           </div>
         )}
         {activeTab === 'system' && (
-          <div style={{ padding: '8px 12px', color: 'var(--text-secondary)', fontSize: '12px' }}>
+          <div style={{ padding: '8px 12px', color: 'var(--text-secondary)', fontSize: 'var(--font-size-md)' }}>
             System log — coming soon.
           </div>
         )}

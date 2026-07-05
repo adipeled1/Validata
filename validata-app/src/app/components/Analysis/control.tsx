@@ -91,13 +91,13 @@ const AnalysisControl = ({
       {canSign && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginBottom: '8px' }}>
           {lastSignedAt && (
-            <span style={{ fontSize: '11px', color: 'var(--status-active)', background: 'rgba(78, 201, 176, 0.1)', border: '1px solid var(--status-active)', padding: '3px 8px' }}>
+            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--status-active)', background: 'rgba(78, 201, 176, 0.1)', border: '1px solid var(--status-active)', padding: '3px 8px' }}>
               Endorsed {new Date(lastSignedAt).toUTCString()}
             </span>
           )}
           <button
             onClick={() => setShowEndorseModal(true)}
-            style={{ padding: '5px 14px', fontSize: '12px', fontWeight: 600, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer' }}
+            style={{ padding: '5px 14px', fontSize: 'var(--font-size-md)', fontWeight: 600, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer' }}
           >
             Endorse Data
           </button>

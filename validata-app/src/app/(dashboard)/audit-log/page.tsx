@@ -23,7 +23,7 @@ const inputStyle: React.CSSProperties = {
   border: '1px solid var(--border)',
   borderRadius: 'var(--radius)',
   color: 'var(--text-primary)',
-  fontSize: '12px',
+  fontSize: 'var(--font-size-md)',
   padding: '4px 8px',
   fontFamily: 'var(--font-ui)',
   outline: 'none',
@@ -77,7 +77,7 @@ export default function AuditLogPage() {
 
   if (!canView) {
     return (
-      <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>
+      <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>
         You do not have access to the audit trail.
       </div>
     );
@@ -88,13 +88,13 @@ export default function AuditLogPage() {
       {/* Page header */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
             COMPLIANCE / Audit Trail
           </div>
           <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
             Audit Trail
           </h1>
-          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px', maxWidth: '600px' }}>
+          <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px', maxWidth: '600px' }}>
             Immutable, system-generated audit trail. Every data creation, modification, and deletion is recorded with actor identity and UTC timestamp. (ICH E6(R3) AUDIT-01 to AUDIT-08)
           </div>
         </div>
@@ -106,7 +106,7 @@ export default function AuditLogPage() {
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius)',
             color: 'var(--text-primary)',
-            fontSize: '12px',
+            fontSize: 'var(--font-size-md)',
             cursor: 'pointer',
           }}
         >
@@ -117,7 +117,7 @@ export default function AuditLogPage() {
       {/* Filters */}
       <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px' }}>Action</div>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px' }}>Action</div>
           <select
             value={actionFilter}
             onChange={(e) => setActionFilter(e.target.value)}
@@ -131,11 +131,11 @@ export default function AuditLogPage() {
           </select>
         </div>
         <div>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px' }}>From (UTC)</div>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px' }}>From (UTC)</div>
           <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={inputStyle} aria-label="From date" />
         </div>
         <div>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px' }}>To (UTC)</div>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px' }}>To (UTC)</div>
           <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={inputStyle} aria-label="To date" />
         </div>
         <button
@@ -146,32 +146,32 @@ export default function AuditLogPage() {
             color: '#fff',
             border: 'none',
             borderRadius: 'var(--radius)',
-            fontSize: '12px',
+            fontSize: 'var(--font-size-md)',
             cursor: 'pointer',
           }}
         >
           Refresh
         </button>
-        <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+        <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', marginLeft: 'auto' }}>
           {logs.length} entries
         </span>
       </div>
 
       {loading && (
-        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Loading…</div>
+        <div style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-muted)' }}>Loading…</div>
       )}
 
       {!loading && !currentStudyId && (
-        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No study selected.</div>
+        <div style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-muted)' }}>No study selected.</div>
       )}
 
       {!loading && logs.length === 0 && currentStudyId && (
-        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No audit entries match the current filters.</div>
+        <div style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-muted)' }}>No audit entries match the current filters.</div>
       )}
 
       {/* Dense table */}
       <div style={{ overflow: 'auto', border: '1px solid var(--border)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-data)', fontSize: '12px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-md)' }}>
           <thead>
             <tr style={{ background: 'var(--bg-panel-header)', height: 'var(--header-height)' }}>
               {['UTC Timestamp', 'Actor', 'Table', 'Record', 'Action', 'Reason'].map((col) => (
@@ -181,7 +181,7 @@ export default function AuditLogPage() {
                     padding: '0 8px',
                     textAlign: 'left',
                     color: 'var(--text-col-header)',
-                    fontSize: '10px',
+                    fontSize: 'var(--font-size-xs)',
                     fontWeight: 600,
                     textTransform: 'uppercase',
                     letterSpacing: '0.07em',

@@ -16,7 +16,7 @@ const InfoTooltip = ({ text }: { text: string }) => (
       background: 'var(--bg-tooltip, #1e1e2e)',
       color: 'var(--text-primary)',
       border: '1px solid var(--border)',
-      fontSize: '11px',
+      fontSize: 'var(--font-size-sm)',
       lineHeight: 1.5,
       whiteSpace: 'normal',
       pointerEvents: 'none',

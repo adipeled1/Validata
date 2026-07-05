@@ -12,7 +12,7 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (!d) return null;
   const diff = (d.aiAngle - d.goniometerAngle).toFixed(2);
   return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: '11px', lineHeight: 1.5 }}>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: 'var(--font-size-sm)', lineHeight: 1.5 }}>
       <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>{d.participantId || 'Unknown'}</p>
       <p style={{ color: 'var(--text-secondary)' }}>Goniometer: <strong>{d.goniometerAngle?.toFixed(1)}°</strong></p>
       <p style={{ color: COLORS.primary }}>AI model: <strong>{d.aiAngle?.toFixed(1)}°</strong></p>

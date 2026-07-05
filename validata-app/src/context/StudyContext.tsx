@@ -11,9 +11,6 @@ import { createMeasurementAction, updateMeasurementValidityAction } from '../app
 import { createStudyAction, deleteStudyAction, updateStudyGoalAction } from '../app/actions/studies';
 import { useFileImport, type ImportSummary } from '../hooks/useFileImport';
 
-const formatTimestamp = (d = new Date()) =>
-  `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-
 interface StudyContextValue {
   isLoading: boolean;
   studies: any[];
@@ -60,26 +57,26 @@ async function fetchStudies(isDemoMode: boolean): Promise<any[]> {
 
 async function fetchParticipants(studyId: string, isDemoMode: boolean): Promise<any[]> {
   if (isDemoMode) {
-    return mapParticipants((mockData as any).participants.filter((p: any) => p.study_id === studyId), true);
+    return mapParticipants((mockData as any).participants.filter((p: any) => p.study_id === studyId));
   }
 
   const res = await fetch(`/api/participants?study_id=${studyId}`);
   if (!res.ok) throw new Error('Failed to fetch participants');
   const data = await res.json();
   if (data.error) throw new Error(data.error);
-  return mapParticipants(data, false);
+  return mapParticipants(data);
 }
 
 async function fetchMeasurements(studyId: string, isDemoMode: boolean): Promise<any[]> {
   if (isDemoMode) {
-    return mapMeasurements((mockData as any).measurements.filter((m: any) => m.study_id === studyId), true);
+    return mapMeasurements((mockData as any).measurements.filter((m: any) => m.study_id === studyId));
   }
 
   const res = await fetch(`/api/measurements?study_id=${studyId}`);
   if (!res.ok) throw new Error('Failed to fetch measurements');
   const data = await res.json();
   if (data.error) throw new Error(data.error);
-  return mapMeasurements(data, false);
+  return mapMeasurements(data);
 }
 
 // Studies, participants, measurements, and every CRUD handler that operates
@@ -92,7 +89,6 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
   const { isLoading: isSessionLoading, isDemoMode, userStatus } = useSession();
   const isActive = !isSessionLoading && userStatus === 'active';
 
-  const [nextId, setNextId] = useState(1009);
   const [currentStudyId, setCurrentStudyId] = useState<string | null>(initialCurrentStudyId ?? null);
 
   const [toastMessage, setToastMessage] = useState('');
@@ -125,9 +121,7 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
 
   const { isImporting, importSummary, handleFileUpload, clearImportSummary } = useFileImport({
     participants,
-    measurementsData,
     currentStudyId,
-    isDemoMode,
     mutateMeasurementsData,
     triggerToast,
   });
@@ -142,23 +136,22 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     });
   };
 
+  // fable_system_review §4.2: the demo branch used to build its own study
+  // object inline, duplicating (and risking drifting from) the shape
+  // createStudy's own isDemo branch already returns. Studies aren't run
+  // through a mapper (they're used in raw DB shape directly), so this
+  // wasn't a shape-mismatch bug like participants/measurements, but it was
+  // still the same "same decision made twice" duplication - now both modes
+  // just use whatever createStudyAction returns.
   const addStudy = async (name: string, goal: string | number) => {
     const recruitmentGoal = parseInt(String(goal)) || 50;
-
-    if (isDemoMode) {
-      const newStudy = { id: `demo-${Date.now()}`, name, recruitment_goal: recruitmentGoal };
-      mutateStudies((current: any[] = []) => [...current, newStudy], { revalidate: false });
-      switchStudy(newStudy.id);
-      triggerToast(`Study "${name}" created. (Demo)`);
-      return;
-    }
 
     try {
       const data = await createStudyAction({ name, recruitmentGoal });
 
       mutateStudies((current: any[] = []) => [...current, data], { revalidate: false });
       switchStudy(data.id);
-      triggerToast(`Study "${name}" created.`);
+      triggerToast(isDemoMode ? `Study "${name}" created. (Demo)` : `Study "${name}" created.`);
     } catch (error: any) {
       console.error('Error creating study:', error);
       triggerToast('Failed to create study: ' + error.message);
@@ -225,56 +218,39 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     }
   };
 
+  // fable_system_review §4.2: this used to hand-build a participant object
+  // locally for demo mode (a shape independent of, and prone to drifting
+  // from, what mapParticipants/the live branch produce) instead of going
+  // through the repository at all. Now both demo and live go through the
+  // same createParticipantAction -> repository -> mapParticipants path -
+  // the repository's own isDemo branch (in participants.ts) is the only
+  // place demo/live diverge, and it returns the same raw-DB-shaped object
+  // either way, so there is exactly one mapping step for both.
   const addParticipant = async ({ consent, age, gender, healthStatus, enrollmentDate }: { consent: boolean; age: string; gender: string; healthStatus: string; enrollmentDate: string }) => {
     if (!currentStudyId) {
       triggerToast('Select or create a study before adding participants.');
       return;
     }
 
-    if (isDemoMode) {
-      const newId = `P-${nextId}`;
-      setNextId((prev) => prev + 1);
-
-      const newParticipant = {
-        id: newId,
+    try {
+      const savedData = await createParticipantAction({
         consent,
-        status: 'Active',
         age: parseInt(age) || null,
         gender,
         healthStatus,
-        study_id: currentStudyId,
-        enrollmentDate: enrollmentDate || new Date().toISOString().split('T')[0]
-      };
+        enrollmentDate: enrollmentDate || new Date().toISOString().split('T')[0],
+        studyId: currentStudyId
+      });
+
+      const [newParticipant] = mapParticipants([savedData]);
+
       mutateParticipants((current: any[] = []) => [newParticipant, ...current], { revalidate: false });
-      triggerToast(`Participant ${newId} registered successfully! (Demo)`);
-    } else {
-      try {
-        const savedData = await createParticipantAction({
-          consent,
-          age: parseInt(age) || null,
-          gender,
-          healthStatus,
-          enrollmentDate: enrollmentDate || new Date().toISOString().split('T')[0],
-          studyId: currentStudyId
-        });
-
-        const newParticipant = {
-          id: savedData.id,
-          consent,
-          status: 'Active',
-          age: parseInt(age) || null,
-          gender,
-          healthStatus,
-          study_id: currentStudyId,
-          enrollmentDate: enrollmentDate || new Date().toISOString().split('T')[0]
-        };
-
-        mutateParticipants((current: any[] = []) => [newParticipant, ...current], { revalidate: false });
-        triggerToast(`Participant ${savedData.id} registered and saved in database!`);
-      } catch (error: any) {
-        console.error('Error adding participant:', error);
-        triggerToast('Failed to save participant: ' + error.message);
-      }
+      triggerToast(isDemoMode
+        ? `Participant ${savedData.id} registered successfully! (Demo)`
+        : `Participant ${savedData.id} registered and saved in database!`);
+    } catch (error: any) {
+      console.error('Error adding participant:', error);
+      triggerToast('Failed to save participant: ' + error.message);
     }
   };
 
@@ -340,60 +316,41 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     }
   };
 
+  // fable_system_review §4.2: this used to hand-build a measurement object
+  // locally for demo mode (a THIRD independent shape, alongside the one
+  // mapMeasurements produced for lists and the one this same function
+  // hand-built for the live-mode optimistic update) - the exact
+  // "StudyContext.logMeasurement builds yet another shape" the review flagged.
+  // It also formatted the optimistic timestamp in the client's local
+  // timezone via a bespoke formatTimestamp() helper, while every other
+  // rendering of a timestamp goes through mapMeasurements' UTC formatting -
+  // a second, subtler drift (the optimistic row would show a different time
+  // than the same row after SWR revalidates). Both demo and live now go
+  // through the same createMeasurementAction -> repository -> mapMeasurements
+  // path, so there is exactly one place that shapes a measurement for display.
   const logMeasurement = async ({ participantId, goniometer, aiModel, notes, testDate }: { participantId: string; goniometer: string; aiModel: string; notes: string; testDate: string }) => {
     if (!currentStudyId) {
       triggerToast('Select or create a study before logging a measurement.');
       return;
     }
 
-    const formattedTimestamp = formatTimestamp();
-
-    if (isDemoMode) {
-      const simulatedId = measurementsData.length > 0
-        ? Math.max(...measurementsData.map((m: any) => parseInt(m.id) || 0)) + 1
-        : 1;
-
-      const newMeasurement = {
-        id: simulatedId,
-        participant: participantId,
-        goniometer: goniometer.includes('°') ? goniometer : `${goniometer}°`,
-        aiModel: aiModel.includes('°') ? aiModel : `${aiModel}°`,
+    try {
+      const savedData = await createMeasurementAction({
+        participantId,
+        goniometer,
+        aiModel,
         notes,
-        timestamp: formattedTimestamp,
         testDate: testDate || new Date().toISOString().split('T')[0],
-        isValid: true
-      };
+        studyId: currentStudyId
+      });
+
+      const [newMeasurement] = mapMeasurements([savedData]);
 
       mutateMeasurementsData((current: any[] = []) => [newMeasurement, ...current], { revalidate: false });
-      triggerToast('Measurement logged and saved! (Demo)');
-    } else {
-      try {
-        const savedData = await createMeasurementAction({
-          participantId,
-          goniometer,
-          aiModel,
-          notes,
-          testDate: testDate || new Date().toISOString().split('T')[0],
-          studyId: currentStudyId
-        });
-
-        const newMeasurement = {
-          id: savedData.id,
-          participant: savedData.participant_id,
-          goniometer: `${parseFloat(savedData.goniometer).toFixed(1)}°`,
-          aiModel: `${parseFloat(savedData.ai_model).toFixed(1)}°`,
-          notes: savedData.notes,
-          timestamp: formattedTimestamp,
-          testDate: savedData.test_date || savedData.testDate || testDate || new Date().toISOString().split('T')[0],
-          isValid: true
-        };
-
-        mutateMeasurementsData((current: any[] = []) => [newMeasurement, ...current], { revalidate: false });
-        triggerToast('Measurement saved directly to the database!');
-      } catch (error: any) {
-        console.error('Error logging measurement:', error);
-        triggerToast('Failed to save measurement: ' + error.message);
-      }
+      triggerToast(isDemoMode ? 'Measurement logged and saved! (Demo)' : 'Measurement saved directly to the database!');
+    } catch (error: any) {
+      console.error('Error logging measurement:', error);
+      triggerToast('Failed to save measurement: ' + error.message);
     }
   };
 

@@ -67,7 +67,7 @@ const StatCard = ({
   >
     <div
       style={{
-        fontSize: '10px',
+        fontSize: 'var(--font-size-xs)',
         fontWeight: 600,
         textTransform: 'uppercase',
         letterSpacing: '0.08em',
@@ -79,7 +79,7 @@ const StatCard = ({
     </div>
     <div
       style={{
-        fontSize: '24px',
+        fontSize: 'var(--font-size-3xl)',
         fontWeight: 700,
         color: color ?? 'var(--text-primary)',
         fontFamily: 'var(--font-data)',
@@ -87,7 +87,7 @@ const StatCard = ({
     >
       {value}
     </div>
-    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>{sub}</div>
+    <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>{sub}</div>
   </div>
 );
 
@@ -185,7 +185,7 @@ const AnalysisDisplay = ({
         <div>
           <div
             style={{
-              fontSize: '10px',
+              fontSize: 'var(--font-size-xs)',
               color: 'var(--text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
@@ -198,7 +198,7 @@ const AnalysisDisplay = ({
             Results View &amp; Analysis
           </h1>
           {formattedTime && (
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', marginTop: '2px' }}>
               Last updated: {formattedTime}
             </div>
           )}
@@ -212,7 +212,7 @@ const AnalysisDisplay = ({
             color: '#fff',
             border: 'none',
             borderRadius: 'var(--radius)',
-            fontSize: '12px',
+            fontSize: 'var(--font-size-md)',
             fontWeight: 600,
             cursor: 'pointer',
             display: 'flex',
@@ -233,7 +233,7 @@ const AnalysisDisplay = ({
             className="pdf-chart"
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '14px' }}
           >
-            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Measurement Progress
             </div>
             <div style={{ height: '200px' }}>
@@ -244,7 +244,7 @@ const AnalysisDisplay = ({
             className="pdf-chart"
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '14px' }}
           >
-            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Participant Status Distribution
             </div>
             <div style={{ height: '200px' }}>
@@ -255,10 +255,10 @@ const AnalysisDisplay = ({
 
         {/* Clinical Accuracy header */}
         <div>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: 'var(--font-size-base)', fontWeight: 700, color: 'var(--text-primary)' }}>
             Clinical Accuracy Analysis
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+          <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', marginTop: '2px' }}>
             {isLoadingCharts
               ? 'Loading data from database…'
               : isEmpty
@@ -268,7 +268,7 @@ const AnalysisDisplay = ({
         </div>
 
         {isLoadingCharts && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0', color: 'var(--text-muted)', gap: '10px', fontSize: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0', color: 'var(--text-muted)', gap: '10px', fontSize: 'var(--font-size-md)' }}>
             <div style={{ width: '16px', height: '16px', border: '2px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             Fetching measurements…
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -276,7 +276,7 @@ const AnalysisDisplay = ({
         )}
 
         {isEmpty && (
-          <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)', background: 'var(--bg-surface)', border: '1px solid var(--border)', fontSize: '12px' }}>
+          <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)', background: 'var(--bg-surface)', border: '1px solid var(--border)', fontSize: 'var(--font-size-md)' }}>
             No measurements found in the database yet.
           </div>
         )}
@@ -334,7 +334,7 @@ const AnalysisDisplay = ({
                     style={{
                       width: '64px',
                       padding: '2px 6px',
-                      fontSize: '12px',
+                      fontSize: 'var(--font-size-md)',
                       background: 'var(--bg-input)',
                       border: '1px solid var(--border)',
                       borderRadius: 'var(--radius)',
@@ -365,9 +365,9 @@ const AnalysisDisplay = ({
                   { label: 'SE', value: `${descSe.toFixed(2)}°`, sub: 'Standard Error', color: 'var(--status-active)' },
                 ].map((s) => (
                   <div key={s.label} style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '4px' }}>{s.label}</div>
-                    <div style={{ fontSize: '22px', fontWeight: 700, color: s.color ?? 'var(--text-primary)', fontFamily: 'var(--font-data)' }}>{s.value}</div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>{s.sub}</div>
+                    <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '4px' }}>{s.label}</div>
+                    <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 700, color: s.color ?? 'var(--text-primary)', fontFamily: 'var(--font-data)' }}>{s.value}</div>
+                    <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>{s.sub}</div>
                   </div>
                 ))}
               </div>

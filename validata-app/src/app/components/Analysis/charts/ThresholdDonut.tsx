@@ -5,7 +5,7 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
   const { name, value } = payload[0];
   return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: '11px' }}>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: 'var(--font-size-sm)' }}>
       <p style={{ color: payload[0].payload.fill, fontWeight: 600, marginBottom: '2px' }}>{name}</p>
       <p style={{ color: 'var(--text-secondary)' }}>{value} measurement{value !== 1 ? 's' : ''}</p>
     </div>
@@ -49,11 +49,11 @@ const ThresholdDonut = ({ data, threshold = 5 }: ThresholdDonutProps) => {
       {/* Center label — shows percentage, threshold, and raw counts */}
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
         <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-data)', lineHeight: 1 }}>
+          <p style={{ fontSize: 'var(--font-size-4xl)', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-data)', lineHeight: 1 }}>
             {percentage.toFixed(1)}%
           </p>
-          <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>within ±{threshold}°</p>
-          <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>
+          <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: '4px' }}>within ±{threshold}°</p>
+          <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>
             <span style={{ color: COLORS.pass }}>{pass} pass</span>
             {' / '}
             <span style={{ color: COLORS.fail }}>{fail} fail</span>

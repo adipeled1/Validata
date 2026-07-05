@@ -154,7 +154,7 @@ export default function ConsentRecordsPage() {
 
   if (!hasRole(userRole, READABLE_ROLES)) {
     return (
-      <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>
+      <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>
         You do not have access to consent records.
       </div>
     );
@@ -172,7 +172,7 @@ export default function ConsentRecordsPage() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '8px' }}>
       {/* Header */}
       <div style={{ flexShrink: 0 }}>
-        <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
           COMPLIANCE / Consent Records
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -183,7 +183,7 @@ export default function ConsentRecordsPage() {
       </div>
 
       {error && (
-        <div style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid #dc2626', padding: '8px 12px', fontSize: '12px', color: '#dc2626' }}>
+        <div style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid #dc2626', padding: '8px 12px', fontSize: 'var(--font-size-md)', color: '#dc2626' }}>
           {error}
         </div>
       )}
@@ -197,13 +197,13 @@ export default function ConsentRecordsPage() {
             padding: '6px 8px', borderBottom: '1px solid var(--border)',
             background: 'var(--bg-surface)', flexShrink: 0
           }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Form Versions
             </span>
             {canCreateVersion && (
               <button
                 onClick={() => setShowNewVersion(v => !v)}
-                style={{ fontSize: '11px', color: 'var(--accent-soft)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }}
+                style={{ fontSize: 'var(--font-size-sm)', color: 'var(--accent-soft)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }}
               >
                 + New
               </button>
@@ -212,7 +212,7 @@ export default function ConsentRecordsPage() {
 
           {showNewVersion && (
             <div style={{ padding: '8px', borderBottom: '1px solid var(--border)', background: 'var(--bg-editor)' }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>New Version</div>
+              <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>New Version</div>
               <input
                 placeholder="Version (e.g. v3.1)"
                 value={newVersion.version}
@@ -243,9 +243,9 @@ export default function ConsentRecordsPage() {
 
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {loading ? (
-              <div style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>Loading…</div>
+              <div style={{ padding: '12px', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>Loading…</div>
             ) : versions.length === 0 ? (
-              <div style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>
+              <div style={{ padding: '12px', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>
                 {isDemoMode ? 'No form versions (demo mode)' : 'No form versions yet.'}
               </div>
             ) : (
@@ -261,16 +261,16 @@ export default function ConsentRecordsPage() {
                     borderLeft: selectedVersionId === v.id ? '2px solid var(--accent)' : '2px solid transparent',
                   }}
                 >
-                  <div style={{ fontSize: '12px', fontWeight: 600, color: selectedVersionId === v.id ? 'var(--accent-soft)' : 'var(--text-primary)' }}>
+                  <div style={{ fontSize: 'var(--font-size-md)', fontWeight: 600, color: selectedVersionId === v.id ? 'var(--accent-soft)' : 'var(--text-primary)' }}>
                     {v.version}
                   </div>
                   {v.irb_approved_at && (
-                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>
                       IRB: {v.irb_approved_at.split('T')[0]}
                     </div>
                   )}
                   {v.content_hash && (
-                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-data)' }}>
+                    <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', fontFamily: 'var(--font-data)' }}>
                       {v.content_hash.slice(0, 8)}…
                     </div>
                   )}
@@ -287,7 +287,7 @@ export default function ConsentRecordsPage() {
             padding: '6px 8px', borderBottom: '1px solid var(--border)',
             background: 'var(--bg-surface)', flexShrink: 0
           }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Consent Records {selectedVersionId ? `— ${versions.find(v => v.id === selectedVersionId)?.version ?? ''}` : ''}
               <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '8px' }}>({visibleRecords.length})</span>
             </span>
@@ -295,7 +295,7 @@ export default function ConsentRecordsPage() {
               {canRecordConsent && selectedVersionId && (
                 <button
                   onClick={() => setShowNewRecord(r => !r)}
-                  style={{ fontSize: '11px', padding: '3px 8px', background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer' }}
+                  style={{ fontSize: 'var(--font-size-sm)', padding: '3px 8px', background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer' }}
                 >
                   + New Record
                 </button>
@@ -329,7 +329,7 @@ export default function ConsentRecordsPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <input type="checkbox" id="copyDelivered" checked={newRecord.copyDelivered} onChange={e => setNewRecord(p => ({ ...p, copyDelivered: e.target.checked }))} />
-                <label htmlFor="copyDelivered" style={{ fontSize: '11px', color: 'var(--text-secondary)', cursor: 'pointer' }}>Copy Delivered</label>
+                <label htmlFor="copyDelivered" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', cursor: 'pointer' }}>Copy Delivered</label>
               </div>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <button onClick={handleCreateRecord} disabled={saving || !newRecord.participantId} style={btnPrimary}>
@@ -341,7 +341,7 @@ export default function ConsentRecordsPage() {
           )}
 
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-md)' }}>
               <thead>
                 <tr style={{ background: 'var(--bg-surface)', position: 'sticky', top: 0, zIndex: 1 }}>
                   {['Participant', 'Method', 'Date (UTC)', 'Witnessed By', 'Copy Delivered'].map(col => (
@@ -381,7 +381,7 @@ export default function ConsentRecordsPage() {
 }
 
 const inputStyle: React.CSSProperties = {
-  fontSize: '11px',
+  fontSize: 'var(--font-size-sm)',
   padding: '4px 6px',
   background: 'var(--bg-editor)',
   border: '1px solid var(--border)',
@@ -391,7 +391,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 const labelStyle: React.CSSProperties = {
-  fontSize: '10px',
+  fontSize: 'var(--font-size-xs)',
   color: 'var(--text-muted)',
   textTransform: 'uppercase',
   letterSpacing: '0.06em',
@@ -400,7 +400,7 @@ const labelStyle: React.CSSProperties = {
 
 const btnPrimary: React.CSSProperties = {
   padding: '4px 10px',
-  fontSize: '11px',
+  fontSize: 'var(--font-size-sm)',
   fontWeight: 600,
   background: 'var(--accent)',
   color: '#fff',
@@ -410,7 +410,7 @@ const btnPrimary: React.CSSProperties = {
 
 const btnSecondary: React.CSSProperties = {
   padding: '4px 10px',
-  fontSize: '11px',
+  fontSize: 'var(--font-size-sm)',
   background: 'var(--bg-surface)',
   color: 'var(--text-secondary)',
   border: '1px solid var(--border)',
@@ -420,7 +420,7 @@ const btnSecondary: React.CSSProperties = {
 const thStyle: React.CSSProperties = {
   padding: '6px 8px',
   textAlign: 'left',
-  fontSize: '10px',
+  fontSize: 'var(--font-size-xs)',
   fontWeight: 600,
   color: 'var(--text-secondary)',
   textTransform: 'uppercase',

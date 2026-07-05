@@ -47,7 +47,7 @@ export default function InlinePanel({
       >
         <span
           style={{
-            fontSize: '11px',
+            fontSize: 'var(--font-size-sm)',
             fontWeight: 600,
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
@@ -63,7 +63,7 @@ export default function InlinePanel({
             border: 'none',
             color: 'var(--text-muted)',
             cursor: 'pointer',
-            fontSize: '18px',
+            fontSize: 'var(--font-size-2xl)',
             padding: '0 4px',
             lineHeight: 1,
             display: 'flex',

@@ -51,8 +51,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
           listParticipants(session, initialCurrentStudyId),
           listMeasurements(session, initialCurrentStudyId),
         ]);
-        initialParticipants = mapParticipants(rawParticipants, session.isDemo);
-        initialMeasurements = mapMeasurements(rawMeasurements, session.isDemo);
+        initialParticipants = mapParticipants(rawParticipants);
+        initialMeasurements = mapMeasurements(rawMeasurements);
       }
     } catch (error) {
       // Leave the initial* values empty - StudyContext's SWR hooks will

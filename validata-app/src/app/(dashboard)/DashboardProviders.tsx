@@ -84,7 +84,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               animation: 'spin 0.8s linear infinite',
             }}
           />
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-base)' }}>
             Validata is loading database…
           </p>
         </div>
@@ -139,7 +139,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           >
             {heading}
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '12px', lineHeight: 1.6, marginBottom: '20px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-md)', lineHeight: 1.6, marginBottom: '20px' }}>
             {body}
           </p>
           <button
@@ -153,7 +153,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius)',
               color: 'var(--text-primary)',
-              fontSize: '13px',
+              fontSize: 'var(--font-size-base)',
               cursor: 'pointer',
               width: '100%',
               justifyContent: 'center',
@@ -202,7 +202,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           >
             Account Access Suspended
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '12px', lineHeight: 1.6, marginBottom: '20px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-md)', lineHeight: 1.6, marginBottom: '20px' }}>
             Your access to Validata has been suspended. Contact the Project Mentor regarding{' '}
             <code style={{ fontFamily: 'var(--font-data)', color: 'var(--status-dropped)' }}>
               {currentUserEmail}
@@ -220,7 +220,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius)',
               color: 'var(--text-primary)',
-              fontSize: '13px',
+              fontSize: 'var(--font-size-base)',
               cursor: 'pointer',
               width: '100%',
               justifyContent: 'center',
@@ -246,18 +246,17 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       }}
     >
       {/* Menu bar (28px) */}
-      <MenuBar studyName={studyName} email={currentUserEmail} />
+      <MenuBar
+        studies={studies}
+        currentStudyId={currentStudyId}
+        onSwitchStudy={switchStudy}
+        email={currentUserEmail}
+      />
 
       {/* Body row */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Sidebar (ActivityBar + PrimarySidebar) */}
-        <Sidebar
-          userRole={userRole}
-          currentUserEmail={currentUserEmail}
-          studies={studies}
-          currentStudyId={currentStudyId}
-          onSwitchStudy={switchStudy}
-        />
+        <Sidebar userRole={userRole} currentUserEmail={currentUserEmail} />
 
         {/* Main area */}
         <main

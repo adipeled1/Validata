@@ -6,7 +6,7 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
   const { name, value } = payload[0];
   return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: '11px' }}>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '8px 10px', fontSize: 'var(--font-size-sm)' }}>
       <p style={{ color: payload[0].payload.fill, fontWeight: 600, marginBottom: '2px' }}>{name}</p>
       <p style={{ color: 'var(--text-secondary)' }}>{value} participant{value !== 1 ? 's' : ''}</p>
     </div>

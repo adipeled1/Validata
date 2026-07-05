@@ -3,7 +3,7 @@ import React from 'react';
 export const tableHeaderStyle: React.CSSProperties = {
   padding: '5px 8px',
   textAlign: 'left',
-  fontSize: '10px',
+  fontSize: 'var(--font-size-xs)',
   fontWeight: 600,
   color: 'var(--text-secondary)',
   textTransform: 'uppercase',
@@ -23,7 +23,7 @@ export const tableCellStyle: React.CSSProperties = {
 };
 
 export const pageHeaderBreadcrumbStyle: React.CSSProperties = {
-  fontSize: '10px',
+  fontSize: 'var(--font-size-xs)',
   color: 'var(--text-muted)',
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
@@ -39,7 +39,7 @@ export const pageH1Style: React.CSSProperties = {
 
 export const primaryButtonStyle: React.CSSProperties = {
   padding: '4px 10px',
-  fontSize: '11px',
+  fontSize: 'var(--font-size-sm)',
   fontWeight: 600,
   background: 'var(--accent)',
   color: '#fff',
@@ -49,7 +49,7 @@ export const primaryButtonStyle: React.CSSProperties = {
 
 export const secondaryButtonStyle: React.CSSProperties = {
   padding: '4px 10px',
-  fontSize: '11px',
+  fontSize: 'var(--font-size-sm)',
   background: 'var(--bg-surface)',
   color: 'var(--text-secondary)',
   border: '1px solid var(--border)',
@@ -60,7 +60,7 @@ export const inlineFormInputStyle: React.CSSProperties = {
   background: 'var(--bg-input)',
   border: '1px solid var(--border)',
   color: 'var(--text-primary)',
-  fontSize: '12px',
+  fontSize: 'var(--font-size-md)',
   padding: '4px 8px',
   fontFamily: 'var(--font-ui)',
   outline: 'none',
@@ -71,7 +71,7 @@ export const inlineFormLabelStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: '3px',
-  fontSize: '10px',
+  fontSize: 'var(--font-size-xs)',
   fontWeight: 600,
   textTransform: 'uppercase',
   letterSpacing: '0.06em',

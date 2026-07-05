@@ -69,7 +69,7 @@ const rows = SYSTEM_COMPONENTS.map((c, i) => ({ ...c, id: String(i) }));
 const columns = [
   { key: 'name', label: 'Component', width: '200px', render: (c: any) => <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{c.name}</span> },
   { key: 'type', label: 'Type', width: '140px' },
-  { key: 'version', label: 'Version', width: '160px', render: (c: any) => <span style={{ fontFamily: 'var(--font-data)', fontSize: '11px' }}>{c.version}</span> },
+  { key: 'version', label: 'Version', width: '160px', render: (c: any) => <span style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)' }}>{c.version}</span> },
   { key: 'vendor', label: 'Vendor', width: '140px' },
   { key: 'gampCategory', label: 'GAMP Cat.', width: '180px' },
   { key: 'validationStatus', label: 'Validation Status' },
@@ -81,7 +81,7 @@ export default function SystemInventoryPage() {
 
   if (!hasRole(userRole, ADMIN_ROLES)) {
     return (
-      <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>
+      <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>
         You do not have access to the system inventory register.
       </div>
     );
@@ -90,13 +90,13 @@ export default function SystemInventoryPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <div>
-        <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
           SYSTEM / System Inventory Register
         </div>
         <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
           System Inventory Register
         </h1>
-        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+        <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px' }}>
           All system components used in Validata EDC, GAMP categories, and validation status. Required by ICH E6(R3) Appendix C (META-04).
         </div>
       </div>
@@ -108,7 +108,7 @@ export default function SystemInventoryPage() {
         emptyMessage="No components listed."
       />
 
-      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+      <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>
         Last reviewed: 2026-07-03. Next review due: per change control or annual CSV review cycle.
       </div>
     </div>

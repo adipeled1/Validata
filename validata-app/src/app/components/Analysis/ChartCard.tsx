@@ -9,7 +9,7 @@ const EmptyChart = () => (
     height: '200px',
     background: 'var(--bg-surface-alt)',
     border: '1px dashed var(--border)',
-    fontSize: '11px',
+    fontSize: 'var(--font-size-sm)',
     color: 'var(--text-ghost)',
   }}>
     No data available for this selection
@@ -36,11 +36,11 @@ const ChartCard = ({ title, subtitle, info, isEmpty, children, center = false }:
     }}
   >
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', marginBottom: '2px', justifyContent: center ? 'center' : 'flex-start' }}>
-      <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>{title}</h3>
+      <h3 style={{ fontSize: 'var(--font-size-base)', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>{title}</h3>
       {info && <InfoTooltip text={info} />}
     </div>
     {subtitle && (
-      <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '12px', textAlign: center ? 'center' : 'left' }}>
+      <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginBottom: '12px', textAlign: center ? 'center' : 'left' }}>
         {subtitle}
       </p>
     )}

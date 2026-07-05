@@ -72,7 +72,7 @@ export default function DataGrid<T extends Record<string, any>>({
             justifyContent: 'center',
             height: '120px',
             color: 'var(--text-muted)',
-            fontSize: '12px',
+            fontSize: 'var(--font-size-md)',
             gap: '8px',
           }}
         >
@@ -97,7 +97,7 @@ export default function DataGrid<T extends Record<string, any>>({
             width: '100%',
             borderCollapse: 'collapse',
             fontFamily: 'var(--font-ui)',
-            fontSize: '12px',
+            fontSize: 'var(--font-size-md)',
           }}
         >
           <thead>
@@ -126,7 +126,7 @@ export default function DataGrid<T extends Record<string, any>>({
                     textAlign: 'left',
                     width: col.width,
                     color: 'var(--text-col-header)',
-                    fontSize: '10px',
+                    fontSize: 'var(--font-size-xs)',
                     fontWeight: 600,
                     textTransform: 'uppercase',
                     letterSpacing: '0.07em',
@@ -154,7 +154,7 @@ export default function DataGrid<T extends Record<string, any>>({
                     textAlign: 'center',
                     color: 'var(--text-muted)',
                     fontFamily: 'var(--font-ui)',
-                    fontSize: '12px',
+                    fontSize: 'var(--font-size-md)',
                   }}
                 >
                   {emptyMessage}
@@ -236,7 +236,7 @@ export default function DataGrid<T extends Record<string, any>>({
                           border: 'none',
                           color: 'var(--text-muted)',
                           cursor: 'pointer',
-                          fontSize: '14px',
+                          fontSize: 'var(--font-size-lg)',
                           padding: '0 4px',
                           fontFamily: 'var(--font-ui)',
                           letterSpacing: '1px',

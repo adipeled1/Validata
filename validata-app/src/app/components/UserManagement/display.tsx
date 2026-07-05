@@ -33,7 +33,7 @@ interface UserManagementDisplayProps {
 
 const colHeaderStyle: React.CSSProperties = {
   padding: '0 10px 6px',
-  fontSize: '10px',
+  fontSize: 'var(--font-size-xs)',
   fontWeight: 600,
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
@@ -45,7 +45,7 @@ const colHeaderStyle: React.CSSProperties = {
 const cellStyle: React.CSSProperties = {
   padding: '0 10px',
   height: '32px',
-  fontSize: '12px',
+  fontSize: 'var(--font-size-md)',
   fontFamily: 'var(--font-ui)',
   color: 'var(--text-primary)',
   verticalAlign: 'middle',
@@ -62,7 +62,7 @@ const chipStyle: React.CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   gap: '3px',
-  fontSize: '10px',
+  fontSize: 'var(--font-size-xs)',
   padding: '1px 5px',
   background: 'var(--bg-surface-alt)',
   border: '1px solid var(--border)',
@@ -91,7 +91,7 @@ function StudyCheckboxItem({
         display: 'flex',
         alignItems: 'center',
         gap: '6px',
-        fontSize: '11px',
+        fontSize: 'var(--font-size-sm)',
         padding: '5px 6px',
         cursor: 'pointer',
         color: 'var(--text-primary)',
@@ -157,7 +157,7 @@ function StudiesCell({
           background: 'var(--bg-surface-alt)',
           border: '1px solid var(--border)',
           color: isInactive ? 'var(--text-muted)' : 'var(--text-secondary)',
-          fontSize: '11px',
+          fontSize: 'var(--font-size-sm)',
           cursor: isInactive ? 'default' : 'pointer',
           borderRadius: 'var(--radius)',
           width: '100%',
@@ -192,7 +192,7 @@ function StudiesCell({
             }}
           >
             {allStudies.length === 0 ? (
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', padding: '4px' }}>No studies found.</div>
+              <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', padding: '4px' }}>No studies found.</div>
             ) : (
               allStudies.map((s) => {
                 const checked = memberSet.has(s.id);
@@ -242,13 +242,13 @@ const UserManagementDisplay = ({
       {/* Page header */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
             ADMINISTRATION / User Management
           </div>
           <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
             User Access Control
           </h1>
-          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+          <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px' }}>
             Manage system access, roles, and approval status for all researchers.
           </div>
         </div>
@@ -264,7 +264,7 @@ const UserManagementDisplay = ({
               background: 'var(--bg-surface)',
               border: '1px solid var(--border)',
               color: 'var(--text-secondary)',
-              fontSize: '11px',
+              fontSize: 'var(--font-size-sm)',
               cursor: 'pointer',
               borderRadius: 'var(--radius)',
               textDecoration: 'none',
@@ -283,7 +283,7 @@ const UserManagementDisplay = ({
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border)',
                 color: 'var(--text-secondary)',
-                fontSize: '11px',
+                fontSize: 'var(--font-size-sm)',
                 cursor: 'pointer',
                 borderRadius: 'var(--radius)',
               }}
@@ -302,7 +302,7 @@ const UserManagementDisplay = ({
               background: 'var(--bg-surface)',
               border: '1px solid var(--border)',
               color: 'var(--text-secondary)',
-              fontSize: '11px',
+              fontSize: 'var(--font-size-sm)',
               cursor: 'pointer',
               borderRadius: 'var(--radius)',
             }}
@@ -323,7 +323,7 @@ const UserManagementDisplay = ({
           background: 'rgba(248, 113, 113, 0.08)',
           border: '1px solid var(--status-dropped)',
           borderRadius: 'var(--radius)',
-          fontSize: '12px',
+          fontSize: 'var(--font-size-md)',
           color: 'var(--status-dropped)',
         }}>
           <AlertCircle size={14} style={{ flexShrink: 0, marginTop: '1px' }} />
@@ -335,7 +335,7 @@ const UserManagementDisplay = ({
       {!isLoading && candidates.length > 0 && (
         <div>
           <div style={{
-            fontSize: '10px',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: 600,
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
@@ -371,9 +371,9 @@ const UserManagementDisplay = ({
                       }}
                     >
                       <td style={cellStyle}>
-                        <span style={{ fontFamily: 'var(--font-data)', fontSize: '11px' }}>{user.email}</span>
+                        <span style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)' }}>{user.email}</span>
                       </td>
-                      <td style={{ ...cellStyle, fontFamily: 'var(--font-data)', fontSize: '11px', color: 'var(--text-timestamp)' }}>
+                      <td style={{ ...cellStyle, fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)', color: 'var(--text-timestamp)' }}>
                         {expiresAt}
                       </td>
                       <td style={{ ...cellStyle, textAlign: 'right' }}>
@@ -409,7 +409,7 @@ const UserManagementDisplay = ({
       <div>
         {candidates.length > 0 && (
           <div style={{
-            fontSize: '10px',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: 600,
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
@@ -423,14 +423,14 @@ const UserManagementDisplay = ({
           {isLoading ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '48px' }}>
               <div style={{ width: '24px', height: '24px', border: '3px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Fetching registered profiles…</div>
+              <div style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-secondary)' }}>Fetching registered profiles…</div>
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           ) : activeUsers.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '48px', color: 'var(--text-muted)' }}>
               <ShieldAlert size={32} />
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>No profiles found</div>
-              <div style={{ fontSize: '11px' }}>No other users have registered on this platform yet.</div>
+              <div style={{ fontSize: 'var(--font-size-base)', color: 'var(--text-secondary)', fontWeight: 600 }}>No profiles found</div>
+              <div style={{ fontSize: 'var(--font-size-sm)' }}>No other users have registered on this platform yet.</div>
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -456,11 +456,11 @@ const UserManagementDisplay = ({
                     >
                       {/* Email */}
                       <td style={cellStyle}>
-                        <span style={{ fontFamily: 'var(--font-data)', fontSize: '11px' }}>{user.email}</span>
+                        <span style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)' }}>{user.email}</span>
                         {isSelf && (
                           <span style={{
                             marginLeft: '6px',
-                            fontSize: '9px',
+                            fontSize: 'var(--font-size-2xs)',
                             fontWeight: 700,
                             textTransform: 'uppercase',
                             padding: '1px 4px',
@@ -480,7 +480,7 @@ const UserManagementDisplay = ({
                           <span
                             title={!isSelf && !canManage(user.role) ? 'Only an admin can change a mentor/admin account' : undefined}
                             style={{
-                              fontSize: '10px',
+                              fontSize: 'var(--font-size-xs)',
                               fontWeight: 600,
                               color: 'var(--accent-soft)',
                               display: 'inline-flex',
@@ -496,7 +496,7 @@ const UserManagementDisplay = ({
                             value={user.role}
                             onChange={(e) => onRoleChange(user.id, e.target.value)}
                             style={{
-                              fontSize: '11px',
+                              fontSize: 'var(--font-size-sm)',
                               fontWeight: 600,
                               color: user.role === 'mentor' ? 'var(--accent-soft)' : 'var(--text-secondary)',
                               background: 'transparent',
@@ -525,7 +525,7 @@ const UserManagementDisplay = ({
                       {/* Status */}
                       <td style={cellStyle}>
                         <span style={{
-                          fontSize: '10px',
+                          fontSize: 'var(--font-size-xs)',
                           fontWeight: 600,
                           color: STATUS_COLOR[user.status] ?? 'var(--text-muted)',
                           textTransform: 'uppercase',
@@ -537,7 +537,7 @@ const UserManagementDisplay = ({
                       {/* Studies — mentor/admin are global, not scoped by study_members */}
                       <td style={{ ...cellStyle, height: 'auto', padding: '6px 10px' }}>
                         {user.role === 'mentor' || user.role === 'admin' ? (
-                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontStyle: 'italic' }}>All studies (global)</span>
+                          <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', fontStyle: 'italic' }}>All studies (global)</span>
                         ) : (
                           <StudiesCell
                             userId={user.id}
@@ -599,7 +599,7 @@ const UserManagementDisplay = ({
                             </button>
                           )}
                           {!isSelf && !canManage(user.role) && (
-                            <span title="Only an admin can manage this account" style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                            <span title="Only an admin can manage this account" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
                               admin only
                             </span>
                           )}
@@ -630,7 +630,7 @@ const UserManagementDisplay = ({
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius)',
             width: '100%',
-            maxWidth: '550px',
+            maxWidth: '720px',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.3)',
             display: 'flex',
             flexDirection: 'column',
@@ -640,26 +640,26 @@ const UserManagementDisplay = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '12px 16px',
+              padding: '18px 24px',
               borderBottom: '1px solid var(--border)',
             }}>
-              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <span style={{ fontSize: 'var(--font-size-base)', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 Deleted Profile Archives
               </span>
               <button
                 onClick={() => setShowArchive(false)}
                 style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
               >
-                <X size={16} />
+                <X size={20} />
               </button>
             </div>
             {/* Content */}
-            <div style={{ padding: '16px', maxHeight: '350px', overflowY: 'auto' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+            <div style={{ padding: '24px', maxHeight: '480px', overflowY: 'auto' }}>
+              <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginBottom: '12px' }}>
                 Reactivating an account will restore their profile to the active registry and allow them to log in.
               </div>
               {deletedUsers.length === 0 ? (
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', padding: '24px 0' }}>
+                <div style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-muted)', textAlign: 'center', padding: '24px 0' }}>
                   No deleted profiles found.
                 </div>
               ) : (
@@ -681,7 +681,7 @@ const UserManagementDisplay = ({
                         }}
                       >
                         <td style={{ ...cellStyle, padding: '8px 10px', height: 'auto' }}>
-                          <span style={{ fontFamily: 'var(--font-data)', fontSize: '11px' }}>{user.email}</span>
+                          <span style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)' }}>{user.email}</span>
                         </td>
                         <td style={{ ...cellStyle, padding: '8px 10px', height: 'auto', textTransform: 'capitalize', color: 'var(--text-secondary)' }}>
                           {user.role.replace(/_/g, ' ')}
@@ -700,7 +700,7 @@ const UserManagementDisplay = ({
                               color: 'var(--status-active)',
                               cursor: 'pointer',
                               padding: '3px 8px',
-                              fontSize: '10px',
+                              fontSize: 'var(--font-size-xs)',
                               fontWeight: 600,
                               fontFamily: 'var(--font-ui)',
                             }}
