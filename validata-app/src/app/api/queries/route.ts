@@ -1,6 +1,7 @@
 import { verifySession, canReadOnly } from '@/lib/auth-server';
 import { createQuerySchema, formatValidationError } from '@/lib/schemas';
 import { QUERY_MUTATE_ROLES, hasRole } from '@/lib/permissions';
+import { addQuery, getQueries } from '@/lib/demoStore';
 
 // GET /api/queries?studyId=...
 // Returns all queries for a study. Accessible to any operational role (ICH E6(R3) CAP-04).
@@ -23,7 +24,7 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     if (session.isDemo) {
-      return Response.json([]);
+      return Response.json(getQueries(studyId));
     }
 
     const { data, error } = await session.supabaseClient!
@@ -62,7 +63,16 @@ export async function POST(request: Request): Promise<Response> {
     const { studyId, recordTable, recordId, fieldName, severity, queryText } = parsed.data;
 
     if (session.isDemo) {
-      return Response.json({ id: 1, study_id: studyId, status: 'open' }, { status: 201 });
+      const row = addQuery({
+        studyId,
+        recordTable,
+        recordId,
+        fieldName,
+        severity,
+        queryText,
+        raisedBy: session.user.email,
+      });
+      return Response.json(row, { status: 201 });
     }
 
     const { data, error } = await session.supabaseClient!

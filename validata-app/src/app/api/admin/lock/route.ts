@@ -1,5 +1,7 @@
 import { verifySession, isMentor } from '@/lib/auth-server';
 import { lockStudySchema, formatValidationError } from '@/lib/schemas';
+import { setStudyLock, getStudyLockOverride } from '@/lib/demoStore';
+import mockData from '@/mockData.json';
 
 // POST /api/admin/lock
 // Locks a study so no new data can be entered (ICH E6(R3) INT-01, INT-03).
@@ -23,7 +25,19 @@ export async function POST(request: Request): Promise<Response> {
     const { studyId, reason } = parsed.data;
 
     if (session.isDemo) {
-      return Response.json({ success: true, studyId, lock_state: 'locked' });
+      const currentlyLocked = getStudyLockOverride(studyId)?.lock_state === 'locked';
+      if (currentlyLocked) {
+        return Response.json({ error: 'Study is already locked.' }, { status: 409 });
+      }
+      const study = (mockData.studies as any[]).find((s) => s.id === studyId);
+      const override = setStudyLock({
+        studyId,
+        studyName: study?.name ?? studyId,
+        locked: true,
+        reason,
+        actorEmail: session.user.email,
+      });
+      return Response.json({ id: studyId, name: study?.name, ...override }, { status: 200 });
     }
 
     const { data: study, error: fetchError } = await session.supabaseClient!

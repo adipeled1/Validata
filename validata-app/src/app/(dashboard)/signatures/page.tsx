@@ -127,9 +127,9 @@ export default function SignaturesPage() {
         </button>
       </div>
 
-      {isDemoMode && (
+      {isDemoMode && signatures.length === 0 && !loading && (
         <div style={{ padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border)', fontSize: 'var(--font-size-sm)', color: 'var(--status-warning)' }}>
-          Demo mode — no signatures exist in the demo environment. Connect to a real Supabase instance to see records.
+          Demo mode — signatures created here live only for the length of this server session and reset when it restarts.
         </div>
       )}
 

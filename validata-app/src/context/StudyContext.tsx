@@ -45,9 +45,11 @@ const STUDIES_KEY = 'studies';
 const participantsKey = (studyId: string | null) => (studyId ? `participants:${studyId}` : null);
 const measurementsKey = (studyId: string | null) => (studyId ? `measurements:${studyId}` : null);
 
-async function fetchStudies(isDemoMode: boolean): Promise<any[]> {
-  if (isDemoMode) return (mockData as any).studies;
-
+// Always goes through the API (rather than reading mockData.json directly in
+// demo mode) because /api/studies -> listStudies() merges in the Study Lock
+// Control override - a client-side mockData bypass here would show every
+// study as permanently unlocked regardless of what a mentor just locked.
+async function fetchStudies(): Promise<any[]> {
   const res = await fetch('/api/studies');
   if (!res.ok) throw new Error('Failed to fetch studies');
   const data = await res.json();
@@ -101,7 +103,7 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
 
   const { data: studies = [], mutate: mutateStudies, isLoading: studiesLoading } = useSWR(
     isActive ? STUDIES_KEY : null,
-    () => fetchStudies(isDemoMode)
+    () => fetchStudies()
   );
 
   const { data: participants = [], mutate: mutateParticipants, isLoading: participantsLoading } = useSWR(
@@ -260,13 +262,6 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
   // (ConfirmWithReasonModal) before this is called — reason is then passed
   // through to the repository and audit trigger.
   const dropParticipant = async (id: string, reason: string) => {
-    if (isDemoMode) {
-      mutateParticipants((current: any[] = []) => current.map((p) => (p.id === id ? { ...p, status: 'Dropped' } : p)), { revalidate: false });
-      mutateMeasurementsData((current: any[] = []) => current.map((m) => (m.participant === id ? { ...m, isValid: false } : m)), { revalidate: false });
-      triggerToast('Participant status updated. (Demo)');
-      return;
-    }
-
     if (!currentStudyId) {
       triggerToast('No active study selected.');
       return;
@@ -283,7 +278,9 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
 
       mutateParticipants((current: any[] = []) => current.map((p) => (p.id === id ? { ...p, status: 'Dropped' } : p)), { revalidate: false });
       mutateMeasurementsData((current: any[] = []) => current.map((m) => (m.participant === id ? { ...m, isValid: false } : m)), { revalidate: false });
-      triggerToast(`Participant ${id} dropped. Reason recorded in audit trail.`);
+      triggerToast(isDemoMode
+        ? `Participant ${id} dropped. Reason recorded in audit trail. (Demo)`
+        : `Participant ${id} dropped. Reason recorded in audit trail.`);
     } catch (error: any) {
       console.error('Error updating participant status:', error);
       triggerToast('Failed to update participant: ' + error.message);
@@ -299,17 +296,13 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
 
     const nextStatus = participant.status === 'Completed' ? 'Active' : 'Completed';
 
-    if (isDemoMode) {
-      mutateParticipants((current: any[] = []) => current.map((p) => (p.id === id ? { ...p, status: nextStatus } : p)), { revalidate: false });
-      triggerToast(`Participant marked ${nextStatus.toLowerCase()}. (Demo)`);
-      return;
-    }
-
     try {
       await updateParticipantStatusAction({ id, status: nextStatus, studyId: currentStudyId });
 
       mutateParticipants((current: any[] = []) => current.map((p) => (p.id === id ? { ...p, status: nextStatus } : p)), { revalidate: false });
-      triggerToast(`Participant ${id} marked ${nextStatus.toLowerCase()}.`);
+      triggerToast(isDemoMode
+        ? `Participant ${id} marked ${nextStatus.toLowerCase()}. (Demo)`
+        : `Participant ${id} marked ${nextStatus.toLowerCase()}.`);
     } catch (error: any) {
       console.error('Error updating participant status:', error);
       triggerToast('Failed to update participant: ' + error.message);
@@ -364,17 +357,13 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
       return;
     }
 
-    if (isDemoMode) {
-      mutateMeasurementsData((current: any[] = []) => current.map((m) => (m.id === id ? { ...m, isValid: false } : m)), { revalidate: false });
-      triggerToast('Measurement marked invalid. (Demo)');
-      return;
-    }
-
     try {
       await updateMeasurementValidityAction({ id, isValid: false, studyId: currentStudyId, reason });
 
       mutateMeasurementsData((current: any[] = []) => current.map((m) => (m.id === id ? { ...m, isValid: false } : m)), { revalidate: false });
-      triggerToast('Measurement marked invalid. Reason recorded in audit trail.');
+      triggerToast(isDemoMode
+        ? 'Measurement marked invalid. Reason recorded in audit trail. (Demo)'
+        : 'Measurement marked invalid. Reason recorded in audit trail.');
     } catch (error: any) {
       console.error('Error updating measurement validity:', error);
       triggerToast('Failed to update measurement: ' + error.message);

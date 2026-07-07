@@ -1,5 +1,6 @@
 import { verifySession, canEditData, canReadOnly } from '@/lib/auth-server';
 import { createAdverseEventSchema, updateAdverseEventSchema, formatValidationError } from '@/lib/schemas';
+import { addAdverseEvent, getAdverseEvents } from '@/lib/demoStore';
 
 // Authority reporting deadlines per ICH E6(R3) SAFETY-03 and E2A:
 // - SAE/SUSAR fatal or life-threatening, unexpected: 7 calendar days
@@ -30,7 +31,7 @@ export async function GET(request: Request): Promise<Response> {
     const { searchParams } = new URL(request.url);
     const studyId = searchParams.get('studyId');
     if (!studyId) return Response.json({ error: 'studyId is required.' }, { status: 400 });
-    if (session.isDemo) return Response.json([]);
+    if (session.isDemo) return Response.json(getAdverseEvents(studyId));
 
     const { data, error } = await session.supabaseClient!
       .from('adverse_events')
@@ -61,7 +62,21 @@ export async function POST(request: Request): Promise<Response> {
     const deadline = calculateDeadline(aeType, severity, expectedness, reportDate);
 
     if (session.isDemo) {
-      return Response.json({ id: 1, study_id: studyId, ae_type: aeType, authority_deadline: deadline }, { status: 201 });
+      const row = addAdverseEvent({
+        studyId,
+        participantId,
+        aeType,
+        description,
+        severity,
+        causality,
+        expectedness,
+        reportDate,
+        onsetDate,
+        notes,
+        authorityDeadline: deadline,
+        actorEmail: session.user.email,
+      });
+      return Response.json(row, { status: 201 });
     }
 
     const { data, error } = await session.supabaseClient!

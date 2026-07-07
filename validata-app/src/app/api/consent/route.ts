@@ -5,6 +5,7 @@ import {
   formatValidationError,
 } from '@/lib/schemas';
 import { CONSENT_VERSION_ROLES, hasRole } from '@/lib/permissions';
+import { addConsentVersion, addConsentRecord, getConsentVersions, getConsentRecords } from '@/lib/demoStore';
 
 // GET /api/consent?studyId=&participantId=
 // Returns consent form versions and consent records (ICH E6(R3) CONSENT-01 to CONSENT-04).
@@ -19,7 +20,12 @@ export async function GET(request: Request): Promise<Response> {
     const participantId = searchParams.get('participantId');
 
     if (!studyId) return Response.json({ error: 'studyId is required.' }, { status: 400 });
-    if (session.isDemo) return Response.json({ versions: [], records: [] });
+    if (session.isDemo) {
+      const records = participantId
+        ? getConsentRecords(studyId).filter((r) => r.participant_id === participantId)
+        : getConsentRecords(studyId);
+      return Response.json({ versions: getConsentVersions(studyId), records });
+    }
 
     const [versionsRes, recordsQuery] = await Promise.all([
       session.supabaseClient!.from('consent_form_versions').select('*').eq('study_id', studyId).order('created_at'),
@@ -60,7 +66,10 @@ export async function POST(request: Request): Promise<Response> {
       const parsed = createConsentFormVersionSchema.safeParse(body);
       if (!parsed.success) return Response.json({ error: formatValidationError(parsed.error) }, { status: 400 });
       const { studyId, version, irbApprovedAt, activatedAt, contentHash } = parsed.data;
-      if (session.isDemo) return Response.json({ id: 1, study_id: studyId, version }, { status: 201 });
+      if (session.isDemo) {
+        const row = addConsentVersion({ studyId, version, irbApprovedAt, activatedAt, contentHash, actorEmail: session.user.email });
+        return Response.json(row, { status: 201 });
+      }
       const { data, error } = await session.supabaseClient!.from('consent_form_versions').insert({
         study_id: studyId, version,
         irb_approved_at: irbApprovedAt ?? null,
@@ -77,7 +86,10 @@ export async function POST(request: Request): Promise<Response> {
       const parsed = createConsentRecordSchema.safeParse(body);
       if (!parsed.success) return Response.json({ error: formatValidationError(parsed.error) }, { status: 400 });
       const { participantId, studyId, formVersionId, method, copyDelivered, witnessedBy, notes } = parsed.data;
-      if (session.isDemo) return Response.json({ id: 1, participant_id: participantId, study_id: studyId }, { status: 201 });
+      if (session.isDemo) {
+        const row = addConsentRecord({ studyId, participantId, formVersionId, method, copyDelivered, witnessedBy, notes, actorEmail: session.user.email });
+        return Response.json(row, { status: 201 });
+      }
       const { data, error } = await session.supabaseClient!.from('consent_records').insert({
         participant_id: participantId, study_id: studyId, form_version_id: formVersionId,
         method, copy_delivered: copyDelivered,

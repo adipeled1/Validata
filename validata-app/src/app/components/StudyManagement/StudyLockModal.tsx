@@ -6,7 +6,7 @@
 // study at once). Same table layout as the original cross-study view, just
 // filtered down to one row.
 import { useState, useEffect, useCallback } from 'react';
-import { useSession } from '../../../context/SessionContext';
+import { mutate } from 'swr';
 
 export interface LockableStudy {
   id: string;
@@ -31,7 +31,6 @@ const tdStyle: React.CSSProperties = {
 };
 
 export default function StudyLockModal({ studyId, onClose }: { studyId: string; onClose: () => void }) {
-  const { isDemoMode } = useSession();
   const [study, setStudy] = useState<LockableStudy | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +76,11 @@ export default function StudyLockModal({ studyId, onClose }: { studyId: string; 
       setShowReason(false);
       setReason('');
       load();
+      // The status bar and every other page read lock state off the shared
+      // 'studies' SWR cache (via StudyContext), which this modal's own local
+      // load() above doesn't touch - revalidate it too so a lock/unlock is
+      // reflected everywhere immediately instead of only after a full reload.
+      mutate('studies');
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -153,23 +157,19 @@ export default function StudyLockModal({ studyId, onClose }: { studyId: string; 
                     {study.lock_reason ?? '—'}
                   </td>
                   <td style={tdStyle}>
-                    {isDemoMode ? (
-                      <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>Demo mode</span>
-                    ) : (
-                      <button
-                        onClick={() => setShowReason((s) => !s)}
-                        style={{
-                          padding: '4px 10px', fontSize: 'var(--font-size-md)', fontWeight: 600,
-                          background: isLocked ? 'rgba(220,38,38,0.1)' : 'rgba(78,201,176,0.1)',
-                          color: isLocked ? 'var(--color-error)' : 'var(--status-active)',
-                          border: `1px solid ${isLocked ? 'var(--color-error)' : 'var(--status-active)'}`,
-                          borderRadius: 'var(--radius)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {isLocked ? 'Unlock…' : 'Lock…'}
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setShowReason((s) => !s)}
+                      style={{
+                        padding: '4px 10px', fontSize: 'var(--font-size-md)', fontWeight: 600,
+                        background: isLocked ? 'rgba(220,38,38,0.1)' : 'rgba(78,201,176,0.1)',
+                        color: isLocked ? 'var(--color-error)' : 'var(--status-active)',
+                        border: `1px solid ${isLocked ? 'var(--color-error)' : 'var(--status-active)'}`,
+                        borderRadius: 'var(--radius)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {isLocked ? 'Unlock…' : 'Lock…'}
+                    </button>
                   </td>
                 </tr>
                 {showReason && (

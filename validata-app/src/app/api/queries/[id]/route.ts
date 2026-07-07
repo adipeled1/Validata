@@ -1,6 +1,7 @@
 import { verifySession } from '@/lib/auth-server';
 import { updateQuerySchema, formatValidationError } from '@/lib/schemas';
 import { QUERY_MUTATE_ROLES, hasRole } from '@/lib/permissions';
+import { updateQuery } from '@/lib/demoStore';
 
 // PATCH /api/queries/:id
 // Advance the lifecycle of a query (answer → resolve → close) (ICH E6(R3) CAP-04, COR-02).
@@ -34,7 +35,9 @@ export async function PATCH(
     const { status, answerText } = parsed.data;
 
     if (session.isDemo) {
-      return Response.json({ id: queryId, status });
+      const row = updateQuery(queryId, { status, answerText, actorEmail: session.user.email });
+      if (!row) return Response.json({ error: 'Query not found.' }, { status: 404 });
+      return Response.json(row);
     }
 
     const now = new Date().toISOString();

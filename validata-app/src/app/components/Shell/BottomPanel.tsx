@@ -1,14 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface BottomPanelProps {
   studyId: string | null;
   isOpen: boolean;
   onClose: () => void;
+  height: number;
+  onResize: (height: number) => void;
 }
 
-type TabId = 'audit' | 'queries' | 'system';
+type TabId = 'story' | 'audit' | 'queries' | 'system';
+
+const MIN_PANEL_HEIGHT = 100;
+const MAX_PANEL_HEIGHT = 640;
 
 const ACTION_COLORS: Record<string, string> = {
   INSERT: 'var(--status-insert)',
@@ -22,40 +28,119 @@ const ACTION_COLORS: Record<string, string> = {
   UNLOCK: 'var(--text-secondary)',
 };
 
-function AuditTab({ studyId }: { studyId: string | null }) {
-  const [logs, setLogs] = useState<any[]>([]);
+const ACTION_VERBS: Record<string, string> = {
+  INSERT: 'created',
+  UPDATE: 'updated',
+  DELETE: 'deleted',
+  SOFT_DELETE: 'removed',
+  ROLE_CHANGE: 'changed access for',
+  STATUS_CHANGE: 'changed the status of',
+  SIGN_OFF: 'endorsed',
+  LOCK: 'locked',
+  UNLOCK: 'unlocked',
+};
+
+const TABLE_LABELS: Record<string, string> = {
+  participants: 'a participant',
+  measurements: 'a measurement',
+  queries: 'a query',
+  adverse_events: 'an adverse event',
+  consent_records: 'a consent record',
+  consent_form_versions: 'a consent form version',
+  delegations: 'a delegation',
+  signatures: 'a signature',
+  studies: 'the study',
+  profiles: 'a user',
+  system: 'the system',
+};
+
+async function fetchLog(params: Record<string, string>): Promise<any[]> {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`/api/audit-log?${qs}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+function useAuditRows(params: Record<string, string> | null, pollMs = 30000) {
+  const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const paramsKey = useMemo(() => (params ? JSON.stringify(params) : null), [params]);
 
   const load = useCallback(async () => {
-    if (!studyId) return;
+    if (!params) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/audit-log?studyId=${studyId}`);
-      if (res.ok) setLogs(await res.json());
+      setRows(await fetchLog(params));
     } finally {
       setLoading(false);
     }
-  }, [studyId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramsKey]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
-    const interval = setInterval(load, 30000);
+    const interval = setInterval(load, pollMs);
     return () => clearInterval(interval);
-  }, [load]);
+  }, [load, pollMs]);
 
-  if (!studyId)
-    return (
-      <div style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>
-        No study selected.
-      </div>
-    );
-  if (loading && logs.length === 0)
-    return (
-      <div style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>
-        Loading…
-      </div>
-    );
+  return { rows, loading };
+}
+
+const emptyMsgStyle: React.CSSProperties = {
+  padding: '8px 12px',
+  color: 'var(--text-muted)',
+  fontSize: 'var(--font-size-md)',
+};
+
+function StoryTab({ studyId }: { studyId: string | null }) {
+  const { rows, loading } = useAuditRows(studyId ? { studyId, scope: 'study' } : null);
+
+  if (!studyId) return <div style={emptyMsgStyle}>No study selected.</div>;
+  if (loading && rows.length === 0) return <div style={emptyMsgStyle}>Loading…</div>;
+  if (rows.length === 0) {
+    return <div style={emptyMsgStyle}>Nothing has happened in this study yet — actions you take will appear here as a readable timeline.</div>;
+  }
+
+  return (
+    <div style={{ overflowY: 'auto', height: '100%', padding: '6px 12px' }}>
+      {rows.slice(0, 50).map((row) => {
+        const verb = ACTION_VERBS[row.action] ?? row.action.toLowerCase().replace(/_/g, ' ');
+        const noun = TABLE_LABELS[row.table_name] ?? row.table_name;
+        return (
+          <div
+            key={row.id}
+            style={{
+              padding: '5px 0',
+              borderBottom: '1px solid var(--border)',
+              fontSize: 'var(--font-size-md)',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.5,
+            }}
+          >
+            <span style={{ color: 'var(--text-timestamp)', fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)' }}>
+              {new Date(row.occurred_at).toISOString().replace('T', ' ').substring(0, 16)} UTC
+            </span>
+            {' — '}
+            <span style={{ color: 'var(--text-actor)', fontWeight: 600 }}>{row.actor_email ?? 'Someone'}</span>
+            {' '}
+            <span style={{ color: ACTION_COLORS[row.action] ?? 'var(--text-secondary)' }}>{verb}</span>
+            {' '}
+            {noun}
+            {row.reason && <span style={{ color: 'var(--text-muted)' }}> — {row.reason}</span>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function AuditTab({ studyId }: { studyId: string | null }) {
+  const { rows: logs, loading } = useAuditRows(studyId ? { studyId, scope: 'study' } : null);
+
+  if (!studyId) return <div style={emptyMsgStyle}>No study selected.</div>;
+  if (loading && logs.length === 0) return <div style={emptyMsgStyle}>Loading…</div>;
 
   return (
     <div style={{ overflowX: 'auto', height: '100%' }}>
@@ -150,12 +235,143 @@ function AuditTab({ studyId }: { studyId: string | null }) {
   );
 }
 
-export default function BottomPanel({ studyId, isOpen, onClose }: BottomPanelProps) {
-  const [activeTab, setActiveTab] = useState<TabId>('audit');
+async function fetchOpenQueries(studyId: string): Promise<any[]> {
+  const res = await fetch(`/api/queries?studyId=${studyId}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data) ? data.filter((q) => q.status === 'open' || q.status === 'answered') : [];
+}
+
+const SEVERITY_COLOR: Record<string, string> = {
+  minor: 'var(--status-pending)',
+  major: 'var(--status-warning)',
+  critical: 'var(--status-dropped)',
+};
+
+function OpenQueriesTab({ studyId }: { studyId: string | null }) {
+  const router = useRouter();
+  const [queries, setQueries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!studyId) return;
+    setLoading(true);
+    try {
+      setQueries(await fetchOpenQueries(studyId));
+    } finally {
+      setLoading(false);
+    }
+  }, [studyId]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
+  }, [load]);
+
+  if (!studyId) return <div style={emptyMsgStyle}>No study selected.</div>;
+  if (loading && queries.length === 0) return <div style={emptyMsgStyle}>Loading…</div>;
+
+  return (
+    <div style={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', borderBottom: '1px solid var(--border)' }}>
+        <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
+          {queries.length === 0 ? 'No open queries. Study is clean.' : `${queries.length} query${queries.length === 1 ? '' : 'ies'} awaiting action`}
+        </span>
+        <button
+          onClick={() => router.push('/queries')}
+          style={{ fontSize: 'var(--font-size-xs)', color: 'var(--accent-soft)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+        >
+          Open Query Management →
+        </button>
+      </div>
+      {queries.slice(0, 20).map((q) => (
+        <div
+          key={q.id}
+          onClick={() => router.push('/queries')}
+          style={{
+            padding: '6px 12px',
+            borderBottom: '1px solid var(--border)',
+            borderLeft: `3px solid ${SEVERITY_COLOR[q.severity] ?? 'transparent'}`,
+            cursor: 'pointer',
+            fontSize: 'var(--font-size-sm)',
+          }}
+        >
+          <span style={{ fontFamily: 'var(--font-data)', color: 'var(--text-id)' }}>Q-{String(q.id).padStart(3, '0')}</span>
+          {' '}
+          <span style={{ color: 'var(--text-secondary)' }}>{q.record_table}/{q.record_id} — {q.field_name}</span>
+          <span style={{ float: 'right', color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: 'var(--font-size-xs)' }}>{q.status}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SystemLogTab() {
+  const { rows, loading } = useAuditRows({ scope: 'system' });
+
+  if (loading && rows.length === 0) return <div style={emptyMsgStyle}>Loading…</div>;
+  if (rows.length === 0) {
+    return <div style={emptyMsgStyle}>No system-level events yet (logins, study creation/locking, user access changes).</div>;
+  }
+
+  return (
+    <div style={{ overflowY: 'auto', height: '100%', padding: '6px 12px' }}>
+      {rows.slice(0, 50).map((row) => (
+        <div
+          key={row.id}
+          style={{
+            padding: '5px 0',
+            borderBottom: '1px solid var(--border)',
+            fontSize: 'var(--font-size-sm)',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          <span style={{ color: 'var(--text-timestamp)', fontFamily: 'var(--font-data)' }}>
+            {new Date(row.occurred_at).toISOString().replace('T', ' ').substring(0, 16)} UTC
+          </span>
+          {' — '}
+          <span style={{ color: 'var(--text-actor)', fontWeight: 600 }}>{row.actor_email ?? 'Someone'}</span>
+          {' '}
+          <span style={{ color: ACTION_COLORS[row.action] ?? 'var(--text-secondary)', fontWeight: 600 }}>{row.action}</span>
+          {row.reason && <span style={{ color: 'var(--text-muted)' }}> — {row.reason}</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function BottomPanel({ studyId, isOpen, onClose, height, onResize }: BottomPanelProps) {
+  const [activeTab, setActiveTab] = useState<TabId>('story');
+  const dragState = useRef<{ startY: number; startHeight: number } | null>(null);
+
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragState.current = { startY: e.clientY, startHeight: height };
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!dragState.current) return;
+      // Panel is anchored to the bottom of the window, so dragging the
+      // handle up (a smaller/negative clientY relative to the start)
+      // should grow it, not shrink it.
+      const delta = dragState.current.startY - moveEvent.clientY;
+      const next = Math.min(MAX_PANEL_HEIGHT, Math.max(MIN_PANEL_HEIGHT, dragState.current.startHeight + delta));
+      onResize(next);
+    };
+    const handleMouseUp = () => {
+      dragState.current = null;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [height, onResize]);
 
   if (!isOpen) return null;
 
   const tabs: Array<{ id: TabId; label: string }> = [
+    { id: 'story', label: 'STUDY LOG' },
     { id: 'audit', label: 'AUDIT TRAIL' },
     { id: 'queries', label: 'OPEN QUERIES' },
     { id: 'system', label: 'SYSTEM LOG' },
@@ -164,14 +380,30 @@ export default function BottomPanel({ studyId, isOpen, onClose }: BottomPanelPro
   return (
     <div
       style={{
-        height: 'var(--panel-height)',
+        height: `${height}px`,
         background: 'var(--bg-panel)',
         borderTop: '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,
+        position: 'relative',
       }}
     >
+      {/* Drag handle - grab anywhere along the top edge to resize */}
+      <div
+        onMouseDown={handleDragStart}
+        title="Drag to resize"
+        style={{
+          position: 'absolute',
+          top: '-3px',
+          left: 0,
+          right: 0,
+          height: '6px',
+          cursor: 'ns-resize',
+          zIndex: 1,
+        }}
+      />
+
       {/* Tab bar */}
       <div
         style={{
@@ -183,19 +415,6 @@ export default function BottomPanel({ studyId, isOpen, onClose }: BottomPanelPro
           flexShrink: 0,
         }}
       >
-        <span style={{
-          padding: '0 12px',
-          fontSize: 'var(--font-size-xs)',
-          fontWeight: 700,
-          letterSpacing: '0.07em',
-          color: 'var(--text-secondary)',
-          display: 'flex',
-          alignItems: 'center',
-          borderRight: '1px solid var(--border)',
-          userSelect: 'none',
-        }}>
-          STUDY LOG
-        </span>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -211,6 +430,7 @@ export default function BottomPanel({ studyId, isOpen, onClose }: BottomPanelPro
                 color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
                 background: 'transparent',
                 border: 'none',
+                borderRight: tab.id === 'story' ? '1px solid var(--border)' : 'none',
                 borderBottom: isActive ? '2px solid var(--accent-soft)' : '2px solid transparent',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
@@ -243,17 +463,10 @@ export default function BottomPanel({ studyId, isOpen, onClose }: BottomPanelPro
 
       {/* Tab content */}
       <div style={{ flex: 1, overflow: 'hidden' }}>
+        {activeTab === 'story' && <StoryTab studyId={studyId} />}
         {activeTab === 'audit' && <AuditTab studyId={studyId} />}
-        {activeTab === 'queries' && (
-          <div style={{ padding: '8px 12px', color: 'var(--text-secondary)', fontSize: 'var(--font-size-md)' }}>
-            Navigate to Query Management for full management.
-          </div>
-        )}
-        {activeTab === 'system' && (
-          <div style={{ padding: '8px 12px', color: 'var(--text-secondary)', fontSize: 'var(--font-size-md)' }}>
-            System log — coming soon.
-          </div>
-        )}
+        {activeTab === 'queries' && <OpenQueriesTab studyId={studyId} />}
+        {activeTab === 'system' && <SystemLogTab />}
       </div>
     </div>
   );

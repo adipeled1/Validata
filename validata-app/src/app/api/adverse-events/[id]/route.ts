@@ -1,5 +1,6 @@
 import { verifySession, canEditData } from '@/lib/auth-server';
 import { updateAdverseEventSchema, formatValidationError } from '@/lib/schemas';
+import { updateAdverseEvent } from '@/lib/demoStore';
 
 // PATCH /api/adverse-events/:id — update resolution or authority submission (ICH E6(R3) SAFETY-04)
 export async function PATCH(
@@ -12,14 +13,19 @@ export async function PATCH(
     if (!canEditData(session)) return Response.json({ error: 'Forbidden.' }, { status: 403 });
 
     const { id } = await params;
-    const aeId = parseInt(id, 10);
-    if (isNaN(aeId)) return Response.json({ error: 'Invalid AE ID.' }, { status: 400 });
 
     const body = await request.json();
     const parsed = updateAdverseEventSchema.safeParse(body);
     if (!parsed.success) return Response.json({ error: formatValidationError(parsed.error) }, { status: 400 });
 
-    if (session.isDemo) return Response.json({ id: aeId, ...parsed.data });
+    if (session.isDemo) {
+      const row = updateAdverseEvent(id, { ...parsed.data, actorEmail: session.user.email });
+      if (!row) return Response.json({ error: 'Adverse event not found.' }, { status: 404 });
+      return Response.json(row);
+    }
+
+    const aeId = parseInt(id, 10);
+    if (isNaN(aeId)) return Response.json({ error: 'Invalid AE ID.' }, { status: 400 });
 
     const updates: Record<string, string | undefined> = {};
     if (parsed.data.resolutionDate) updates.resolution_date = parsed.data.resolutionDate;

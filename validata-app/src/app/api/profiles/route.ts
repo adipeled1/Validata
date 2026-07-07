@@ -1,6 +1,7 @@
 import { verifySession, isMentor, canManageAccount } from '@/lib/auth-server';
 import { updateProfileSchema, formatValidationError } from '@/lib/schemas';
 import { DEMO_USERS } from '@/lib/demoData';
+import { applyUserOverride, setUserOverride, removeUserOverride } from '@/lib/demoStore';
 
 // GET: Fetch profiles
 export async function GET(request: Request): Promise<Response> {
@@ -64,7 +65,7 @@ export async function GET(request: Request): Promise<Response> {
 
     if (session.isDemo) {
       const now = new Date().toISOString();
-      return Response.json(DEMO_USERS.map((u) => ({ ...u, created_at: now })));
+      return Response.json(DEMO_USERS.map((u) => applyUserOverride({ ...u, created_at: now })));
     }
 
     const { data: profiles, error } = await session.supabaseClient!
@@ -101,7 +102,16 @@ export async function PATCH(request: Request): Promise<Response> {
     const { id, role, status, reason } = parsed.data;
 
     if (session.isDemo) {
-      return Response.json({ id, role, status });
+      const target = DEMO_USERS.find((u) => u.id === id);
+      if (!target) return Response.json({ error: 'User not found.' }, { status: 404 });
+      const merged = setUserOverride({
+        userId: id,
+        userEmail: target.email,
+        role,
+        status,
+        actorEmail: session.user.email,
+      });
+      return Response.json({ id, role: merged.role ?? target.role, status: merged.status ?? target.status, reason });
     }
 
     // Separation of duties: a mentor can still promote someone to mentor (e.g.
@@ -166,6 +176,8 @@ export async function DELETE(request: Request): Promise<Response> {
     }
 
     if (session.isDemo) {
+      const target = DEMO_USERS.find((u) => u.id === id);
+      removeUserOverride(id, target?.email ?? id, session.user.email);
       return Response.json({ success: true, deletedId: id });
     }
 

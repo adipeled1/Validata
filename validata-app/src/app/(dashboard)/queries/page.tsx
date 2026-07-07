@@ -6,6 +6,14 @@ import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 import { QUERY_MUTATE_ROLES, hasRole } from '../../../lib/permissions';
 
+const EMPTY_NEW_QUERY = {
+  recordTable: 'participants' as 'participants' | 'measurements',
+  recordId: '',
+  fieldName: '',
+  severity: 'minor' as 'minor' | 'major' | 'critical',
+  queryText: '',
+};
+
 // fable_system_review §3.2: standardized on SWR (shared cache, no bespoke
 // per-page fetch/loading/error triplet) instead of a bare useEffect fetch.
 async function fetchQueries(studyId: string) {
@@ -45,6 +53,10 @@ export default function QueriesPage() {
   const [answerText, setAnswerText] = useState<Record<number, string>>({});
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedQuery, setSelectedQuery] = useState<any | null>(null);
+  const [showNewQuery, setShowNewQuery] = useState(false);
+  const [newQuery, setNewQuery] = useState(EMPTY_NEW_QUERY);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const canRaiseQuery = hasRole(userRole, QUERY_MUTATE_ROLES);
 
@@ -61,6 +73,35 @@ export default function QueriesPage() {
       </div>
     );
   }
+
+  const handleCreateQuery = async () => {
+    if (!currentStudyId || !newQuery.recordId || !newQuery.fieldName || !newQuery.queryText) return;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const res = await fetch('/api/queries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studyId: currentStudyId,
+          recordTable: newQuery.recordTable,
+          recordId: newQuery.recordId,
+          fieldName: newQuery.fieldName,
+          severity: newQuery.severity,
+          queryText: newQuery.queryText,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed to raise query.');
+      setShowNewQuery(false);
+      setNewQuery(EMPTY_NEW_QUERY);
+      mutateQueries();
+    } catch (e) {
+      setCreateError((e as Error).message);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const advance = async (id: number, status: string) => {
     const body: Record<string, string> = { status };
@@ -90,20 +131,102 @@ export default function QueriesPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       {/* Page header */}
-      <div>
-        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
-          QUERY MANAGEMENT
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+            QUERY MANAGEMENT
+          </div>
+          <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
+            Queries
+          </h1>
+          <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px' }}>
+            Queries are raised against specific data fields. Each query must be answered by site staff and resolved by the monitor before the study can be locked. (ICH E6(R3) CAP-04)
+          </div>
         </div>
-        <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
-          Queries
-        </h1>
-        <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px' }}>
-          Queries are raised against specific data fields. Each query must be answered by site staff and resolved by the monitor before the study can be locked. (ICH E6(R3) CAP-04)
-        </div>
+        {currentStudyId && (
+          <button
+            onClick={() => setShowNewQuery((v) => !v)}
+            style={{ padding: '5px 12px', fontSize: 'var(--font-size-sm)', fontWeight: 600, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            {showNewQuery ? 'Cancel' : '+ New Query'}
+          </button>
+        )}
       </div>
 
       {!currentStudyId && (
         <div style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-muted)' }}>No study selected.</div>
+      )}
+
+      {showNewQuery && (
+        <div style={{ border: '1px solid var(--accent)', background: 'var(--bg-surface)', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            Raise New Query
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Record Table
+              <select value={newQuery.recordTable} onChange={(e) => setNewQuery((f) => ({ ...f, recordTable: e.target.value as typeof f.recordTable }))} style={inputStyle}>
+                <option value="participants">Participants</option>
+                <option value="measurements">Measurements</option>
+              </select>
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Record ID *
+              <input
+                type="text"
+                placeholder="e.g. P-1002"
+                value={newQuery.recordId}
+                onChange={(e) => setNewQuery((f) => ({ ...f, recordId: e.target.value }))}
+                style={inputStyle}
+              />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Field Name *
+              <input
+                type="text"
+                placeholder="e.g. goniometer"
+                value={newQuery.fieldName}
+                onChange={(e) => setNewQuery((f) => ({ ...f, fieldName: e.target.value }))}
+                style={inputStyle}
+              />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Severity
+              <select value={newQuery.severity} onChange={(e) => setNewQuery((f) => ({ ...f, severity: e.target.value as typeof f.severity }))} style={inputStyle}>
+                <option value="minor">Minor</option>
+                <option value="major">Major</option>
+                <option value="critical">Critical</option>
+              </select>
+            </label>
+          </div>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Query Text *
+            <textarea
+              value={newQuery.queryText}
+              onChange={(e) => setNewQuery((f) => ({ ...f, queryText: e.target.value }))}
+              rows={2}
+              placeholder="Describe what needs clarification or correction…"
+              style={{ ...inputStyle, resize: 'vertical', height: 'auto' }}
+            />
+          </label>
+          {createError && <div style={{ fontSize: 'var(--font-size-sm)', color: '#dc2626' }}>{createError}</div>}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={handleCreateQuery}
+              disabled={creating || !newQuery.recordId || !newQuery.fieldName || !newQuery.queryText}
+              style={{
+                padding: '5px 12px', fontSize: 'var(--font-size-md)', fontWeight: 600,
+                background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer',
+                opacity: (creating || !newQuery.recordId || !newQuery.fieldName || !newQuery.queryText) ? 0.5 : 1,
+              }}
+            >
+              {creating ? 'Raising…' : 'Raise Query'}
+            </button>
+            <button onClick={() => { setShowNewQuery(false); setNewQuery(EMPTY_NEW_QUERY); setCreateError(null); }} style={{ padding: '5px 12px', fontSize: 'var(--font-size-md)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Three-pane layout */}

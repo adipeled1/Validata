@@ -1,5 +1,6 @@
 import mockData from '@/mockData.json';
 import type { ResolvedSession } from '@/lib/auth-server';
+import { addAuditEntry } from '@/lib/demoStore';
 
 // Single source of truth for the demo/live branching on measurements -
 // shared by the GET route (src/app/api/measurements/route.js) and the
@@ -62,8 +63,17 @@ export async function createMeasurement(
   const parsedAiModel = parseFloat(aiModel.toString().replace('°', '')) || 0.0;
 
   if (session.isDemo) {
+    const newId = Date.now();
+    addAuditEntry({
+      actorEmail: session.user.email,
+      tableName: 'measurements',
+      recordId: String(newId),
+      action: 'INSERT',
+      studyId,
+      reason: `Measurement logged for ${participantId}`,
+    });
     return {
-      id: Date.now(),
+      id: newId,
       participant_id: participantId,
       goniometer: parsedGoniometer,
       ai_model: parsedAiModel,
@@ -108,6 +118,14 @@ export async function updateMeasurementValidity(
   { id, isValid, participantId, studyId, reason }: UpdateMeasurementValidityInput
 ) {
   if (session.isDemo) {
+    addAuditEntry({
+      actorEmail: session.user.email,
+      tableName: 'measurements',
+      recordId: String(id ?? participantId ?? '-'),
+      action: 'UPDATE',
+      studyId,
+      reason: reason ?? (isValid ? 'Marked valid' : 'Marked invalid'),
+    });
     return { id, participantId, is_valid: isValid };
   }
 

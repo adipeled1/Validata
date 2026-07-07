@@ -1,5 +1,6 @@
 import { verifySession } from '@/lib/auth-server';
 import { DELEGATION_ROLES, hasRole } from '@/lib/permissions';
+import { revokeDelegation } from '@/lib/demoStore';
 
 // PATCH /api/admin/delegations/:id — revoke a delegation (ICH E6(R3) ACC-03)
 export async function PATCH(
@@ -17,7 +18,11 @@ export async function PATCH(
     const delegationId = parseInt(id, 10);
     if (isNaN(delegationId)) return Response.json({ error: 'Invalid delegation ID.' }, { status: 400 });
 
-    if (session.isDemo) return Response.json({ id: delegationId, revoked_at: new Date().toISOString() });
+    if (session.isDemo) {
+      const row = revokeDelegation(delegationId, session.user.email);
+      if (!row) return Response.json({ error: 'Delegation not found or already revoked.' }, { status: 404 });
+      return Response.json(row);
+    }
 
     const { data, error } = await session.supabaseClient!
       .from('delegations')

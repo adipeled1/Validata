@@ -1,5 +1,6 @@
 import { verifySession, canReadOnly } from '@/lib/auth-server';
 import { DELEGATION_ROLES, hasRole } from '@/lib/permissions';
+import { addDelegation, getDelegations } from '@/lib/demoStore';
 
 // GET /api/admin/delegations?studyId=
 // Returns the delegation-of-duties log for a study (ICH E6(R3) ACC-03, AUTH-03).
@@ -12,7 +13,7 @@ export async function GET(request: Request): Promise<Response> {
     const { searchParams } = new URL(request.url);
     const studyId = searchParams.get('studyId');
     if (!studyId) return Response.json({ error: 'studyId is required.' }, { status: 400 });
-    if (session.isDemo) return Response.json([]);
+    if (session.isDemo) return Response.json(getDelegations(studyId));
 
     const { data, error } = await session.supabaseClient!
       .from('delegations')
@@ -42,7 +43,18 @@ export async function POST(request: Request): Promise<Response> {
     if (!studyId || !delegatedTo || !roleDelegated || !taskDescription || !effectiveFrom) {
       return Response.json({ error: 'Missing required fields.' }, { status: 400 });
     }
-    if (session.isDemo) return Response.json({ id: 1, study_id: studyId }, { status: 201 });
+    if (session.isDemo) {
+      const row = addDelegation({
+        studyId,
+        delegatedTo,
+        roleDelegated,
+        taskDescription,
+        effectiveFrom,
+        effectiveTo,
+        delegatedBy: session.user.email,
+      });
+      return Response.json(row, { status: 201 });
+    }
 
     const { data, error } = await session.supabaseClient!
       .from('delegations')

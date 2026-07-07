@@ -91,6 +91,27 @@ const StatCard = ({
   </div>
 );
 
+// Shown in place of a chart while its data is still loading, so the chart
+// library never gets a chance to render an empty shell first and then
+// visibly pop in once data arrives a second or two later.
+const ChartSkeleton = () => (
+  <div
+    style={{
+      height: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'var(--text-muted)',
+      fontSize: 'var(--font-size-sm)',
+      gap: '8px',
+    }}
+  >
+    <div style={{ width: '14px', height: '14px', border: '2px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    Loading…
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+  </div>
+);
+
 // Pure presentational component
 const AnalysisDisplay = ({
   progressData,
@@ -221,8 +242,13 @@ const AnalysisDisplay = ({
             opacity: isGenerating ? 0.7 : 1,
           }}
         >
-          <Download size={14} />
-          Generate PDF Report
+          {isGenerating ? (
+            <div style={{ width: '14px', height: '14px', border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          ) : (
+            <Download size={14} />
+          )}
+          {isGenerating ? 'Generating PDF…' : 'Generate PDF Report'}
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </button>
       </div>
 
@@ -237,7 +263,7 @@ const AnalysisDisplay = ({
               Measurement Progress
             </div>
             <div style={{ height: '200px' }}>
-              <MeasurementProgressBar data={progressData} />
+              {isLoadingCharts ? <ChartSkeleton /> : <MeasurementProgressBar data={progressData} />}
             </div>
           </div>
           <div
@@ -248,7 +274,7 @@ const AnalysisDisplay = ({
               Participant Status Distribution
             </div>
             <div style={{ height: '200px' }}>
-              <ParticipantStatusDonut data={statusData} />
+              {isLoadingCharts ? <ChartSkeleton /> : <ParticipantStatusDonut data={statusData} />}
             </div>
           </div>
         </div>

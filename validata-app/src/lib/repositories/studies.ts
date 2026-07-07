@@ -1,5 +1,6 @@
 import mockData from '@/mockData.json';
 import type { ResolvedSession } from '@/lib/auth-server';
+import { getStudyLockOverride, addAuditEntry } from '@/lib/demoStore';
 
 // Single source of truth for the demo/live branching on studies - shared by
 // the GET route (src/app/api/studies/route.js) and the mutation Server
@@ -28,7 +29,14 @@ export type SoftDeleteStudyInput = {
 
 export async function listStudies(session: ResolvedSession) {
   if (session.isDemo) {
-    return mockData.studies;
+    // Lock state is the one piece of study data a mentor can actually change
+    // in demo mode (via Study Lock Control) - merge in whatever override is
+    // on record so a fresh GET reflects it instead of always reading the
+    // static mockData.json lock_state.
+    return mockData.studies.map((s) => {
+      const override = getStudyLockOverride(s.id);
+      return override ? { ...s, ...override } : s;
+    });
   }
 
   // ICH E6(R3) RET-01: only return non-deleted studies; soft-deleted rows
@@ -68,8 +76,18 @@ export async function createStudy(session: ResolvedSession, { name, recruitmentG
   }
 
   if (session.isDemo) {
+    const newId = `demo-${Date.now()}`;
+    addAuditEntry({
+      actorEmail: session.user.email,
+      tableName: 'studies',
+      recordId: newId,
+      action: 'INSERT',
+      studyId: newId,
+      reason: `Study "${name}" created`,
+      scope: 'system',
+    });
     return {
-      id: `demo-${Date.now()}`,
+      id: newId,
       name,
       recruitment_goal: parseInt(String(recruitmentGoal)) || 50
     };

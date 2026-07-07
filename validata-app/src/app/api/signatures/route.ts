@@ -2,6 +2,7 @@ import { verifySession, canReadOnly } from '@/lib/auth-server';
 import { createSignatureSchema, formatValidationError } from '@/lib/schemas';
 import { consumeSigningToken } from '@/lib/signing-tokens';
 import { SIGNING_ROLES, hasRole } from '@/lib/permissions';
+import { addSignature, getSignatures } from '@/lib/demoStore';
 
 // POST /api/signatures
 // Records an electronic signature for a data milestone (ICH E6(R3) SIG-01, SIG-02, SIG-03).
@@ -40,10 +41,15 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     if (session.isDemo) {
-      return Response.json(
-        { id: 1, study_id: studyId, signer_email: session.user.email, signed_at: new Date().toISOString() },
-        { status: 201 }
-      );
+      const row = addSignature({
+        studyId,
+        signerEmail: session.user.email,
+        recordType,
+        recordId,
+        milestone,
+        meaning,
+      });
+      return Response.json(row, { status: 201 });
     }
 
     const { data, error } = await session.supabaseClient!
@@ -94,7 +100,7 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     if (session.isDemo) {
-      return Response.json([]);
+      return Response.json(getSignatures(studyId));
     }
 
     const { data, error } = await session.supabaseClient!

@@ -14,6 +14,10 @@ import StatusBar from '../components/Shell/StatusBar';
 import BottomPanel from '../components/Shell/BottomPanel';
 import CommandPalette from '../components/Shell/CommandPalette';
 
+// Matches the old --panel-height CSS var this replaces - the panel's
+// always-reset-to-this size on close.
+const DEFAULT_PANEL_HEIGHT = 158;
+
 function DashboardShell({ children }: { children: React.ReactNode }) {
   const {
     isLoading: sessionLoading,
@@ -36,8 +40,25 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
 
   const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [panelHeight, setPanelHeight] = useState(DEFAULT_PANEL_HEIGHT);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const { activeTabId, closeTab } = useTabs();
+
+  // Closing the panel (however it happens - the panel's own × button, the
+  // status bar toggle, or the Ctrl+` shortcut) always drops back to the
+  // default height, so reopening it never surprises you with whatever size
+  // you last dragged it to before closing.
+  const closePanel = () => {
+    setIsPanelOpen(false);
+    setPanelHeight(DEFAULT_PANEL_HEIGHT);
+  };
+  const togglePanel = () => {
+    setIsPanelOpen((v) => {
+      const next = !v;
+      if (!next) setPanelHeight(DEFAULT_PANEL_HEIGHT);
+      return next;
+    });
+  };
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -48,7 +69,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       }
       if ((e.ctrlKey || e.metaKey) && e.key === '`') {
         e.preventDefault();
-        setIsPanelOpen((v) => !v);
+        togglePanel();
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
         e.preventDefault();
@@ -282,7 +303,9 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           <BottomPanel
             studyId={currentStudyId}
             isOpen={isPanelOpen}
-            onClose={() => setIsPanelOpen(false)}
+            onClose={closePanel}
+            height={panelHeight}
+            onResize={setPanelHeight}
           />
         </main>
       </div>
@@ -297,7 +320,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         theme={theme}
         onToggleTheme={toggleTheme}
         isPanelOpen={isPanelOpen}
-        onTogglePanel={() => setIsPanelOpen((v) => !v)}
+        onTogglePanel={togglePanel}
         onLogout={handleLogout}
       />
 

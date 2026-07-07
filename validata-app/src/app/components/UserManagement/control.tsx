@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import UserManagementDisplay from './display';
 import { fetchUsersAPI, updateRoleAPI, updateStatusAPI, deleteUserAPI } from './service';
-import { DEMO_USERS } from '../../../lib/demoData';
 import { useStudy } from '../../../context/StudyContext';
 import ConfirmWithReasonModal from '../common/ConfirmWithReasonModal';
 
@@ -95,12 +94,6 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
     setIsLoading(true);
     setError('');
 
-    if (isDemoMode) {
-      setUsers(DEMO_USERS as User[]);
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const data = await fetchUsersAPI();
       setUsers(data);
@@ -110,7 +103,7 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
     } finally {
       setIsLoading(false);
     }
-  }, [isDemoMode]);
+  }, []);
 
   // UserManagement uses client-side fetch-on-mount by design — user profiles
   // are not part of the dashboard Server Component layout (they're mentor-only
@@ -122,13 +115,6 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
   }, [fetchUsers]);
 
   const handleRoleChange = async (userId: string, newRole: string) => {
-    if (isDemoMode) {
-      setUsers(prevUsers =>
-        prevUsers.map(user => (user.id === userId ? { ...user, role: newRole } : user))
-      );
-      return;
-    }
-
     try {
       await updateRoleAPI(userId, newRole);
       setUsers(prevUsers =>
@@ -140,13 +126,6 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
   };
 
   const handleStatusChange = async (userId: string, newStatus: string) => {
-    if (isDemoMode) {
-      setUsers(prevUsers =>
-        prevUsers.map(user => (user.id === userId ? { ...user, status: newStatus, deleted_at: newStatus === 'active' ? null : user.deleted_at } : user))
-      );
-      return;
-    }
-
     try {
       await updateStatusAPI(userId, newStatus);
       setUsers(prevUsers =>
@@ -165,11 +144,6 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
     const userId = confirmDeleteUserId;
     setConfirmDeleteUserId(null);
     if (!userId) return;
-
-    if (isDemoMode) {
-      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
-      return;
-    }
 
     try {
       await deleteUserAPI(userId);

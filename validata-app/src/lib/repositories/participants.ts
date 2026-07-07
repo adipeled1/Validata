@@ -1,5 +1,6 @@
 import mockData from '@/mockData.json';
 import type { ResolvedSession } from '@/lib/auth-server';
+import { addAuditEntry } from '@/lib/demoStore';
 
 // Single source of truth for the demo/live branching on participants -
 // shared by the GET route (src/app/api/participants/route.js) and the
@@ -57,8 +58,17 @@ export async function createParticipant(
   }
 
   if (session.isDemo) {
+    const newId = id || `P-${Date.now()}`;
+    addAuditEntry({
+      actorEmail: session.user.email,
+      tableName: 'participants',
+      recordId: newId,
+      action: 'INSERT',
+      studyId,
+      reason: 'Participant registered',
+    });
     return {
-      id: id || `P-${Date.now()}`,
+      id: newId,
       consent,
       status: status || 'Active',
       age: parseInt(String(age)) || null,
@@ -120,6 +130,14 @@ export async function updateParticipantStatus(
   }
 
   if (session.isDemo) {
+    addAuditEntry({
+      actorEmail: session.user.email,
+      tableName: 'participants',
+      recordId: id,
+      action: 'STATUS_CHANGE',
+      studyId,
+      reason: reason ?? `Status changed to ${status}`,
+    });
     return { id, status };
   }
 
