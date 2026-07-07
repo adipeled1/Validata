@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 import { QUERY_MUTATE_ROLES, hasRole } from '../../../lib/permissions';
+import * as clientDemoStore from '../../../lib/clientDemoStore';
 
 const EMPTY_NEW_QUERY = {
   recordTable: 'participants' as 'participants' | 'measurements',
@@ -16,7 +17,8 @@ const EMPTY_NEW_QUERY = {
 
 // fable_system_review §3.2: standardized on SWR (shared cache, no bespoke
 // per-page fetch/loading/error triplet) instead of a bare useEffect fetch.
-async function fetchQueries(studyId: string) {
+async function fetchQueries(studyId: string, isDemoMode: boolean) {
+  if (isDemoMode) return clientDemoStore.getQueries(studyId);
   const res = await fetch(`/api/queries?studyId=${studyId}`);
   if (!res.ok) throw new Error('Failed to load queries.');
   return res.json();
@@ -48,7 +50,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 export default function QueriesPage() {
-  const { userRole } = useSession();
+  const { userRole, isDemoMode, currentUserEmail } = useSession();
   const { currentStudyId } = useStudy();
   const [answerText, setAnswerText] = useState<Record<number, string>>({});
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -63,7 +65,7 @@ export default function QueriesPage() {
   const swrKey = currentStudyId ? `queries:${currentStudyId}` : null;
   const { data: queries = [], isLoading: loading, mutate: mutateQueries } = useSWR(
     swrKey,
-    () => fetchQueries(currentStudyId!)
+    () => fetchQueries(currentStudyId!, isDemoMode)
   );
 
   if (!canRaiseQuery) {
@@ -79,20 +81,32 @@ export default function QueriesPage() {
     setCreating(true);
     setCreateError(null);
     try {
-      const res = await fetch('/api/queries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      if (isDemoMode) {
+        clientDemoStore.addQuery({
           studyId: currentStudyId,
           recordTable: newQuery.recordTable,
           recordId: newQuery.recordId,
           fieldName: newQuery.fieldName,
           severity: newQuery.severity,
           queryText: newQuery.queryText,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Failed to raise query.');
+          raisedBy: currentUserEmail,
+        });
+      } else {
+        const res = await fetch('/api/queries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studyId: currentStudyId,
+            recordTable: newQuery.recordTable,
+            recordId: newQuery.recordId,
+            fieldName: newQuery.fieldName,
+            severity: newQuery.severity,
+            queryText: newQuery.queryText,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Failed to raise query.');
+      }
       setShowNewQuery(false);
       setNewQuery(EMPTY_NEW_QUERY);
       mutateQueries();
@@ -104,13 +118,17 @@ export default function QueriesPage() {
   };
 
   const advance = async (id: number, status: string) => {
-    const body: Record<string, string> = { status };
-    if (status === 'answered' && answerText[id]) body.answerText = answerText[id];
-    await fetch(`/api/queries/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    if (isDemoMode) {
+      clientDemoStore.updateQuery(id, { status, answerText: answerText[id], actorEmail: currentUserEmail });
+    } else {
+      const body: Record<string, string> = { status };
+      if (status === 'answered' && answerText[id]) body.answerText = answerText[id];
+      await fetch(`/api/queries/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    }
     mutateQueries();
     if (selectedQuery?.id === id) {
       setSelectedQuery((prev: any) => prev ? { ...prev, status } : null);
@@ -140,7 +158,7 @@ export default function QueriesPage() {
             Queries
           </h1>
           <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            Queries are raised against specific data fields. Each query must be answered by site staff and resolved by the monitor before the study can be locked. (ICH E6(R3) CAP-04)
+            Queries are raised against specific data fields. Each query must be answered by site staff and resolved by the monitor before the study can be locked.
           </div>
         </div>
         {currentStudyId && (

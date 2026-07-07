@@ -80,6 +80,7 @@ const AnalysisControl = ({
         <EndorseDataModal
           studyId={studyId}
           signerEmail={currentUserEmail}
+          isDemoMode={isDemoMode}
           onClose={() => setShowEndorseModal(false)}
           onSuccess={(signedAt) => {
             setLastSignedAt(signedAt);

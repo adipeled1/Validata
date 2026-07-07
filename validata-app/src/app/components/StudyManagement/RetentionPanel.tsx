@@ -28,7 +28,7 @@ export default function RetentionPanel() {
   if (deletedStudies.length === 0) return null;
 
   const handleRequestDestruction = async (studyId: string) => {
-    const reason = window.prompt('Reason for destruction request (ICH E6(R3) RET-02):');
+    const reason = window.prompt('Reason for destruction request:');
     if (!reason) return;
     try {
       const res = await fetch('/api/admin/destruction-request', {

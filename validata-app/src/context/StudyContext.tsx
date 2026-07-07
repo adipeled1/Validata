@@ -10,6 +10,7 @@ import { createParticipantAction, updateParticipantStatusAction } from '../app/a
 import { createMeasurementAction, updateMeasurementValidityAction } from '../app/actions/measurements';
 import { createStudyAction, deleteStudyAction, updateStudyGoalAction } from '../app/actions/studies';
 import { useFileImport, type ImportSummary } from '../hooks/useFileImport';
+import * as clientDemoStore from '../lib/clientDemoStore';
 
 interface StudyContextValue {
   isLoading: boolean;
@@ -45,11 +46,19 @@ const STUDIES_KEY = 'studies';
 const participantsKey = (studyId: string | null) => (studyId ? `participants:${studyId}` : null);
 const measurementsKey = (studyId: string | null) => (studyId ? `measurements:${studyId}` : null);
 
-// Always goes through the API (rather than reading mockData.json directly in
-// demo mode) because /api/studies -> listStudies() merges in the Study Lock
-// Control override - a client-side mockData bypass here would show every
-// study as permanently unlocked regardless of what a mentor just locked.
-async function fetchStudies(): Promise<any[]> {
+// Demo mode reads mockData.json directly and merges in whatever lock
+// override is on record in clientDemoStore (sessionStorage, this browser tab
+// only) - no network round trip, and no reliance on a server-side store that
+// wouldn't survive a Vercel serverless invocation boundary anyway. Live mode
+// is unaffected and still goes through the API/Supabase.
+async function fetchStudies(isDemoMode: boolean): Promise<any[]> {
+  if (isDemoMode) {
+    return (mockData as any).studies.map((s: any) => {
+      const override = clientDemoStore.getStudyLockOverride(s.id);
+      return override ? { ...s, ...override } : s;
+    });
+  }
+
   const res = await fetch('/api/studies');
   if (!res.ok) throw new Error('Failed to fetch studies');
   const data = await res.json();
@@ -88,7 +97,7 @@ async function fetchMeasurements(studyId: string, isDemoMode: boolean): Promise<
 // `initial*` props, seeded into SWR's cache through the `fallback` map below
 // so the very first render already has data — no client-side fetch waterfall.
 function StudyProviderInner({ children, initialCurrentStudyId }: { children: React.ReactNode; initialCurrentStudyId: string | null }) {
-  const { isLoading: isSessionLoading, isDemoMode, userStatus } = useSession();
+  const { isLoading: isSessionLoading, isDemoMode, userStatus, currentUserEmail } = useSession();
   const isActive = !isSessionLoading && userStatus === 'active';
 
   const [currentStudyId, setCurrentStudyId] = useState<string | null>(initialCurrentStudyId ?? null);
@@ -103,7 +112,7 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
 
   const { data: studies = [], mutate: mutateStudies, isLoading: studiesLoading } = useSWR(
     isActive ? STUDIES_KEY : null,
-    () => fetchStudies()
+    () => fetchStudies(isDemoMode)
   );
 
   const { data: participants = [], mutate: mutateParticipants, isLoading: participantsLoading } = useSWR(
@@ -153,6 +162,17 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
 
       mutateStudies((current: any[] = []) => [...current, data], { revalidate: false });
       switchStudy(data.id);
+      if (isDemoMode) {
+        clientDemoStore.addAuditEntry({
+          actorEmail: currentUserEmail,
+          tableName: 'studies',
+          recordId: data.id,
+          action: 'INSERT',
+          studyId: data.id,
+          reason: `Study "${name}" created`,
+          scope: 'system',
+        });
+      }
       triggerToast(isDemoMode ? `Study "${name}" created. (Demo)` : `Study "${name}" created.`);
     } catch (error: any) {
       console.error('Error creating study:', error);
@@ -174,6 +194,15 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     if (isDemoMode) {
       mutateStudies(remaining, { revalidate: false });
       if (wasCurrent && nextStudyId) switchStudy(nextStudyId);
+      clientDemoStore.addAuditEntry({
+        actorEmail: currentUserEmail,
+        tableName: 'studies',
+        recordId: id,
+        action: 'DELETE',
+        studyId: id,
+        reason: `Study "${study.name}" deleted`,
+        scope: 'system',
+      });
       triggerToast(`Study "${study.name}" deleted. (Demo)`);
       return;
     }
@@ -202,6 +231,15 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
         (current: any[] = []) => current.map((s) => (s.id === currentStudyId ? { ...s, recruitment_goal: goal } : s)),
         { revalidate: false }
       );
+      clientDemoStore.addAuditEntry({
+        actorEmail: currentUserEmail,
+        tableName: 'studies',
+        recordId: currentStudyId ?? '-',
+        action: 'UPDATE',
+        studyId: currentStudyId,
+        reason: `Recruitment goal updated to ${goal}`,
+        scope: 'system',
+      });
       triggerToast('Recruitment goal updated. (Demo)');
       return;
     }
@@ -247,6 +285,16 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
       const [newParticipant] = mapParticipants([savedData]);
 
       mutateParticipants((current: any[] = []) => [newParticipant, ...current], { revalidate: false });
+      if (isDemoMode) {
+        clientDemoStore.addAuditEntry({
+          actorEmail: currentUserEmail,
+          tableName: 'participants',
+          recordId: savedData.id,
+          action: 'INSERT',
+          studyId: currentStudyId,
+          reason: 'Participant registered',
+        });
+      }
       triggerToast(isDemoMode
         ? `Participant ${savedData.id} registered successfully! (Demo)`
         : `Participant ${savedData.id} registered and saved in database!`);
@@ -278,6 +326,24 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
 
       mutateParticipants((current: any[] = []) => current.map((p) => (p.id === id ? { ...p, status: 'Dropped' } : p)), { revalidate: false });
       mutateMeasurementsData((current: any[] = []) => current.map((m) => (m.participant === id ? { ...m, isValid: false } : m)), { revalidate: false });
+      if (isDemoMode) {
+        clientDemoStore.addAuditEntry({
+          actorEmail: currentUserEmail,
+          tableName: 'participants',
+          recordId: id,
+          action: 'STATUS_CHANGE',
+          studyId: currentStudyId,
+          reason,
+        });
+        clientDemoStore.addAuditEntry({
+          actorEmail: currentUserEmail,
+          tableName: 'measurements',
+          recordId: id,
+          action: 'UPDATE',
+          studyId: currentStudyId,
+          reason: `Participant dropped: ${reason}`,
+        });
+      }
       triggerToast(isDemoMode
         ? `Participant ${id} dropped. Reason recorded in audit trail. (Demo)`
         : `Participant ${id} dropped. Reason recorded in audit trail.`);
@@ -300,6 +366,16 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
       await updateParticipantStatusAction({ id, status: nextStatus, studyId: currentStudyId });
 
       mutateParticipants((current: any[] = []) => current.map((p) => (p.id === id ? { ...p, status: nextStatus } : p)), { revalidate: false });
+      if (isDemoMode) {
+        clientDemoStore.addAuditEntry({
+          actorEmail: currentUserEmail,
+          tableName: 'participants',
+          recordId: id,
+          action: 'STATUS_CHANGE',
+          studyId: currentStudyId,
+          reason: `Status changed to ${nextStatus}`,
+        });
+      }
       triggerToast(isDemoMode
         ? `Participant ${id} marked ${nextStatus.toLowerCase()}. (Demo)`
         : `Participant ${id} marked ${nextStatus.toLowerCase()}.`);
@@ -340,6 +416,16 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
       const [newMeasurement] = mapMeasurements([savedData]);
 
       mutateMeasurementsData((current: any[] = []) => [newMeasurement, ...current], { revalidate: false });
+      if (isDemoMode) {
+        clientDemoStore.addAuditEntry({
+          actorEmail: currentUserEmail,
+          tableName: 'measurements',
+          recordId: String(savedData.id),
+          action: 'INSERT',
+          studyId: currentStudyId,
+          reason: `Measurement logged for ${participantId}`,
+        });
+      }
       triggerToast(isDemoMode ? 'Measurement logged and saved! (Demo)' : 'Measurement saved directly to the database!');
     } catch (error: any) {
       console.error('Error logging measurement:', error);
@@ -361,6 +447,16 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
       await updateMeasurementValidityAction({ id, isValid: false, studyId: currentStudyId, reason });
 
       mutateMeasurementsData((current: any[] = []) => current.map((m) => (m.id === id ? { ...m, isValid: false } : m)), { revalidate: false });
+      if (isDemoMode) {
+        clientDemoStore.addAuditEntry({
+          actorEmail: currentUserEmail,
+          tableName: 'measurements',
+          recordId: String(id),
+          action: 'UPDATE',
+          studyId: currentStudyId,
+          reason: reason ?? 'Marked invalid',
+        });
+      }
       triggerToast(isDemoMode
         ? 'Measurement marked invalid. Reason recorded in audit trail. (Demo)'
         : 'Measurement marked invalid. Reason recorded in audit trail.');

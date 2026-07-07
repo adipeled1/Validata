@@ -9,11 +9,22 @@
 // trail in one place instead of duplicating the control here.
 import { useState, useEffect, useCallback } from 'react';
 import type { LockableStudy } from './StudyLockModal';
+import { useSession } from '../../../context/SessionContext';
+import * as clientDemoStore from '../../../lib/clientDemoStore';
+import mockData from '../../../mockData.json';
 
 export default function LockControlPanel({ studyId, onManage }: { studyId: string; onManage: () => void }) {
+  const { isDemoMode } = useSession();
   const [study, setStudy] = useState<LockableStudy | null>(null);
 
   const load = useCallback(async () => {
+    if (isDemoMode) {
+      const base = (mockData.studies as LockableStudy[]).find((s) => s.id === studyId);
+      if (!base) { setStudy(null); return; }
+      const override = clientDemoStore.getStudyLockOverride(studyId);
+      setStudy(override ? { ...base, ...override } : base);
+      return;
+    }
     try {
       const res = await fetch('/api/studies');
       const data = await res.json();
@@ -23,7 +34,7 @@ export default function LockControlPanel({ studyId, onManage }: { studyId: strin
     } catch {
       // Leave study null - the sentence below just won't render.
     }
-  }, [studyId]);
+  }, [studyId, isDemoMode]);
 
   useEffect(() => {
     load();

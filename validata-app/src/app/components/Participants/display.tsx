@@ -760,8 +760,7 @@ const ParticipantsDisplay = ({
               lineHeight: 1.5,
             }}
           >
-            <strong>ICH E6(R3) CONSENT-01:</strong> After enrolling, create a formal consent record
-            in the Compliance section.
+            After enrolling, create a formal consent record in the Compliance section.
           </div>
 
           <button

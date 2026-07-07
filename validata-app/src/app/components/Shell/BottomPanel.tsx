@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from '../../../context/SessionContext';
+import * as clientDemoStore from '../../../lib/clientDemoStore';
 
 interface BottomPanelProps {
   studyId: string | null;
@@ -62,13 +64,23 @@ async function fetchLog(params: Record<string, string>): Promise<any[]> {
   return Array.isArray(data) ? data : [];
 }
 
-function useAuditRows(params: Record<string, string> | null, pollMs = 30000) {
+// In demo mode this reads clientDemoStore (sessionStorage, this browser tab
+// only) directly instead of fetching - synchronous and scoped to the current
+// visitor, unlike the server-side store an API route would read from.
+function useAuditRows(params: Record<string, string> | null, isDemoMode: boolean, pollMs = 30000) {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const paramsKey = useMemo(() => (params ? JSON.stringify(params) : null), [params]);
 
   const load = useCallback(async () => {
     if (!params) return;
+    if (isDemoMode) {
+      setRows(clientDemoStore.getAuditLog({
+        studyId: params.studyId,
+        scope: params.scope as 'study' | 'system' | undefined,
+      }));
+      return;
+    }
     setLoading(true);
     try {
       setRows(await fetchLog(params));
@@ -76,7 +88,7 @@ function useAuditRows(params: Record<string, string> | null, pollMs = 30000) {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paramsKey]);
+  }, [paramsKey, isDemoMode]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -94,8 +106,8 @@ const emptyMsgStyle: React.CSSProperties = {
   fontSize: 'var(--font-size-md)',
 };
 
-function StoryTab({ studyId }: { studyId: string | null }) {
-  const { rows, loading } = useAuditRows(studyId ? { studyId, scope: 'study' } : null);
+function StoryTab({ studyId, isDemoMode }: { studyId: string | null; isDemoMode: boolean }) {
+  const { rows, loading } = useAuditRows(studyId ? { studyId, scope: 'study' } : null, isDemoMode);
 
   if (!studyId) return <div style={emptyMsgStyle}>No study selected.</div>;
   if (loading && rows.length === 0) return <div style={emptyMsgStyle}>Loading…</div>;
@@ -136,8 +148,8 @@ function StoryTab({ studyId }: { studyId: string | null }) {
   );
 }
 
-function AuditTab({ studyId }: { studyId: string | null }) {
-  const { rows: logs, loading } = useAuditRows(studyId ? { studyId, scope: 'study' } : null);
+function AuditTab({ studyId, isDemoMode }: { studyId: string | null; isDemoMode: boolean }) {
+  const { rows: logs, loading } = useAuditRows(studyId ? { studyId, scope: 'study' } : null, isDemoMode);
 
   if (!studyId) return <div style={emptyMsgStyle}>No study selected.</div>;
   if (loading && logs.length === 0) return <div style={emptyMsgStyle}>Loading…</div>;
@@ -242,26 +254,34 @@ async function fetchOpenQueries(studyId: string): Promise<any[]> {
   return Array.isArray(data) ? data.filter((q) => q.status === 'open' || q.status === 'answered') : [];
 }
 
+function getOpenQueriesDemo(studyId: string): any[] {
+  return clientDemoStore.getQueries(studyId).filter((q) => q.status === 'open' || q.status === 'answered');
+}
+
 const SEVERITY_COLOR: Record<string, string> = {
   minor: 'var(--status-pending)',
   major: 'var(--status-warning)',
   critical: 'var(--status-dropped)',
 };
 
-function OpenQueriesTab({ studyId }: { studyId: string | null }) {
+function OpenQueriesTab({ studyId, isDemoMode }: { studyId: string | null; isDemoMode: boolean }) {
   const router = useRouter();
   const [queries, setQueries] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
     if (!studyId) return;
+    if (isDemoMode) {
+      setQueries(getOpenQueriesDemo(studyId));
+      return;
+    }
     setLoading(true);
     try {
       setQueries(await fetchOpenQueries(studyId));
     } finally {
       setLoading(false);
     }
-  }, [studyId]);
+  }, [studyId, isDemoMode]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -308,8 +328,8 @@ function OpenQueriesTab({ studyId }: { studyId: string | null }) {
   );
 }
 
-function SystemLogTab() {
-  const { rows, loading } = useAuditRows({ scope: 'system' });
+function SystemLogTab({ isDemoMode }: { isDemoMode: boolean }) {
+  const { rows, loading } = useAuditRows({ scope: 'system' }, isDemoMode);
 
   if (loading && rows.length === 0) return <div style={emptyMsgStyle}>Loading…</div>;
   if (rows.length === 0) {
@@ -343,6 +363,7 @@ function SystemLogTab() {
 }
 
 export default function BottomPanel({ studyId, isOpen, onClose, height, onResize }: BottomPanelProps) {
+  const { isDemoMode } = useSession();
   const [activeTab, setActiveTab] = useState<TabId>('story');
   const dragState = useRef<{ startY: number; startHeight: number } | null>(null);
 
@@ -463,10 +484,10 @@ export default function BottomPanel({ studyId, isOpen, onClose, height, onResize
 
       {/* Tab content */}
       <div style={{ flex: 1, overflow: 'hidden' }}>
-        {activeTab === 'story' && <StoryTab studyId={studyId} />}
-        {activeTab === 'audit' && <AuditTab studyId={studyId} />}
-        {activeTab === 'queries' && <OpenQueriesTab studyId={studyId} />}
-        {activeTab === 'system' && <SystemLogTab />}
+        {activeTab === 'story' && <StoryTab studyId={studyId} isDemoMode={isDemoMode} />}
+        {activeTab === 'audit' && <AuditTab studyId={studyId} isDemoMode={isDemoMode} />}
+        {activeTab === 'queries' && <OpenQueriesTab studyId={studyId} isDemoMode={isDemoMode} />}
+        {activeTab === 'system' && <SystemLogTab isDemoMode={isDemoMode} />}
       </div>
     </div>
   );

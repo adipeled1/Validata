@@ -6,6 +6,7 @@ import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 import { Download } from 'lucide-react';
 import { READABLE_ROLES, hasRole } from '../../../lib/permissions';
+import * as clientDemoStore from '../../../lib/clientDemoStore';
 
 const colHeaderStyle: React.CSSProperties = {
   padding: '0 10px 6px',
@@ -39,7 +40,8 @@ interface Signature {
 }
 
 // fable_system_review §3.2: standardized on SWR instead of a bare useEffect fetch.
-async function fetchSignatures(studyId: string): Promise<Signature[]> {
+async function fetchSignatures(studyId: string, isDemoMode: boolean): Promise<Signature[]> {
+  if (isDemoMode) return clientDemoStore.getSignatures(studyId) as unknown as Signature[];
   const res = await fetch(`/api/signatures?studyId=${studyId}`);
   if (!res.ok) throw new Error(res.statusText);
   const data = await res.json();
@@ -53,7 +55,7 @@ export default function SignaturesPage() {
   const swrKey = currentStudyId ? `signatures:${currentStudyId}` : null;
   const { data: signatures = [], isLoading: loading, error: swrError } = useSWR(
     swrKey,
-    () => fetchSignatures(currentStudyId!)
+    () => fetchSignatures(currentStudyId!, isDemoMode)
   );
   const error = swrError ? String(swrError) : '';
 
@@ -104,7 +106,7 @@ export default function SignaturesPage() {
             Electronic Signatures
           </h1>
           <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            Immutable record of all data endorsements. ICH E6(R3) SIG-01 — read-only.
+            Immutable record of all data endorsements — read-only.
           </div>
         </div>
         <button
@@ -129,7 +131,7 @@ export default function SignaturesPage() {
 
       {isDemoMode && signatures.length === 0 && !loading && (
         <div style={{ padding: '8px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border)', fontSize: 'var(--font-size-sm)', color: 'var(--status-warning)' }}>
-          Demo mode — signatures created here live only for the length of this server session and reset when it restarts.
+          Demo mode — signatures created here are only visible in this browser tab, and reset when it closes.
         </div>
       )}
 

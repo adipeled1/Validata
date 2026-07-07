@@ -95,7 +95,7 @@ export default function AuditLogPage() {
             Audit Trail
           </h1>
           <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px', maxWidth: '600px' }}>
-            Immutable, system-generated audit trail. Every data creation, modification, and deletion is recorded with actor identity and UTC timestamp. (ICH E6(R3) AUDIT-01 to AUDIT-08)
+            Immutable, system-generated audit trail. Every data creation, modification, and deletion is recorded with actor identity and UTC timestamp.
           </div>
         </div>
         <button

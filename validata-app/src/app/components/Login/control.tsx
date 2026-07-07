@@ -9,21 +9,23 @@ import { deleteCookie } from '../../../lib/cookies';
 
 const supabase = createClient();
 
+// Connection state - NEXT_PUBLIC_ env vars are inlined at build time, so this
+// never changes during the app's lifetime and doesn't need to be state/an effect.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const isSupabaseConfigured = !(supabaseUrl.includes('placeholder.supabase.co') || !supabaseUrl);
+
 export default function LoginControl() {
   const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Demo mode has no real credentials to protect and nothing for a visitor
+  // to type correctly - pre-filling the mentor demo account lets them see
+  // the actual login screen without having to know or copy a password.
+  const [email, setEmail] = useState(isSupabaseConfigured ? '' : 'mentor@demo.com');
+  const [password, setPassword] = useState(isSupabaseConfigured ? '' : 'demo123');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-
-  // Connection state - NEXT_PUBLIC_ env vars are inlined at build time, so
-  // this never changes during the component's lifetime and doesn't need to
-  // be state/an effect.
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const isSupabaseConfigured = !(supabaseUrl.includes('placeholder.supabase.co') || !supabaseUrl);
 
   useEffect(() => {
     // Clear any leftover session when landing on login page. The real

@@ -186,7 +186,7 @@ export default function LoginDisplay({
               <Database className="h-4 w-4 shrink-0" style={{ marginTop: 1, color: '#d97706' }} />
               <div>
                 <span style={{ fontWeight: 600, display: 'block' }}>Demo mode</span>
-                Use mentor@demo.com or team@demo.com with password demo123.
+                Credentials are pre-filled — just click Sign In below.
               </div>
             </div>
           )}

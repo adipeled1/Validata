@@ -1,9 +1,11 @@
 'use client';
 import { useState } from 'react';
+import * as clientDemoStore from '../../../lib/clientDemoStore';
 
 interface Props {
   studyId: string;
   signerEmail: string;
+  isDemoMode?: boolean;
   onClose: () => void;
   onSuccess: (signedAt: string) => void;
 }
@@ -11,7 +13,7 @@ interface Props {
 const MEANING =
   'By entering my credentials and clicking "Sign", I confirm that the data presented in this analysis ' +
   'is accurate, complete, and ready for use in the study report. This constitutes a legally binding ' +
-  'electronic signature in accordance with ICH E6(R3) section 4.9.';
+  'electronic signature.';
 
 const overlayStyle: React.CSSProperties = {
   position: 'fixed', inset: 0, zIndex: 50, display: 'flex',
@@ -44,7 +46,7 @@ const btnBase: React.CSSProperties = {
 // fable_system_review §3.4: this was the one screen in the app styled with
 // Tailwind utility classes in a light theme, clashing with the rest of the
 // dark, inline-style "IDE" idiom used everywhere else - restyled to match.
-export default function EndorseDataModal({ studyId, signerEmail, onClose, onSuccess }: Props) {
+export default function EndorseDataModal({ studyId, signerEmail, isDemoMode, onClose, onSuccess }: Props) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -52,6 +54,24 @@ export default function EndorseDataModal({ studyId, signerEmail, onClose, onSucc
   const handleSign = async () => {
     setError(null);
     setLoading(true);
+
+    // Demo mode has no real credentials to re-authenticate against, and no
+    // server to persist the signature on (see clientDemoStore.ts) - skip
+    // both network calls and record the endorsement directly in this
+    // browser's session-scoped store instead.
+    if (isDemoMode) {
+      const sig = clientDemoStore.addSignature({
+        studyId,
+        signerEmail,
+        recordType: 'study',
+        recordId: studyId,
+        milestone: 'data_lock',
+        meaning: MEANING,
+      });
+      setLoading(false);
+      onSuccess(sig.signed_at);
+      return;
+    }
 
     // Step 1: verify credentials, receiving a short-lived signing token that
     // binds this re-authentication to the signature request below.

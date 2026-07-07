@@ -255,7 +255,7 @@ const UserManagementDisplay = ({
         <div style={{ display: 'flex', gap: '6px' }}>
           <a
             href="/api/admin/access-registry?format=csv"
-            title="Download the full access registry as CSV (ICH E6(R3) ACC-01/ACC-02)"
+            title="Download the full access registry as CSV"
             style={{
               display: 'flex',
               alignItems: 'center',

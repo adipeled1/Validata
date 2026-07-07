@@ -7,6 +7,9 @@
 // filtered down to one row.
 import { useState, useEffect, useCallback } from 'react';
 import { mutate } from 'swr';
+import { useSession } from '../../../context/SessionContext';
+import * as clientDemoStore from '../../../lib/clientDemoStore';
+import mockData from '../../../mockData.json';
 
 export interface LockableStudy {
   id: string;
@@ -31,6 +34,7 @@ const tdStyle: React.CSSProperties = {
 };
 
 export default function StudyLockModal({ studyId, onClose }: { studyId: string; onClose: () => void }) {
+  const { isDemoMode, currentUserEmail } = useSession();
   const [study, setStudy] = useState<LockableStudy | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +44,13 @@ export default function StudyLockModal({ studyId, onClose }: { studyId: string; 
 
   const load = useCallback(async () => {
     setLoading(true);
+    if (isDemoMode) {
+      const base = (mockData.studies as LockableStudy[]).find((s) => s.id === studyId);
+      const override = clientDemoStore.getStudyLockOverride(studyId);
+      setStudy(base ? (override ? { ...base, ...override } : base) : null);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch('/api/studies');
       const data = await res.json();
@@ -51,7 +62,7 @@ export default function StudyLockModal({ studyId, onClose }: { studyId: string; 
     } finally {
       setLoading(false);
     }
-  }, [studyId]);
+  }, [studyId, isDemoMode]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -65,14 +76,18 @@ export default function StudyLockModal({ studyId, onClose }: { studyId: string; 
     setSaving(true);
     setError(null);
     try {
-      const endpoint = isLocked ? '/api/admin/unlock' : '/api/admin/lock';
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studyId: study.id, reason }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      if (isDemoMode) {
+        clientDemoStore.setStudyLock({ studyId: study.id, locked: !isLocked, reason, actorEmail: currentUserEmail });
+      } else {
+        const endpoint = isLocked ? '/api/admin/unlock' : '/api/admin/lock';
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ studyId: study.id, reason }),
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+      }
       setShowReason(false);
       setReason('');
       load();

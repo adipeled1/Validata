@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 import { READABLE_ROLES, EDIT_ROLES, CONSENT_VERSION_ROLES, hasRole } from '../../../lib/permissions';
+import * as clientDemoStore from '../../../lib/clientDemoStore';
 
 interface ConsentFormVersion {
   id: number;
@@ -32,7 +33,13 @@ const METHOD_LABELS: Record<string, string> = {
 };
 
 // fable_system_review §3.2: standardized on SWR instead of a bare useEffect fetch.
-async function fetchConsent(studyId: string): Promise<{ versions: ConsentFormVersion[]; records: ConsentRecord[] }> {
+async function fetchConsent(studyId: string, isDemoMode: boolean): Promise<{ versions: ConsentFormVersion[]; records: ConsentRecord[] }> {
+  if (isDemoMode) {
+    return {
+      versions: clientDemoStore.getConsentVersions(studyId) as unknown as ConsentFormVersion[],
+      records: clientDemoStore.getConsentRecords(studyId) as unknown as ConsentRecord[],
+    };
+  }
   const res = await fetch(`/api/consent?studyId=${studyId}`);
   const data = await res.json();
   if (data.error) throw new Error(data.error);
@@ -40,7 +47,7 @@ async function fetchConsent(studyId: string): Promise<{ versions: ConsentFormVer
 }
 
 export default function ConsentRecordsPage() {
-  const { userRole, isDemoMode } = useSession();
+  const { userRole, isDemoMode, currentUserEmail } = useSession();
   const { currentStudyId, participants } = useStudy();
 
   const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
@@ -68,7 +75,7 @@ export default function ConsentRecordsPage() {
   const swrKey = currentStudyId ? `consent:${currentStudyId}` : null;
   const { data, isLoading: loading, error: swrError, mutate: mutateConsent } = useSWR(
     swrKey,
-    () => fetchConsent(currentStudyId!)
+    () => fetchConsent(currentStudyId!, isDemoMode)
   );
   const versions = data?.versions ?? [];
   const records = data?.records ?? [];
@@ -91,26 +98,39 @@ export default function ConsentRecordsPage() {
     setSaving(true);
     setActionError(null);
     try {
-      const res = await fetch('/api/consent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          // fable_system_review: this call was missing `action`, which
-          // POST /api/consent requires to route the request - it always hit
-          // the "Unknown action." 400 branch and consent recording never
-          // actually worked. Found and fixed while converting this page to SWR.
-          action: 'record_consent',
-          participantId: newRecord.participantId,
+      if (isDemoMode) {
+        clientDemoStore.addConsentRecord({
           studyId: currentStudyId,
+          participantId: newRecord.participantId,
           formVersionId: selectedVersionId,
           method: newRecord.method,
           copyDelivered: newRecord.copyDelivered,
           witnessedBy: newRecord.witnessedBy || undefined,
           notes: newRecord.notes || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+          actorEmail: currentUserEmail,
+        });
+      } else {
+        const res = await fetch('/api/consent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            // fable_system_review: this call was missing `action`, which
+            // POST /api/consent requires to route the request - it always hit
+            // the "Unknown action." 400 branch and consent recording never
+            // actually worked. Found and fixed while converting this page to SWR.
+            action: 'record_consent',
+            participantId: newRecord.participantId,
+            studyId: currentStudyId,
+            formVersionId: selectedVersionId,
+            method: newRecord.method,
+            copyDelivered: newRecord.copyDelivered,
+            witnessedBy: newRecord.witnessedBy || undefined,
+            notes: newRecord.notes || undefined,
+          }),
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+      }
       setShowNewRecord(false);
       setNewRecord({ participantId: '', method: 'written', copyDelivered: false, witnessedBy: '', notes: '' });
       mutateConsent();
@@ -126,22 +146,32 @@ export default function ConsentRecordsPage() {
     setSaving(true);
     setActionError(null);
     try {
-      const res = await fetch('/api/consent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          // fable_system_review: this sent `type: 'version'`, but the route
-          // switches on `action === 'create_version'` - same bug as above,
-          // version creation always 400'd. Fixed alongside the SWR conversion.
-          action: 'create_version',
+      if (isDemoMode) {
+        clientDemoStore.addConsentVersion({
           studyId: currentStudyId,
           version: newVersion.version,
           irbApprovedAt: newVersion.irbApprovedAt || undefined,
           contentHash: newVersion.contentHash || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+          actorEmail: currentUserEmail,
+        });
+      } else {
+        const res = await fetch('/api/consent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            // fable_system_review: this sent `type: 'version'`, but the route
+            // switches on `action === 'create_version'` - same bug as above,
+            // version creation always 400'd. Fixed alongside the SWR conversion.
+            action: 'create_version',
+            studyId: currentStudyId,
+            version: newVersion.version,
+            irbApprovedAt: newVersion.irbApprovedAt || undefined,
+            contentHash: newVersion.contentHash || undefined,
+          }),
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+      }
       setShowNewVersion(false);
       setNewVersion({ version: '', irbApprovedAt: '', contentHash: '' });
       mutateConsent();

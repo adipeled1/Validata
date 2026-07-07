@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useStudy } from '../../../context/StudyContext';
 import { useSession } from '../../../context/SessionContext';
 import { ADMIN_ROLES, hasRole } from '../../../lib/permissions';
+import * as clientDemoStore from '../../../lib/clientDemoStore';
+import { DEMO_USERS } from '../../../lib/demoData';
 
 const ACTION_COLORS: Record<string, string> = {
   INSERT: 'var(--status-insert)',
@@ -114,7 +116,7 @@ function AttentionPanel({ rows }: { rows: AttentionRow[] }) {
 
 export default function StudyOverviewPage() {
   const { currentStudy, currentStudyId } = useStudy();
-  const { userRole } = useSession();
+  const { userRole, isDemoMode } = useSession();
   const router = useRouter();
   const canSeeApprovals = hasRole(userRole, ADMIN_ROLES);
 
@@ -126,6 +128,17 @@ export default function StudyOverviewPage() {
 
   const load = useCallback(() => {
     if (!currentStudyId) return;
+
+    if (isDemoMode) {
+      setAuditLogs(clientDemoStore.getAuditLog({ studyId: currentStudyId, scope: 'study' }).slice(0, 10));
+      setQueries(clientDemoStore.getQueries(currentStudyId));
+      setAdverseEvents(clientDemoStore.getAdverseEvents(currentStudyId));
+      setPendingApprovals(canSeeApprovals
+        ? DEMO_USERS.map((u) => clientDemoStore.applyUserOverride(u)).filter((u) => u.status === 'pending').length
+        : 0);
+      return;
+    }
+
     setLoadingAudit(true);
     Promise.all([
       fetch(`/api/audit-log?studyId=${currentStudyId}`).then((r) => r.ok ? r.json() : []),
@@ -140,7 +153,7 @@ export default function StudyOverviewPage() {
       setAdverseEvents(Array.isArray(aes) ? aes : []);
       setPendingApprovals(Array.isArray(profiles) ? profiles.filter((p: any) => p.status === 'pending').length : 0);
     }).finally(() => setLoadingAudit(false));
-  }, [currentStudyId, canSeeApprovals]);
+  }, [currentStudyId, canSeeApprovals, isDemoMode]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

@@ -97,7 +97,7 @@ export default function SystemInventoryPage() {
           System Inventory Register
         </h1>
         <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px' }}>
-          All system components used in Validata EDC, GAMP categories, and validation status. Required by ICH E6(R3) Appendix C (META-04).
+          All system components used in Validata EDC, GAMP categories, and validation status.
         </div>
       </div>
 

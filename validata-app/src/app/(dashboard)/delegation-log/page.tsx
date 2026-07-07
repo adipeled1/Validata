@@ -5,6 +5,8 @@ import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 import { READABLE_ROLES, DELEGATION_ROLES, hasRole } from '../../../lib/permissions';
+import * as clientDemoStore from '../../../lib/clientDemoStore';
+import { DEMO_USERS } from '../../../lib/demoData';
 
 interface Delegation {
   id: number;
@@ -27,7 +29,8 @@ interface ProfileItem {
 }
 
 // fable_system_review §3.2: standardized on SWR instead of a bare useEffect fetch.
-async function fetchDelegations(studyId: string): Promise<Delegation[]> {
+async function fetchDelegations(studyId: string, isDemoMode: boolean): Promise<Delegation[]> {
+  if (isDemoMode) return clientDemoStore.getDelegations(studyId) as unknown as Delegation[];
   const res = await fetch(`/api/admin/delegations?studyId=${studyId}`);
   const data = await res.json();
   if (data.error) throw new Error(data.error);
@@ -35,7 +38,7 @@ async function fetchDelegations(studyId: string): Promise<Delegation[]> {
 }
 
 export default function DelegationLogPage() {
-  const { userRole, isDemoMode } = useSession();
+  const { userRole, isDemoMode, currentUserEmail } = useSession();
   const { currentStudyId, studies } = useStudy();
 
   const [showPanel, setShowPanel] = useState(false);
@@ -56,36 +59,53 @@ export default function DelegationLogPage() {
   const swrKey = currentStudyId ? `delegations:${currentStudyId}` : null;
   const { data: delegations = [], isLoading: loading, error: swrError, mutate: mutateDelegations } = useSWR(
     swrKey,
-    () => fetchDelegations(currentStudyId!)
+    () => fetchDelegations(currentStudyId!, isDemoMode)
   );
   const error = actionError ?? (swrError ? (swrError as Error).message : null);
 
   useEffect(() => {
+    if (isDemoMode) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProfiles(DEMO_USERS.map((u) => clientDemoStore.applyUserOverride(u)).filter((p) => p.status === 'active'));
+      return;
+    }
     fetch('/api/profiles')
       .then(r => r.ok ? r.json() : [])
       .then((data: ProfileItem[]) => setProfiles(data.filter(p => p.status === 'active')))
       .catch(() => setProfiles([]));
-  }, []);
+  }, [isDemoMode]);
 
   const handleCreate = async () => {
     if (!currentStudyId) return;
     setSaving(true);
     setActionError(null);
     try {
-      const res = await fetch('/api/admin/delegations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      if (isDemoMode) {
+        clientDemoStore.addDelegation({
           studyId: currentStudyId,
           delegatedTo: form.delegatedTo,
           roleDelegated: form.roleDelegated,
           taskDescription: form.taskDescription,
+          delegatedBy: currentUserEmail,
           effectiveFrom: form.effectiveFrom,
           effectiveTo: form.effectiveTo || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+        });
+      } else {
+        const res = await fetch('/api/admin/delegations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studyId: currentStudyId,
+            delegatedTo: form.delegatedTo,
+            roleDelegated: form.roleDelegated,
+            taskDescription: form.taskDescription,
+            effectiveFrom: form.effectiveFrom,
+            effectiveTo: form.effectiveTo || undefined,
+          }),
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+      }
       setShowPanel(false);
       setForm({ delegatedTo: '', roleDelegated: 'site_coordinator', taskDescription: '', effectiveFrom: '', effectiveTo: '' });
       mutateDelegations();
@@ -98,9 +118,13 @@ export default function DelegationLogPage() {
 
   const handleRevoke = async (id: number) => {
     try {
-      const res = await fetch(`/api/admin/delegations/${id}`, { method: 'PATCH' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Failed to revoke.');
+      if (isDemoMode) {
+        clientDemoStore.revokeDelegation(id, currentUserEmail);
+      } else {
+        const res = await fetch(`/api/admin/delegations/${id}`, { method: 'PATCH' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Failed to revoke.');
+      }
       mutateDelegations();
     } catch (e) {
       setActionError((e as Error).message);

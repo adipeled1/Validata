@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 import { READABLE_ROLES, EDIT_ROLES, hasRole } from '../../../lib/permissions';
+import * as clientDemoStore from '../../../lib/clientDemoStore';
 
 interface AdverseEvent {
   id: string;
@@ -49,6 +50,21 @@ function deadlineStatus(deadline: string | null): 'red' | 'yellow' | null {
   return null;
 }
 
+// Mirrors calculateDeadline() in src/app/api/adverse-events/route.ts (ICH
+// E6(R3) SAFETY-03 / E2A) - demo mode computes this client-side instead of
+// calling that route, so the two must stay in sync if the reporting rule
+// ever changes.
+function calculateDeadline(aeType: string, severity: string, expectedness: string, reportDate: string): string | null {
+  if (aeType === 'ae') return null;
+  const isFatal = severity === 'fatal' || severity === 'life_threatening';
+  const isUnexpected = expectedness === 'unexpected';
+  if (!isUnexpected) return null;
+  const days = isFatal ? 7 : 15;
+  const d = new Date(reportDate + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
 const EMPTY_FORM = {
   aeType: 'ae' as 'ae' | 'sae' | 'susar',
   participantId: '',
@@ -62,7 +78,8 @@ const EMPTY_FORM = {
 };
 
 // fable_system_review §3.2: standardized on SWR instead of a bare useEffect fetch.
-async function fetchAdverseEvents(studyId: string): Promise<AdverseEvent[]> {
+async function fetchAdverseEvents(studyId: string, isDemoMode: boolean): Promise<AdverseEvent[]> {
+  if (isDemoMode) return clientDemoStore.getAdverseEvents(studyId) as unknown as AdverseEvent[];
   const res = await fetch(`/api/adverse-events?studyId=${studyId}`);
   const data = await res.json();
   if (data.error) throw new Error(data.error);
@@ -70,7 +87,7 @@ async function fetchAdverseEvents(studyId: string): Promise<AdverseEvent[]> {
 }
 
 export default function AdverseEventsPage() {
-  const { userRole, isDemoMode } = useSession();
+  const { userRole, isDemoMode, currentUserEmail } = useSession();
   const { currentStudyId, participants } = useStudy();
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -84,7 +101,7 @@ export default function AdverseEventsPage() {
   const swrKey = currentStudyId ? `adverse-events:${currentStudyId}` : null;
   const { data: events = [], isLoading: loading, error: swrError, mutate: mutateEvents } = useSWR(
     swrKey,
-    () => fetchAdverseEvents(currentStudyId!)
+    () => fetchAdverseEvents(currentStudyId!, isDemoMode)
   );
   const error = swrError ? (swrError as Error).message : null;
 
@@ -95,10 +112,9 @@ export default function AdverseEventsPage() {
     setSaving(true);
     setFormError(null);
     try {
-      const res = await fetch('/api/adverse-events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      if (isDemoMode) {
+        const deadline = calculateDeadline(form.aeType, form.severity, form.expectedness, form.reportDate);
+        clientDemoStore.addAdverseEvent({
           studyId: currentStudyId,
           participantId: form.participantId,
           aeType: form.aeType,
@@ -109,10 +125,29 @@ export default function AdverseEventsPage() {
           reportDate: form.reportDate,
           onsetDate: form.onsetDate || undefined,
           notes: form.notes || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Failed to create adverse event.');
+          authorityDeadline: deadline,
+          actorEmail: currentUserEmail,
+        });
+      } else {
+        const res = await fetch('/api/adverse-events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studyId: currentStudyId,
+            participantId: form.participantId,
+            aeType: form.aeType,
+            description: form.description,
+            severity: form.severity,
+            causality: form.causality,
+            expectedness: form.expectedness,
+            reportDate: form.reportDate,
+            onsetDate: form.onsetDate || undefined,
+            notes: form.notes || undefined,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Failed to create adverse event.');
+      }
       setShowPanel(false);
       setForm(EMPTY_FORM);
       mutateEvents();
@@ -125,11 +160,15 @@ export default function AdverseEventsPage() {
 
   const handleMarkSubmitted = async (id: string) => {
     try {
-      await fetch(`/api/adverse-events/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ authoritySubmittedAt: new Date().toISOString() }),
-      });
+      if (isDemoMode) {
+        clientDemoStore.updateAdverseEvent(id, { authoritySubmittedAt: new Date().toISOString(), actorEmail: currentUserEmail });
+      } else {
+        await fetch(`/api/adverse-events/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ authoritySubmittedAt: new Date().toISOString() }),
+        });
+      }
       mutateEvents();
     } catch {
       // ignore

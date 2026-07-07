@@ -3,6 +3,8 @@ import UserManagementDisplay from './display';
 import { fetchUsersAPI, updateRoleAPI, updateStatusAPI, deleteUserAPI } from './service';
 import { useStudy } from '../../../context/StudyContext';
 import ConfirmWithReasonModal from '../common/ConfirmWithReasonModal';
+import * as clientDemoStore from '../../../lib/clientDemoStore';
+import { DEMO_USERS } from '../../../lib/demoData';
 
 interface UserManagementControlProps {
   isDemoMode: boolean;
@@ -94,6 +96,12 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
     setIsLoading(true);
     setError('');
 
+    if (isDemoMode) {
+      setUsers(DEMO_USERS.map((u) => clientDemoStore.applyUserOverride(u)) as User[]);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const data = await fetchUsersAPI();
       setUsers(data);
@@ -103,7 +111,7 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isDemoMode]);
 
   // UserManagement uses client-side fetch-on-mount by design — user profiles
   // are not part of the dashboard Server Component layout (they're mentor-only
@@ -116,7 +124,12 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
-      await updateRoleAPI(userId, newRole);
+      if (isDemoMode) {
+        const target = users.find((u) => u.id === userId);
+        clientDemoStore.setUserOverride({ userId, userEmail: target?.email ?? userId, role: newRole, actorEmail: currentUserEmail });
+      } else {
+        await updateRoleAPI(userId, newRole);
+      }
       setUsers(prevUsers =>
         prevUsers.map(user => (user.id === userId ? { ...user, role: newRole } : user))
       );
@@ -127,7 +140,12 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
 
   const handleStatusChange = async (userId: string, newStatus: string) => {
     try {
-      await updateStatusAPI(userId, newStatus);
+      if (isDemoMode) {
+        const target = users.find((u) => u.id === userId);
+        clientDemoStore.setUserOverride({ userId, userEmail: target?.email ?? userId, status: newStatus, actorEmail: currentUserEmail });
+      } else {
+        await updateStatusAPI(userId, newStatus);
+      }
       setUsers(prevUsers =>
         prevUsers.map(user => (user.id === userId ? { ...user, status: newStatus, deleted_at: newStatus === 'active' ? null : user.deleted_at } : user))
       );
@@ -146,7 +164,12 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
     if (!userId) return;
 
     try {
-      await deleteUserAPI(userId);
+      if (isDemoMode) {
+        const target = users.find((u) => u.id === userId);
+        clientDemoStore.removeUserOverride(userId, target?.email ?? userId, currentUserEmail);
+      } else {
+        await deleteUserAPI(userId);
+      }
       setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
     } catch (err: any) {
       alert('Error deleting user: ' + err.message);
