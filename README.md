@@ -5,7 +5,7 @@ Validata is a full-stack Electronic Data Capture (EDC) and eCRF web application 
 The platform manages study participants, records and validates measurements, and compares AI-based angle measurements against manual goniometer reference values.
 
 > **This is a student academic project.** It does not claim ICH E6(R3) or GCP compliance.
-> Read [`DISCLAIMER.md`](DISCLAIMER.md) before using this software in any clinical context.
+> Read [`DISCLAIMER.md`](documentation/DISCLAIMER.md) before using this software in any clinical context.
 
 ---
 
@@ -14,8 +14,15 @@ The platform manages study participants, records and validates measurements, and
 ```
 Validata/
 ├── README.md                  ← you are here (overview)
-├── DISCLAIMER.md              ← ICH / compliance / open-source disclaimer
 ├── LICENSE
+├── documentation/             ← project guidance and schemas
+│   ├── DISCLAIMER.md          ← ICH / compliance / open-source disclaimer
+│   ├── FEATURES.md            ← full feature description
+│   ├── INVESTIGATOR.md        ← investigator guide
+│   ├── MENTOR.md              ← mentor guide
+│   ├── ROLES.md               ← user roles guide
+│   └── SCHEMA.md              ← database schema diagram
+├── docs/                      ← infrastructure, quality, compliance, technical docs
 └── validata-app/              ← Next.js application
     ├── src/
     │   ├── app/
@@ -60,7 +67,7 @@ DEMO_SESSION_SECRET=a-long-random-dev-only-secret
 
 For the full Supabase project setup, follow [`docs/infrastructure/supabase_bootstrap.md`](docs/infrastructure/supabase_bootstrap.md).
 
-For a full description of every feature, see [`docs/getting-started/FEATURES.md`](docs/getting-started/FEATURES.md).
+For a full description of every feature, see [`FEATURES.md`](documentation/FEATURES.md).
 
 For system explainers (how each part works), see [`docs/`](docs/README.md).
 
