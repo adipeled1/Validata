@@ -22,7 +22,6 @@ Validata/
 │   ├── MENTOR.md              ← mentor guide
 │   ├── ROLES.md               ← user roles guide
 │   └── SCHEMA.md              ← database schema diagram
-├── docs/                      ← infrastructure, quality, compliance, technical docs
 └── validata-app/              ← Next.js application
     ├── src/
     │   ├── app/
