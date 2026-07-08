@@ -18,6 +18,8 @@
 // not survive a restart — acceptable for a demo, not a substitute for
 // Supabase once one is connected.
 
+import { DEMO_USERS } from './demoData';
+
 export type AuditEntry = {
   id: string;
   occurred_at: string;
@@ -108,14 +110,23 @@ export type DemoDelegation = {
   id: number;
   study_id: string;
   delegated_to: string;
-  role_delegated: string;
   task_description: string;
   delegated_by: string;
   effective_from: string;
   effective_to: string | null;
   revoked_at: string | null;
+  revoked_by: string | null;
+  completed_at: string | null;
+  completed_by: string | null;
   created_at: string;
 };
+
+// A delegation is closed the same way whether a person revoked it, a person
+// completed it, or its effective_to date simply passed unattended - once
+// closed, none of the three can happen to it again.
+function isDelegationClosed(d: Pick<DemoDelegation, 'revoked_at' | 'completed_at' | 'effective_to'>): boolean {
+  return !!d.revoked_at || !!d.completed_at || (!!d.effective_to && new Date(d.effective_to) < new Date());
+}
 
 export type StudyLockOverride = {
   lock_state: 'locked' | 'open';
@@ -504,7 +515,6 @@ export function getConsentRecords(studyId: string): DemoConsentRecord[] {
 export function addDelegation(input: {
   studyId: string;
   delegatedTo: string;
-  roleDelegated: string;
   taskDescription: string;
   delegatedBy: string;
   effectiveFrom: string;
@@ -514,12 +524,14 @@ export function addDelegation(input: {
     id: nextId(),
     study_id: input.studyId,
     delegated_to: input.delegatedTo,
-    role_delegated: input.roleDelegated,
     task_description: input.taskDescription,
     delegated_by: input.delegatedBy,
     effective_from: input.effectiveFrom,
     effective_to: input.effectiveTo ?? null,
     revoked_at: null,
+    revoked_by: null,
+    completed_at: null,
+    completed_by: null,
     created_at: new Date().toISOString(),
   };
   delegations.unshift(row);
@@ -529,7 +541,7 @@ export function addDelegation(input: {
     recordId: String(row.id),
     action: 'INSERT',
     studyId: input.studyId,
-    reason: `Delegated ${input.roleDelegated.replace(/_/g, ' ')} to ${input.delegatedTo}`,
+    reason: `Delegated "${input.taskDescription}" to ${input.delegatedTo}`,
   });
   return row;
 }
@@ -540,8 +552,9 @@ export function getDelegations(studyId: string): DemoDelegation[] {
 
 export function revokeDelegation(id: number, actorEmail: string): DemoDelegation | null {
   const row = delegations.find((d) => d.id === id);
-  if (!row || row.revoked_at) return null;
+  if (!row || isDelegationClosed(row)) return null;
   row.revoked_at = new Date().toISOString();
+  row.revoked_by = actorEmail;
   addAuditEntry({
     actorEmail,
     tableName: 'delegations',
@@ -549,6 +562,28 @@ export function revokeDelegation(id: number, actorEmail: string): DemoDelegation
     action: 'UPDATE',
     studyId: row.study_id,
     reason: 'Delegation revoked',
+  });
+  return row;
+}
+
+// The delegate marks their own delegation complete. actorEmail is resolved
+// to a DEMO_USERS id because the demo session cookie always carries a fixed
+// placeholder user id (see auth-server.ts's 'demo-user-id') - email is the
+// only thing that actually distinguishes which demo account is logged in.
+export function completeDelegation(id: number, actorEmail: string): DemoDelegation | null {
+  const row = delegations.find((d) => d.id === id);
+  if (!row || isDelegationClosed(row)) return null;
+  const actor = DEMO_USERS.find((u) => u.email === actorEmail);
+  if (!actor || row.delegated_to !== actor.id) return null;
+  row.completed_at = new Date().toISOString();
+  row.completed_by = actorEmail;
+  addAuditEntry({
+    actorEmail,
+    tableName: 'delegations',
+    recordId: String(id),
+    action: 'UPDATE',
+    studyId: row.study_id,
+    reason: 'Delegation marked complete',
   });
   return row;
 }

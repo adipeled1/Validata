@@ -187,6 +187,7 @@ export default function LoginDisplay({
               <div>
                 <span style={{ fontWeight: 600, display: 'block' }}>Demo mode</span>
                 Credentials are pre-filled — just click Sign In below.
+                To try it as an investigator, replace the email with investigator@demo.com (password stays demo123).
               </div>
             </div>
           )}

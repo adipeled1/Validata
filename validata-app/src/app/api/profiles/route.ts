@@ -1,5 +1,6 @@
 import { verifySession, isMentor, canManageAccount } from '@/lib/auth-server';
 import { updateProfileSchema, formatValidationError } from '@/lib/schemas';
+import { DELEGATION_ROLES, hasRole } from '@/lib/permissions';
 import { DEMO_USERS } from '@/lib/demoData';
 import { applyUserOverride, setUserOverride, removeUserOverride } from '@/lib/demoStore';
 
@@ -21,6 +22,7 @@ export async function GET(request: Request): Promise<Response> {
 
     const { searchParams } = new URL(request.url);
     const fetchCurrentOnly = searchParams.get('current') === 'true';
+    const fetchActiveOnly = searchParams.get('activeOnly') === 'true';
 
     // 1. Fetch current user's profile
     if (fetchCurrentOnly) {
@@ -58,7 +60,32 @@ export async function GET(request: Request): Promise<Response> {
       return Response.json(profile);
     }
 
-    // 2. Fetch all profiles — mentor only (ICH E6(R3) ACC-01)
+    // 2. Minimal active-user roster (id/email/role only, no status/history) -
+    // for pickers like Delegation Log's "Delegate To" dropdown. Scoped to
+    // DELEGATION_ROLES, not the full mentor-only listing below, since this
+    // never needs to expose candidate/pending/suspended accounts - callers
+    // already throw that away client-side, so this just doesn't send it.
+    if (fetchActiveOnly) {
+      if (!hasRole(session.profile.role, DELEGATION_ROLES)) {
+        return Response.json({ error: 'Forbidden.' }, { status: 403 });
+      }
+
+      if (session.isDemo) {
+        const now = new Date().toISOString();
+        const active = DEMO_USERS.map((u) => applyUserOverride({ ...u, created_at: now })).filter((p) => p.status === 'active');
+        return Response.json(active.map((p) => ({ id: p.id, email: p.email, role: p.role })));
+      }
+
+      const { data: activeProfiles, error: activeError } = await session.supabaseClient!
+        .from('profiles')
+        .select('id, email, role')
+        .eq('status', 'active');
+
+      if (activeError) throw activeError;
+      return Response.json(activeProfiles);
+    }
+
+    // 3. Fetch all profiles — mentor only (ICH E6(R3) ACC-01)
     if (!isMentor(session)) {
       return Response.json({ error: 'Forbidden. Mentor or admin role required.' }, { status: 403 });
     }

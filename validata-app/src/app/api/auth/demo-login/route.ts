@@ -15,6 +15,7 @@ const DEMO_ENABLED = process.env.NEXT_PUBLIC_DEMO_ENABLED === 'true';
 const DEMO_ACCOUNTS: Record<string, { password: string; role: string }> = {
   'mentor@demo.com': { password: 'demo123', role: 'mentor' },
   'team@demo.com': { password: 'demo123', role: 'team_member' },
+  'investigator@demo.com': { password: 'demo123', role: 'investigator' },
 };
 
 export async function POST(request: Request): Promise<Response> {

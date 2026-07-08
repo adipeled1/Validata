@@ -23,6 +23,8 @@
 // Shape mirrors demoStore.ts closely on purpose, so call sites read the same
 // either way and this file's logic can be sanity-checked against that one.
 
+import { DEMO_USERS } from './demoData';
+
 export type AuditEntry = {
   id: string;
   occurred_at: string;
@@ -110,14 +112,23 @@ export type DemoDelegation = {
   id: number;
   study_id: string;
   delegated_to: string;
-  role_delegated: string;
   task_description: string;
   delegated_by: string;
   effective_from: string;
   effective_to: string | null;
   revoked_at: string | null;
+  revoked_by: string | null;
+  completed_at: string | null;
+  completed_by: string | null;
   created_at: string;
 };
+
+// A delegation is closed the same way whether a person revoked it, a person
+// completed it, or its effective_to date simply passed unattended - once
+// closed, none of the three can happen to it again.
+function isDelegationClosed(d: Pick<DemoDelegation, 'revoked_at' | 'completed_at' | 'effective_to'>): boolean {
+  return !!d.revoked_at || !!d.completed_at || (!!d.effective_to && new Date(d.effective_to) < new Date());
+}
 
 export type StudyLockOverride = {
   lock_state: 'locked' | 'open';
@@ -540,7 +551,6 @@ export function getConsentRecords(studyId: string): DemoConsentRecord[] {
 export function addDelegation(input: {
   studyId: string;
   delegatedTo: string;
-  roleDelegated: string;
   taskDescription: string;
   delegatedBy: string;
   effectiveFrom: string;
@@ -551,12 +561,14 @@ export function addDelegation(input: {
     id: nextId(state),
     study_id: input.studyId,
     delegated_to: input.delegatedTo,
-    role_delegated: input.roleDelegated,
     task_description: input.taskDescription,
     delegated_by: input.delegatedBy,
     effective_from: input.effectiveFrom,
     effective_to: input.effectiveTo ?? null,
     revoked_at: null,
+    revoked_by: null,
+    completed_at: null,
+    completed_by: null,
     created_at: new Date().toISOString(),
   };
   state.delegations.unshift(row);
@@ -567,7 +579,7 @@ export function addDelegation(input: {
     table_name: 'delegations',
     record_id: String(row.id),
     action: 'INSERT',
-    reason: `Delegated ${input.roleDelegated.replace(/_/g, ' ')} to ${input.delegatedTo}`,
+    reason: `Delegated "${input.taskDescription}" to ${input.delegatedTo}`,
     study_id: input.studyId,
     scope: 'study',
   });
@@ -582,8 +594,9 @@ export function getDelegations(studyId: string): DemoDelegation[] {
 export function revokeDelegation(id: number, actorEmail: string): DemoDelegation | null {
   const state = loadState();
   const row = state.delegations.find((d) => d.id === id);
-  if (!row || row.revoked_at) return null;
+  if (!row || isDelegationClosed(row)) return null;
   row.revoked_at = new Date().toISOString();
+  row.revoked_by = actorEmail;
   state.auditLog.unshift({
     id: `AUD-${nextId(state)}`,
     occurred_at: row.revoked_at,
@@ -592,6 +605,33 @@ export function revokeDelegation(id: number, actorEmail: string): DemoDelegation
     record_id: String(id),
     action: 'UPDATE',
     reason: 'Delegation revoked',
+    study_id: row.study_id,
+    scope: 'study',
+  });
+  saveState(state);
+  return row;
+}
+
+// The delegate marks their own delegation complete. actorEmail is resolved
+// to a DEMO_USERS id the same way as demoStore.ts's server-side counterpart -
+// see that file's completeDelegation() for why email is the only reliable
+// identity signal in demo mode.
+export function completeDelegation(id: number, actorEmail: string): DemoDelegation | null {
+  const state = loadState();
+  const row = state.delegations.find((d) => d.id === id);
+  if (!row || isDelegationClosed(row)) return null;
+  const actor = DEMO_USERS.find((u) => u.email === actorEmail);
+  if (!actor || row.delegated_to !== actor.id) return null;
+  row.completed_at = new Date().toISOString();
+  row.completed_by = actorEmail;
+  state.auditLog.unshift({
+    id: `AUD-${nextId(state)}`,
+    occurred_at: row.completed_at,
+    actor_email: actorEmail,
+    table_name: 'delegations',
+    record_id: String(id),
+    action: 'UPDATE',
+    reason: 'Delegation marked complete',
     study_id: row.study_id,
     scope: 'study',
   });

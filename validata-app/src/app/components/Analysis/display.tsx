@@ -213,7 +213,7 @@ const AnalysisDisplay = ({
               marginBottom: '2px',
             }}
           >
-            ANALYSIS / Results View &amp; Analysis
+            ANALYSIS & RESULTS / Analysis & Reporting
           </div>
           <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
             Results View &amp; Analysis

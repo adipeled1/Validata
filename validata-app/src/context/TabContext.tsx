@@ -29,7 +29,9 @@ export const PATH_LABELS: Record<string, string> = {
   '/study-overview': 'Study Overview',
   '/analysis': 'Analysis & Reporting',
   '/queries': 'Queries',
+  '/study-log': 'Study Log',
   '/audit-log': 'Audit Trail',
+  '/system-log': 'System Log',
   '/signatures': 'Electronic Signatures',
   '/consent-records': 'Consent Records',
   '/adverse-events': 'Adverse Events',
@@ -111,7 +113,7 @@ export function TabProvider({ children }: { children: React.ReactNode }) {
       saveTabs(next);
       if (closing.path === pathname) {
         const target =
-          next.length > 0 ? next[Math.min(idx, next.length - 1)].path : '/participants';
+          next.length > 0 ? next[Math.min(idx, next.length - 1)].path : '/study-overview';
         router.push(target);
       }
     },
@@ -121,7 +123,7 @@ export function TabProvider({ children }: { children: React.ReactNode }) {
   const closeAllTabs = useCallback(() => {
     setTabs([]);
     saveTabs([]);
-    router.push('/participants');
+    router.push('/study-overview');
   }, [router]);
 
   const closeOtherTabs = useCallback(

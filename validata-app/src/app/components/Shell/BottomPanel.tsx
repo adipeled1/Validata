@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '../../../context/SessionContext';
+import { AUDIT_VIEWER_ROLES, hasRole } from '../../../lib/permissions';
 import * as clientDemoStore from '../../../lib/clientDemoStore';
 
 interface BottomPanelProps {
@@ -363,9 +364,23 @@ function SystemLogTab({ isDemoMode }: { isDemoMode: boolean }) {
 }
 
 export default function BottomPanel({ studyId, isOpen, onClose, height, onResize }: BottomPanelProps) {
-  const { isDemoMode } = useSession();
-  const [activeTab, setActiveTab] = useState<TabId>('story');
+  const { isDemoMode, userRole } = useSession();
+  const showAuditLogs = hasRole(userRole, AUDIT_VIEWER_ROLES);
+  const [activeTab, setActiveTab] = useState<TabId>(showAuditLogs ? 'story' : 'queries');
   const dragState = useRef<{ startY: number; startHeight: number } | null>(null);
+
+  const tabs = useMemo(() => {
+    const list: Array<{ id: TabId; label: string }> = [];
+    if (showAuditLogs) {
+      list.push({ id: 'story', label: 'STUDY LOG' });
+      list.push({ id: 'audit', label: 'AUDIT TRAIL' });
+    }
+    list.push({ id: 'queries', label: 'OPEN QUERIES' });
+    if (showAuditLogs) {
+      list.push({ id: 'system', label: 'SYSTEM LOG' });
+    }
+    return list;
+  }, [showAuditLogs]);
 
   const handleDragStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -390,13 +405,6 @@ export default function BottomPanel({ studyId, isOpen, onClose, height, onResize
   }, [height, onResize]);
 
   if (!isOpen) return null;
-
-  const tabs: Array<{ id: TabId; label: string }> = [
-    { id: 'story', label: 'STUDY LOG' },
-    { id: 'audit', label: 'AUDIT TRAIL' },
-    { id: 'queries', label: 'OPEN QUERIES' },
-    { id: 'system', label: 'SYSTEM LOG' },
-  ];
 
   return (
     <div

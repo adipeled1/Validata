@@ -39,15 +39,14 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const body = await request.json();
-    const { studyId, delegatedTo, roleDelegated, taskDescription, effectiveFrom, effectiveTo } = body ?? {};
-    if (!studyId || !delegatedTo || !roleDelegated || !taskDescription || !effectiveFrom) {
+    const { studyId, delegatedTo, taskDescription, effectiveFrom, effectiveTo } = body ?? {};
+    if (!studyId || !delegatedTo || !taskDescription || !effectiveFrom) {
       return Response.json({ error: 'Missing required fields.' }, { status: 400 });
     }
     if (session.isDemo) {
       const row = addDelegation({
         studyId,
         delegatedTo,
-        roleDelegated,
         taskDescription,
         effectiveFrom,
         effectiveTo,
@@ -61,7 +60,6 @@ export async function POST(request: Request): Promise<Response> {
       .insert({
         study_id: studyId,
         delegated_to: delegatedTo,
-        role_delegated: roleDelegated,
         task_description: taskDescription,
         effective_from: effectiveFrom,
         effective_to: effectiveTo ?? null,

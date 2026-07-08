@@ -91,7 +91,7 @@ export default function SystemInventoryPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <div>
         <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
-          SYSTEM / System Inventory Register
+          SYSTEM / System Inventory
         </div>
         <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
           System Inventory Register

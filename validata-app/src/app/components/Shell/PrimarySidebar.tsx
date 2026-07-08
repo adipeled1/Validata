@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useTabs } from '../../../context/TabContext';
-import { ADMIN_ROLES, READABLE_ROLES, hasRole } from '../../../lib/permissions';
+import { ADMIN_ROLES, DELEGATION_ROLES, READABLE_ROLES, AUDIT_VIEWER_ROLES, hasRole } from '../../../lib/permissions';
 
 interface PrimarySidebarProps {
   userRole: string;
@@ -136,7 +136,20 @@ export default function PrimarySidebar({
 
   const showCompliance = hasRole(userRole, READABLE_ROLES);
   const showAdmin = hasRole(userRole, ADMIN_ROLES);
+  const showDelegation = hasRole(userRole, DELEGATION_ROLES);
   const showSystem = userRole === 'mentor' || userRole === 'admin';
+  const showAuditLogs = hasRole(userRole, AUDIT_VIEWER_ROLES);
+
+  const complianceItems = [
+    ...(showAuditLogs ? [
+      { label: 'Study Log', path: '/study-log' },
+      { label: 'Audit Trail', path: '/audit-log' },
+      { label: 'System Log', path: '/system-log' },
+    ] : []),
+    { label: 'Electronic Signatures', path: '/signatures' },
+    { label: 'Consent Records', path: '/consent-records' },
+    { label: 'Adverse Events', path: '/adverse-events' },
+  ];
 
   // Surface "someone is waiting for approval" without the mentor having to
   // remember to open User Registry and check — see critical_system_review_5.7.26.md §2.
@@ -204,19 +217,14 @@ export default function PrimarySidebar({
           <NavItem label="Queries" path="/queries" currentPath={currentPath} />
         </div>
 
-        {showCompliance && (
+        {showCompliance && complianceItems.length > 0 && (
           <>
             <Divider />
             <div>
               <SectionHeader label="Compliance" />
               <NavGroup
                 currentPath={currentPath}
-                items={[
-                  { label: 'Audit Trail', path: '/audit-log' },
-                  { label: 'Electronic Signatures', path: '/signatures' },
-                  { label: 'Consent Records', path: '/consent-records' },
-                  { label: 'Adverse Events', path: '/adverse-events' },
-                ]}
+                items={complianceItems}
               />
             </div>
           </>
@@ -232,9 +240,18 @@ export default function PrimarySidebar({
                 items={[
                   { label: 'Study Management', path: '/study-management' },
                   { label: 'User Registry', path: '/user-management', badge: pendingCount },
-                  { label: 'Delegation Log', path: '/delegation-log' },
                 ]}
               />
+            </div>
+          </>
+        )}
+
+        {showDelegation && (
+          <>
+            <Divider />
+            <div>
+              <SectionHeader label="Delegation" />
+              <NavItem label="Delegation Log" path="/delegation-log" currentPath={currentPath} />
             </div>
           </>
         )}

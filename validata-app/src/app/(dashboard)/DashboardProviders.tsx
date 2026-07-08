@@ -39,7 +39,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   } = useStudy();
   const { theme, toggleTheme } = useTheme();
 
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [panelHeight, setPanelHeight] = useState(DEFAULT_PANEL_HEIGHT);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const { activeTabId, closeTab } = useTabs();

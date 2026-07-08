@@ -7,17 +7,21 @@ import { useStudy } from '../../../context/StudyContext';
 import { READABLE_ROLES, DELEGATION_ROLES, hasRole } from '../../../lib/permissions';
 import * as clientDemoStore from '../../../lib/clientDemoStore';
 import { DEMO_USERS } from '../../../lib/demoData';
+import { getDelegationStatus, DELEGATION_STATUS_LABELS, DELEGATION_STATUS_COLOR_VARS } from '../../../lib/delegationStatus';
+import DelegationForm from '../../components/Delegation/DelegationForm';
 
 interface Delegation {
   id: number;
   study_id: string;
   delegated_to: string;
-  role_delegated: string;
   task_description: string;
   delegated_by: string;
   effective_from: string;
   effective_to: string | null;
   revoked_at: string | null;
+  revoked_by: string | null;
+  completed_at: string | null;
+  completed_by: string | null;
   created_at: string;
 }
 
@@ -45,16 +49,17 @@ export default function DelegationLogPage() {
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<ProfileItem[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
 
   const [form, setForm] = useState({
     delegatedTo: '',
-    roleDelegated: 'site_coordinator',
     taskDescription: '',
     effectiveFrom: '',
     effectiveTo: '',
   });
 
   const canCreate = hasRole(userRole, DELEGATION_ROLES);
+  const delegateLabel = (id: string) => profiles.find((p) => p.id === id)?.email ?? id;
 
   const swrKey = currentStudyId ? `delegations:${currentStudyId}` : null;
   const { data: delegations = [], isLoading: loading, error: swrError, mutate: mutateDelegations } = useSWR(
@@ -69,11 +74,33 @@ export default function DelegationLogPage() {
       setProfiles(DEMO_USERS.map((u) => clientDemoStore.applyUserOverride(u)).filter((p) => p.status === 'active'));
       return;
     }
-    fetch('/api/profiles')
+    // Narrow, DELEGATION_ROLES-scoped roster (id/email/role only, active users
+    // only) - not the full mentor-only listing behind plain GET /api/profiles,
+    // which this page's "Delegate To" picker has no business seeing (it never
+    // needs candidate/pending/suspended accounts or their status history).
+    fetch('/api/profiles?activeOnly=true')
       .then(r => r.ok ? r.json() : [])
-      .then((data: ProfileItem[]) => setProfiles(data.filter(p => p.status === 'active')))
+      .then((data: { id: string; email: string; role: string }[]) =>
+        setProfiles(data.map((p) => ({ ...p, status: 'active' })))
+      )
       .catch(() => setProfiles([]));
   }, [isDemoMode]);
+
+  // Resolved separately from the profiles list above, via the one branch of
+  // GET /api/profiles any authenticated user can call for themselves -
+  // "is this delegated to me" must work for every
+  // role, not just admin/mentor.
+  useEffect(() => {
+    if (isDemoMode) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCurrentUserId(DEMO_USERS.find((u) => u.email === currentUserEmail)?.id);
+      return;
+    }
+    fetch('/api/profiles?current=true')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((p: { id: string } | null) => setCurrentUserId(p?.id))
+      .catch(() => setCurrentUserId(undefined));
+  }, [isDemoMode, currentUserEmail]);
 
   const handleCreate = async () => {
     if (!currentStudyId) return;
@@ -84,7 +111,6 @@ export default function DelegationLogPage() {
         clientDemoStore.addDelegation({
           studyId: currentStudyId,
           delegatedTo: form.delegatedTo,
-          roleDelegated: form.roleDelegated,
           taskDescription: form.taskDescription,
           delegatedBy: currentUserEmail,
           effectiveFrom: form.effectiveFrom,
@@ -97,7 +123,6 @@ export default function DelegationLogPage() {
           body: JSON.stringify({
             studyId: currentStudyId,
             delegatedTo: form.delegatedTo,
-            roleDelegated: form.roleDelegated,
             taskDescription: form.taskDescription,
             effectiveFrom: form.effectiveFrom,
             effectiveTo: form.effectiveTo || undefined,
@@ -107,7 +132,7 @@ export default function DelegationLogPage() {
         if (data.error) throw new Error(data.error);
       }
       setShowPanel(false);
-      setForm({ delegatedTo: '', roleDelegated: 'site_coordinator', taskDescription: '', effectiveFrom: '', effectiveTo: '' });
+      setForm({ delegatedTo: '', taskDescription: '', effectiveFrom: '', effectiveTo: '' });
       mutateDelegations();
     } catch (e) {
       setActionError((e as Error).message);
@@ -119,11 +144,42 @@ export default function DelegationLogPage() {
   const handleRevoke = async (id: number) => {
     try {
       if (isDemoMode) {
-        clientDemoStore.revokeDelegation(id, currentUserEmail);
+        if (!clientDemoStore.revokeDelegation(id, currentUserEmail)) {
+          throw new Error('Delegation not found or already closed.');
+        }
       } else {
-        const res = await fetch(`/api/admin/delegations/${id}`, { method: 'PATCH' });
+        const res = await fetch(`/api/admin/delegations/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'revoke' }),
+        });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? 'Failed to revoke.');
+      }
+      mutateDelegations();
+    } catch (e) {
+      setActionError((e as Error).message);
+    }
+  };
+
+  // Delegate-initiated - distinct from Revoke. Marking a delegation complete
+  // means the delegate finished the task; it never touches revoked_at/by,
+  // and is unavailable once the row is already closed (completed, revoked,
+  // or past its own effective_to date).
+  const handleComplete = async (id: number) => {
+    try {
+      if (isDemoMode) {
+        if (!clientDemoStore.completeDelegation(id, currentUserEmail)) {
+          throw new Error('Delegation not found, not yours, or already closed.');
+        }
+      } else {
+        const res = await fetch(`/api/admin/delegations/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'complete' }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Failed to mark complete.');
       }
       mutateDelegations();
     } catch (e) {
@@ -147,7 +203,7 @@ export default function DelegationLogPage() {
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
-            ADMINISTRATION / Delegation Log
+            DELEGATION / Delegation Log
           </div>
           <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
             Delegation Log
@@ -177,7 +233,7 @@ export default function DelegationLogPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-md)' }}>
             <thead>
               <tr style={{ background: 'var(--bg-surface)', position: 'sticky', top: 0, zIndex: 1 }}>
-                {['Delegated To', 'Role Delegated', 'Task', 'Delegated By', 'Study', 'From', 'To', 'Status', ''].map(col => (
+                {['Delegated To', 'Task', 'Delegated By', 'Study', 'From', 'To', 'Status', ''].map(col => (
                   <th key={col} style={thStyle}>{col}</th>
                 ))}
               </tr>
@@ -187,31 +243,39 @@ export default function DelegationLogPage() {
                 <tr><td colSpan={8} style={{ padding: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>Loading…</td></tr>
               ) : delegations.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ padding: '16px', color: 'var(--text-muted)', textAlign: 'center', fontSize: 'var(--font-size-sm)' }}>
+                  <td colSpan={8} style={{ padding: '16px', color: 'var(--text-muted)', textAlign: 'center', fontSize: 'var(--font-size-sm)' }}>
                     {isDemoMode
                       ? 'No delegation records (demo mode — database not connected)'
                       : 'No delegation entries for this study.'}
                   </td>
                 </tr>
               ) : delegations.map((d, i) => {
-                const isRevoked = !!d.revoked_at;
-                const isExpired = d.effective_to && new Date(d.effective_to) < new Date() && !isRevoked;
-                const isActive = !isRevoked && !isExpired;
-                const statusLabel = isRevoked ? 'Revoked' : isExpired ? 'Expired' : 'Active';
-                const statusColor = isRevoked ? '#dc2626' : isExpired ? 'var(--text-muted)' : 'var(--status-active)';
+                const status = getDelegationStatus(d);
+                const isActive = status === 'active';
+                const isMine = d.delegated_to === currentUserId;
                 return (
                   <tr key={d.id} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-surface)', height: 'var(--row-height)' }}>
-                    <td style={tdStyle}>{d.delegated_to}</td>
-                    <td style={tdStyle}>{d.role_delegated}</td>
-                    <td style={{ ...tdStyle, maxWidth: '200px' }} title={d.task_description}>{d.task_description}</td>
-                    <td style={tdStyle}>{d.delegated_by}</td>
+                    <td style={tdStyle}>{delegateLabel(d.delegated_to)}</td>
+                    <td style={{ ...tdStyle, maxWidth: '280px' }} title={d.task_description}>{d.task_description}</td>
+                    <td style={tdStyle}>{delegateLabel(d.delegated_by)}</td>
                     <td style={tdStyle}>{studyName}</td>
                     <td style={{ ...tdStyle, fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)' }}>{d.effective_from}</td>
                     <td style={{ ...tdStyle, fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)' }}>{d.effective_to ?? '—'}</td>
                     <td style={tdStyle}>
-                      <span style={{ color: statusColor, fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>● {statusLabel}</span>
+                      <span style={{ color: DELEGATION_STATUS_COLOR_VARS[status], fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>
+                        ● {DELEGATION_STATUS_LABELS[status]}
+                      </span>
                     </td>
-                    <td style={{ ...tdStyle, textAlign: 'right', paddingRight: '8px' }}>
+                    <td style={{ ...tdStyle, textAlign: 'right', paddingRight: '8px', whiteSpace: 'nowrap' }}>
+                      {isActive && isMine && (
+                        <button
+                          onClick={() => handleComplete(d.id)}
+                          title="Mark this delegation complete"
+                          style={{ background: 'transparent', border: '1px solid var(--status-complete)', color: 'var(--status-complete)', cursor: 'pointer', fontSize: 'var(--font-size-xs)', padding: '1px 6px', marginRight: '4px' }}
+                        >
+                          Mark Complete
+                        </button>
+                      )}
                       {canCreate && isActive && (
                         <button
                           onClick={() => handleRevoke(d.id)}
@@ -240,65 +304,15 @@ export default function DelegationLogPage() {
               <span style={{ fontSize: 'var(--font-size-md)', fontWeight: 700, color: 'var(--text-primary)' }}>New Delegation Entry</span>
               <button onClick={() => setShowPanel(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'var(--font-size-lg)' }}>×</button>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div>
-                <div style={labelStyle}>Delegate To</div>
-                <select
-                  value={form.delegatedTo}
-                  onChange={e => setForm(p => ({ ...p, delegatedTo: e.target.value }))}
-                  style={inputStyle}
-                >
-                  <option value="">— Select user —</option>
-                  {profiles.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.email} ({p.role.replace(/_/g, ' ')})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <div style={labelStyle}>Role Delegated</div>
-                <select value={form.roleDelegated} onChange={e => setForm(p => ({ ...p, roleDelegated: e.target.value }))} style={inputStyle}>
-                  <option value="site_coordinator">Site Coordinator</option>
-                  <option value="data_manager">Data Manager</option>
-                  <option value="monitor">Monitor</option>
-                  <option value="investigator">Sub-Investigator</option>
-                </select>
-              </div>
-              <div>
-                <div style={labelStyle}>Task / Duties</div>
-                <textarea
-                  placeholder="Describe the delegated task or duties…"
-                  value={form.taskDescription}
-                  onChange={e => setForm(p => ({ ...p, taskDescription: e.target.value }))}
-                  rows={3}
-                  style={{ ...inputStyle, resize: 'vertical', height: 'auto' }}
-                />
-              </div>
-              <div>
-                <div style={labelStyle}>Effective From</div>
-                <input type="date" value={form.effectiveFrom} onChange={e => setForm(p => ({ ...p, effectiveFrom: e.target.value }))} style={inputStyle} />
-              </div>
-              <div>
-                <div style={labelStyle}>Effective To (optional)</div>
-                <input type="date" value={form.effectiveTo} onChange={e => setForm(p => ({ ...p, effectiveTo: e.target.value }))} style={inputStyle} />
-              </div>
-            </div>
-            <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)', display: 'flex', gap: '6px' }}>
-              <button
-                onClick={handleCreate}
-                disabled={saving || !form.delegatedTo || !form.taskDescription || !form.effectiveFrom}
-                style={{
-                  flex: 1, padding: '6px', fontSize: 'var(--font-size-md)', fontWeight: 600,
-                  background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer',
-                  opacity: (saving || !form.delegatedTo || !form.taskDescription || !form.effectiveFrom) ? 0.5 : 1,
-                }}
-              >
-                {saving ? 'Saving…' : 'Save Delegation'}
-              </button>
-              <button onClick={() => setShowPanel(false)} style={{ padding: '6px 12px', fontSize: 'var(--font-size-md)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)', cursor: 'pointer' }}>
-                Cancel
-              </button>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
+              <DelegationForm
+                roster={profiles}
+                form={form}
+                onChange={(field, value) => setForm(p => ({ ...p, [field]: value }))}
+                onSubmit={handleCreate}
+                onCancel={() => setShowPanel(false)}
+                saving={saving}
+              />
             </div>
           </div>
         )}
@@ -306,17 +320,6 @@ export default function DelegationLogPage() {
     </div>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  fontSize: 'var(--font-size-sm)', padding: '5px 7px',
-  background: 'var(--bg-surface)', border: '1px solid var(--border)',
-  color: 'var(--text-primary)', outline: 'none', width: '100%',
-};
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)',
-  textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px',
-};
 
 const thStyle: React.CSSProperties = {
   padding: '6px 8px', textAlign: 'left',
