@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import useSWR from 'swr';
+import { useSearchParams } from 'next/navigation';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 import { QUERY_MUTATE_ROLES, hasRole } from '../../../lib/permissions';
@@ -49,16 +50,37 @@ const inputStyle: React.CSSProperties = {
   minWidth: 0,
 };
 
-export default function QueriesPage() {
+function QueriesPageContent() {
   const { userRole, isDemoMode, currentUserEmail } = useSession();
   const { currentStudyId } = useStudy();
   const [answerText, setAnswerText] = useState<Record<number, string>>({});
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // Initialize states from sessionStorage
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('validata-queries-filter');
+      return saved ?? 'all';
+    }
+    return 'all';
+  });
+
+  const [selectedQueryId, setSelectedQueryId] = useState<number | null>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('validata-queries-selected-id');
+      return saved ? Number(saved) : null;
+    }
+    return null;
+  });
+
   const [selectedQuery, setSelectedQuery] = useState<any | null>(null);
   const [showNewQuery, setShowNewQuery] = useState(false);
   const [newQuery, setNewQuery] = useState(EMPTY_NEW_QUERY);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  const searchParams = useSearchParams();
+  const queryIdParam = searchParams.get('id');
+  const [lastInitializedParam, setLastInitializedParam] = useState<string | null>(null);
 
   const canRaiseQuery = hasRole(userRole, QUERY_MUTATE_ROLES);
 
@@ -67,6 +89,57 @@ export default function QueriesPage() {
     swrKey,
     () => fetchQueries(currentStudyId!, isDemoMode)
   );
+
+  // Sync selectedQuery from selectedQueryId when queries are loaded/updated
+  useEffect(() => {
+    if (selectedQueryId !== null && queries.length > 0) {
+      const match = queries.find((q: any) => q.id === selectedQueryId);
+      setSelectedQuery(match || null);
+    } else {
+      setSelectedQuery(null);
+    }
+  }, [selectedQueryId, queries]);
+
+  // Sync statusFilter and selectedQueryId to sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('validata-queries-filter', statusFilter);
+    }
+  }, [statusFilter]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (selectedQueryId !== null) {
+        sessionStorage.setItem('validata-queries-selected-id', String(selectedQueryId));
+      } else {
+        sessionStorage.removeItem('validata-queries-selected-id');
+      }
+    }
+  }, [selectedQueryId]);
+
+  // Reset selection when switching studies
+  useEffect(() => {
+    setSelectedQuery(null);
+    setSelectedQueryId(null);
+  }, [currentStudyId]);
+
+  // Handle auto-selection of query from query param (override session storage)
+  useEffect(() => {
+    if (queryIdParam && queryIdParam !== lastInitializedParam && queries.length > 0) {
+      const match = queries.find((q: any) => String(q.id) === queryIdParam);
+      if (match) {
+        setSelectedQuery(match);
+        setSelectedQueryId(match.id);
+        setStatusFilter('all');
+        setLastInitializedParam(queryIdParam);
+      }
+    }
+  }, [queryIdParam, queries, lastInitializedParam]);
+
+  const selectQuery = (q: any) => {
+    setSelectedQuery(q);
+    setSelectedQueryId(q ? q.id : null);
+  };
 
   if (!canRaiseQuery) {
     return (
@@ -295,7 +368,7 @@ export default function QueriesPage() {
             return (
               <div
                 key={q.id}
-                onClick={() => setSelectedQuery(q)}
+                onClick={() => selectQuery(q)}
                 style={{
                   padding: '8px 12px',
                   borderBottom: '1px solid var(--border)',
@@ -415,5 +488,13 @@ export default function QueriesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function QueriesPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '16px', color: 'var(--text-muted)' }}>Loading...</div>}>
+      <QueriesPageContent />
+    </Suspense>
   );
 }

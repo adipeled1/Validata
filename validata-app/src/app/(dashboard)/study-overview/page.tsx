@@ -683,9 +683,35 @@ export default function StudyOverviewPage() {
                 <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, margin: '0 10px' }}>
                   {q.query_text}
                 </span>
-                <span style={{ color: q.status === 'open' ? 'var(--status-dropped)' : 'var(--accent-soft)', fontSize: 'var(--font-size-xs)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                  {q.status.toUpperCase()}
-                </span>
+                {q.status === 'open' ? (
+                  <button
+                    onClick={() => router.push(`/queries?id=${q.id}`)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--status-dropped)',
+                      fontSize: 'var(--font-size-xs)',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = '#ef4444';
+                      e.currentTarget.style.textDecoration = 'underline';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = 'var(--status-dropped)';
+                      e.currentTarget.style.textDecoration = 'none';
+                    }}
+                  >
+                    {q.status.toUpperCase()}
+                  </button>
+                ) : (
+                  <span style={{ color: 'var(--accent-soft)', fontSize: 'var(--font-size-xs)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    {q.status.toUpperCase()}
+                  </span>
+                )}
               </div>
             ))}
             {openQueries === 0 && (

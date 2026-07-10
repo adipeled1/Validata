@@ -876,6 +876,36 @@ CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- When a candidate confirms their email (email_confirmed_at flips NULL -> NOT
+-- NULL), advance them from 'candidate' (registered, not yet reviewable) to
+-- 'pending' (confirmed, awaiting mentor approval), and reset the 30-day expiry
+-- so the mentor gets a fresh window to approve. Only ever promotes a row that
+-- is still 'candidate' - active/suspended/already-pending profiles are left
+-- untouched, and if no matching profile exists the UPDATE simply affects zero
+-- rows (never raises, so it can't block Supabase's confirmation flow).
+-- SECURITY DEFINER so it can write public.profiles regardless of caller,
+-- mirroring handle_new_user() above. Requires "Confirm email" to be enabled in
+-- Supabase Auth settings, otherwise email_confirmed_at is set at sign-up and no
+-- candidate state is ever observable.
+CREATE OR REPLACE FUNCTION public.handle_email_confirmed()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+    IF OLD.email_confirmed_at IS NULL AND NEW.email_confirmed_at IS NOT NULL THEN
+        UPDATE public.profiles
+           SET status = 'pending',
+               candidate_expires_at = NOW() + INTERVAL '30 days'
+         WHERE id = NEW.id
+           AND status = 'candidate';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_confirmed ON auth.users;
+CREATE TRIGGER on_auth_user_confirmed
+    AFTER UPDATE OF email_confirmed_at ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_email_confirmed();
+
 -- Fires AFTER INSERT/UPDATE/DELETE on every clinical/compliance table and
 -- writes one row to audit_log per operation. auth.uid() is captured inside
 -- the trigger so the actor is always the Supabase-authenticated user, never

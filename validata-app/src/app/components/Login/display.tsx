@@ -69,29 +69,17 @@ export default function LoginDisplay({
           }}>
             Clinical Trial Validation Portal
           </p>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            marginTop: 10,
-          }}>
-            <div style={{ width: 20, height: 1, background: '#2e2b3e' }} />
-            <span style={{ fontSize: 9, color: '#4a4560', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              D-26-4-1 · Dorsiflexion Angle Measurement
-            </span>
-          </div>
           <span style={{
             display: 'inline-block',
             marginTop: 14,
             fontSize: 9,
             letterSpacing: '0.08em',
-            textTransform: 'uppercase',
             background: '#1a1829',
             color: '#8878aa',
             padding: '3px 8px',
             border: '0.5px solid #2e2b3e',
           }}>
-            Rambam Hospital · Braude College
+            Braude College of Engineering
           </span>
         </div>
 
