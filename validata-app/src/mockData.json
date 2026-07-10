@@ -93,6 +93,156 @@
       "study_id": "demo-study-1"
     },
     {
+      "id": "P-1009",
+      "consent": true,
+      "status": "Active",
+      "age": 29,
+      "gender": "Female",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-09",
+      "study_id": "demo-study-1"
+    },
+    {
+      "id": "P-1010",
+      "consent": true,
+      "status": "Active",
+      "age": 52,
+      "gender": "Male",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-10",
+      "study_id": "demo-study-1"
+    },
+    {
+      "id": "P-1011",
+      "consent": true,
+      "status": "Active",
+      "age": 33,
+      "gender": "Female",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-11",
+      "study_id": "demo-study-1"
+    },
+    {
+      "id": "P-1012",
+      "consent": true,
+      "status": "Active",
+      "age": 47,
+      "gender": "Male",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-12",
+      "study_id": "demo-study-1"
+    },
+    {
+      "id": "P-1013",
+      "consent": true,
+      "status": "Active",
+      "age": 38,
+      "gender": "Female",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-13",
+      "study_id": "demo-study-1"
+    },
+    {
+      "id": "P-1014",
+      "consent": true,
+      "status": "Active",
+      "age": 64,
+      "gender": "Male",
+      "health_status": "Ankle Injured",
+      "enrollment_date": "2026-05-14",
+      "study_id": "demo-study-1"
+    },
+    {
+      "id": "P-1015",
+      "consent": true,
+      "status": "Active",
+      "age": 21,
+      "gender": "Female",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-15",
+      "study_id": "demo-study-1"
+    },
+    {
+      "id": "P-1016",
+      "consent": true,
+      "status": "Active",
+      "age": 55,
+      "gender": "Male",
+      "health_status": "Ankle Injured",
+      "enrollment_date": "2026-05-16",
+      "study_id": "demo-study-1"
+    },
+    {
+      "id": "P-1017",
+      "consent": true,
+      "status": "Active",
+      "age": 42,
+      "gender": "Female",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-17",
+      "study_id": "demo-study-1"
+    },
+    {
+      "id": "P-1018",
+      "consent": true,
+      "status": "Active",
+      "age": 31,
+      "gender": "Male",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-18",
+      "study_id": "demo-study-1"
+    },
+    {
+      "id": "P-1019",
+      "consent": true,
+      "status": "Active",
+      "age": 49,
+      "gender": "Female",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-19",
+      "study_id": "demo-study-1"
+    },
+    {
+      "id": "P-1020",
+      "consent": true,
+      "status": "Active",
+      "age": 36,
+      "gender": "Male",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-20",
+      "study_id": "demo-study-1"
+    },
+    {
+      "id": "P-1021",
+      "consent": true,
+      "status": "Active",
+      "age": 27,
+      "gender": "Female",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-21",
+      "study_id": "demo-study-1"
+    },
+    {
+      "id": "P-1022",
+      "consent": true,
+      "status": "Active",
+      "age": 59,
+      "gender": "Male",
+      "health_status": "Ankle Injured",
+      "enrollment_date": "2026-05-22",
+      "study_id": "demo-study-1"
+    },
+    {
+      "id": "P-1023",
+      "consent": true,
+      "status": "Active",
+      "age": 43,
+      "gender": "Female",
+      "health_status": "Healthy",
+      "enrollment_date": "2026-05-23",
+      "study_id": "demo-study-1"
+    },
+    {
       "id": "P-2001",
       "consent": true,
       "status": "Active",
@@ -179,6 +329,204 @@
       "timestamp": "2026-06-02T10:00:00.000Z",
       "test_date": "2026-06-02",
       "study_id": "demo-study-2",
+      "is_valid": true
+    },
+    {
+      "id": 8,
+      "participant_id": "P-1009",
+      "goniometer": 48.0,
+      "ai_model": 47.2,
+      "notes": "Follow-up physical assessment",
+      "timestamp": "2026-05-20T14:00:00.000Z",
+      "test_date": "2026-05-20",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 9,
+      "participant_id": "P-1010",
+      "goniometer": 58.0,
+      "ai_model": 59.2,
+      "notes": "Post-treatment flex testing",
+      "timestamp": "2026-05-21T09:30:00.000Z",
+      "test_date": "2026-05-21",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 10,
+      "participant_id": "P-1011",
+      "goniometer": 32.5,
+      "ai_model": 31.8,
+      "notes": "Routine progress check",
+      "timestamp": "2026-05-22T10:15:00.000Z",
+      "test_date": "2026-05-22",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 11,
+      "participant_id": "P-1012",
+      "goniometer": 22.0,
+      "ai_model": 23.1,
+      "notes": "Post-op flexion benchmark",
+      "timestamp": "2026-05-23T11:00:00.000Z",
+      "test_date": "2026-05-23",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 12,
+      "participant_id": "P-1013",
+      "goniometer": 50.0,
+      "ai_model": 49.5,
+      "notes": "Baseline session",
+      "timestamp": "2026-05-24T14:45:00.000Z",
+      "test_date": "2026-05-24",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 13,
+      "participant_id": "P-1014",
+      "goniometer": 43.0,
+      "ai_model": 44.1,
+      "notes": "Interim ankle mobility test",
+      "timestamp": "2026-05-25T15:30:00.000Z",
+      "test_date": "2026-05-25",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 14,
+      "participant_id": "P-1015",
+      "goniometer": 42.0,
+      "ai_model": 41.5,
+      "notes": "End of week 3 assessment",
+      "timestamp": "2026-05-26T10:00:00.000Z",
+      "test_date": "2026-05-26",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 15,
+      "participant_id": "P-1016",
+      "goniometer": 61.5,
+      "ai_model": 60.3,
+      "notes": "Max range test session",
+      "timestamp": "2026-05-27T11:15:00.000Z",
+      "test_date": "2026-05-27",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 16,
+      "participant_id": "P-1017",
+      "goniometer": 35.0,
+      "ai_model": 36.2,
+      "notes": "Normal check-in testing",
+      "timestamp": "2026-05-28T09:00:00.000Z",
+      "test_date": "2026-05-28",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 17,
+      "participant_id": "P-1018",
+      "goniometer": 18.0,
+      "ai_model": 17.4,
+      "notes": "Follow-up session",
+      "timestamp": "2026-05-29T14:30:00.000Z",
+      "test_date": "2026-05-29",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 18,
+      "participant_id": "P-1019",
+      "goniometer": 52.0,
+      "ai_model": 53.0,
+      "notes": "Active flexion routine",
+      "timestamp": "2026-05-30T10:00:00.000Z",
+      "test_date": "2026-05-30",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 19,
+      "participant_id": "P-1020",
+      "goniometer": 46.5,
+      "ai_model": 45.8,
+      "notes": "Progress check flexion",
+      "timestamp": "2026-05-31T15:15:00.000Z",
+      "test_date": "2026-05-31",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 20,
+      "participant_id": "P-1021",
+      "goniometer": 44.5,
+      "ai_model": 45.1,
+      "notes": "Intermediate calibration repeat",
+      "timestamp": "2026-06-01T09:45:00.000Z",
+      "test_date": "2026-06-01",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 21,
+      "participant_id": "P-1022",
+      "goniometer": 57.0,
+      "ai_model": 56.4,
+      "notes": "Follow-up measurement session",
+      "timestamp": "2026-06-02T13:00:00.000Z",
+      "test_date": "2026-06-02",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 22,
+      "participant_id": "P-1023",
+      "goniometer": 31.0,
+      "ai_model": 31.9,
+      "notes": "Calibration routine run 2",
+      "timestamp": "2026-06-03T11:30:00.000Z",
+      "test_date": "2026-06-03",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 23,
+      "participant_id": "P-1005",
+      "goniometer": 25.0,
+      "ai_model": 24.3,
+      "notes": "Flexion test completed",
+      "timestamp": "2026-06-04T10:15:00.000Z",
+      "test_date": "2026-06-04",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 24,
+      "participant_id": "P-1006",
+      "goniometer": 49.0,
+      "ai_model": 50.2,
+      "notes": "Routine follow-up",
+      "timestamp": "2026-06-05T14:00:00.000Z",
+      "test_date": "2026-06-05",
+      "study_id": "demo-study-1",
+      "is_valid": true
+    },
+    {
+      "id": 25,
+      "participant_id": "P-1008",
+      "goniometer": 42.5,
+      "ai_model": 42.1,
+      "notes": "Study closeout measurement",
+      "timestamp": "2026-06-06T11:00:00.000Z",
+      "test_date": "2026-06-06",
+      "study_id": "demo-study-1",
       "is_valid": true
     }
   ]

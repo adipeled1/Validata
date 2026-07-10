@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import useSWR from 'swr';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from '../../../context/SessionContext';
@@ -117,10 +117,15 @@ function QueriesPageContent() {
     }
   }, [selectedQueryId]);
 
-  // Reset selection when switching studies
+  const prevStudyIdRef = useRef<string | null>(null);
+
+  // Reset selection when switching studies (but not on initial mount)
   useEffect(() => {
-    setSelectedQuery(null);
-    setSelectedQueryId(null);
+    if (prevStudyIdRef.current !== null && prevStudyIdRef.current !== currentStudyId) {
+      setSelectedQuery(null);
+      setSelectedQueryId(null);
+    }
+    prevStudyIdRef.current = currentStudyId;
   }, [currentStudyId]);
 
   // Handle auto-selection of query from query param (override session storage)
@@ -332,7 +337,11 @@ function QueriesPageContent() {
             return (
               <button
                 key={s}
-                onClick={() => setStatusFilter(s)}
+                onClick={() => {
+                  setStatusFilter(s);
+                  setSelectedQuery(null);
+                  setSelectedQueryId(null);
+                }}
                 style={{
                   width: '100%',
                   height: '28px',
