@@ -21,11 +21,18 @@ export function parseCSV(text: string): Record<string, string>[] {
   }
   const parsed = lines.filter((r) => r.length > 1 || (r.length === 1 && r[0] !== ''));
   if (parsed.length <= 1) return [];
-  const headers = parsed[0].map((h) => h.trim().toLowerCase().replace(/^["']|["']$/g, ''));
+  // The quote-state-machine above already strips real delimiter quotes and
+  // un-escapes doubled quotes ("" -> ") as part of parsing, so a field's
+  // value here contains no wrapping quotes to strip - only real content.
+  // (A redundant `.replace(/^["']|["']$/g, '')` used to run here "just in
+  // case", but it incorrectly stripped a legitimate trailing quote when a
+  // field's actual data ended in one, e.g. `"she said ""hi"""` losing its
+  // final ".)
+  const headers = parsed[0].map((h) => h.trim().toLowerCase());
   return parsed.slice(1).map((r) => {
     const obj: Record<string, string> = {};
     headers.forEach((h, idx) => {
-      obj[h] = r[idx] ? r[idx].trim().replace(/^["']|["']$/g, '') : '';
+      obj[h] = r[idx] ? r[idx].trim() : '';
     });
     return obj;
   });

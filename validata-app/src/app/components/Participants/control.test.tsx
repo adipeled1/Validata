@@ -26,13 +26,13 @@ describe('ParticipantsControl (add participant golden path)', () => {
     // The form is inside an InlinePanel — open it by clicking the trigger
     await user.click(screen.getByRole('button', { name: /\+ add participant/i }));
 
-    // Now the form fields are visible; use placeholder text since labels lack htmlFor
-    await user.type(screen.getByPlaceholderText(/e\.g\. 35/i), '35');
-
-    // Gender and Health Status are selects — find by their current displayed value
-    const selects = screen.getAllByRole('combobox');
-    await user.selectOptions(selects[0], 'Female'); // Gender select
-    await user.selectOptions(selects[1], 'Healthy'); // Health Status select
+    // Every panel field has a real <label htmlFor>, so query by accessible
+    // label/name instead of positional index - the page also renders its own
+    // filter selects (status/gender) outside the panel, so `getAllByRole('combobox')[0]`
+    // is order-dependent and silently breaks if anything shifts render order.
+    await user.type(screen.getByLabelText(/^age$/i), '35');
+    await user.selectOptions(screen.getByLabelText(/^gender$/i), 'Female');
+    await user.selectOptions(screen.getByLabelText(/^health status$/i), 'Healthy');
 
     // Submit via the submit button inside the panel
     const addButtons = screen.getAllByRole('button', { name: /add participant/i });

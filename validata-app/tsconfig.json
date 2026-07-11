@@ -32,6 +32,7 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    "vitest.setup.js",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
