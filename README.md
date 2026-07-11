@@ -15,24 +15,24 @@ The platform manages study participants, records and validates measurements, and
 
 ```
 Validata/
-├── README.md                  ← you are here (overview)
+├── README.md                     ← you are here (overview)
 ├── LICENSE
-├── documentation/             ← project guidance and schemas
-│   ├── DISCLAIMER.md          ← ICH / compliance / open-source disclaimer
-│   ├── FEATURES.md            ← full feature description
-│   ├── INVESTIGATOR.md        ← investigator guide
-│   ├── MENTOR.md              ← mentor guide
+├── documentation/                ← project guidance and schemas
+│   ├── DISCLAIMER.md             ← student project disclaimer
+│   ├── FEATURES.md               ← full feature description
+│   ├── INVESTIGATOR.md           ← investigator guide
+│   ├── MENTOR.md                 ← mentor guide
 │   ├── ROLES_AND_REGISTRATION.md ← user roles and registration flow guide
-│   └── SCHEMA.md              ← database schema diagram
-└── validata-app/              ← Next.js application
+│   └── SCHEMA.md                 ← database schema diagram
+└── validata-app/                 ← Next.js application
     ├── src/
     │   ├── app/
-    │   │   ├── (dashboard)/   — dashboard pages
-    │   │   ├── api/           — serverless API routes
-    │   │   └── components/    — React UI components
-    │   ├── lib/               — auth, repositories, schemas, mappers
-    │   └── context/           — React context (session, study)
-    └── supabase_setup.sql     — full database schema (run once on new project)
+    │   │   ├── (dashboard)/      — dashboard pages
+    │   │   ├── api/              — serverless API routes
+    │   │   └── components/       — React UI components
+    │   ├── lib/                  — auth, repositories, schemas, mappers
+    │   └── context/              — React context (session, study)
+    └── supabase_setup.sql        — full database schema (run once on new project)
 ```
 
 ---
