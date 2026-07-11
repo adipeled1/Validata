@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     created_at           TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
     -- 'deleted' is the authoritative signal that an ever-approved account was
     -- soft-deleted (see User Registry's "Delete"/"Reactivate" actions and
-    -- ROLES.md) - this column is just the audit timestamp of when that
+    -- ROLES_AND_REGISTRATION.md) - this column is just the audit timestamp of when that
     -- happened, not something callers should branch on. It's unrelated to
     -- deleting a not-yet-approved applicant, which is a genuine hard delete
     -- of the row (see delete_candidate_user() below) and never sets this.

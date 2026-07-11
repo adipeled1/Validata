@@ -4,6 +4,8 @@ Validata is a full-stack Electronic Data Capture (EDC) and eCRF web application 
 
 The platform manages study participants, records and validates measurements, and compares AI-based angle measurements against manual goniometer reference values.
 
+**🚀 Live Demo:** [https://your-vercel-link.vercel.app](https://your-vercel-link.vercel.app) *(Demonstration environment with sandboxed mock data)*
+
 > **This is a student academic project.** It does not claim ICH E6(R3) or GCP compliance.
 > Read [`DISCLAIMER.md`](documentation/DISCLAIMER.md) before using this software in any clinical context.
 
@@ -20,7 +22,7 @@ Validata/
 │   ├── FEATURES.md            ← full feature description
 │   ├── INVESTIGATOR.md        ← investigator guide
 │   ├── MENTOR.md              ← mentor guide
-│   ├── ROLES.md               ← user roles guide
+│   ├── ROLES_AND_REGISTRATION.md ← user roles and registration flow guide
 │   └── SCHEMA.md              ← database schema diagram
 └── validata-app/              ← Next.js application
     ├── src/
@@ -40,7 +42,7 @@ Validata/
 - **Next.js** (App Router) + React + Tailwind CSS
 - **Supabase** (PostgreSQL + Auth + Row-Level Security)
 - **Vercel** (deployment + edge middleware)
-- **Chart.js / Recharts** — analysis dashboards
+- **Recharts** — analysis dashboards
 - **SheetJS (`xlsx`)** — spreadsheet import
 - **Zod** — runtime schema validation
 
@@ -64,11 +66,9 @@ NEXT_PUBLIC_DEMO_ENABLED=true
 DEMO_SESSION_SECRET=a-long-random-dev-only-secret
 ```
 
-For the full Supabase project setup, follow [`docs/infrastructure/supabase_bootstrap.md`](docs/infrastructure/supabase_bootstrap.md).
+For the full Supabase project setup (schema, RLS policies, triggers), run [`validata-app/supabase_setup.sql`](validata-app/supabase_setup.sql) against a new Supabase project.
 
 For a full description of every feature, see [`FEATURES.md`](documentation/FEATURES.md).
-
-For system explainers (how each part works), see [`docs/`](docs/README.md).
 
 ---
 

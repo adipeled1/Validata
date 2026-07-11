@@ -70,14 +70,18 @@ Someone stays `team_member` until a mentor/admin assigns them something else.
 
 1. **Sign-up** — a new user creates an account. A database trigger fires immediately and gives them
    `role = 'applicant'` and `status = 'wait_email_confirm'`, plus a `candidate_expires_at` timestamp
-   set to 30 days out. Nobody chooses this — it's automatic and the same for everyone. While
-   unconfirmed, the account is fully blocked and shows up in **User Registry** only as an
-   informational, non-actionable "Unconfirmed Sign-ups" entry.
+   set to 30 days out. Nobody chooses this — it's automatic and the same for everyone. While in either
+   applicant status, they are redirected to an onboarding screen instead of the dashboard. While
+   unconfirmed, the account is fully blocked and shows up in the User Registry only inside the 
+   "Unconfirmed Sign-ups" modal.
 2. **Email confirmation** — once the applicant confirms their email address, a second trigger
    advances them to `status = 'wait_approval'` and **resets the 30-day expiry**, so the mentor gets
-   a fresh window to review from the moment there's actually something to review. This is when the
-   account first appears in the **Pending Approvals** queue with an actionable approve/reject pair
-   of buttons, and in the sidebar's pending-count badge.
+   a fresh window to review from the moment there's actually something to review. Even after confirmation,
+   the applicant remains 100% blocked from the dashboard and database—the only difference on their end
+   is that their onboarding screen updates to say they are now awaiting mentor activation. From the mentor's
+   perspective, this is when the account first moves from the unconfirmed modal to the main page's
+   **Pending Approvals** queue with an actionable approve/reject pair of buttons and increments the
+   sidebar's pending-count badge.
 3. **A mentor/admin reviews it**, and picks one of two outcomes:
    - **Approve** — sets `role = 'team_member'` and `status = 'active'` **together, in one change**
      (the DB constraint above rejects setting only one of the two). A mentor/admin can then assign

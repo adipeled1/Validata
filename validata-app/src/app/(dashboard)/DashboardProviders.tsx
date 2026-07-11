@@ -188,7 +188,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   }
 
   // 'deleted' (not 'suspended') is the full-block, can't-sign-in-at-all
-  // state: this is the account's own soft-delete (see ROLES.md's
+  // state: this is the account's own soft-delete (see ROLES_AND_REGISTRATION.md's
   // "Suspending vs. deleting" section), and the only way back in is a
   // mentor/admin clicking Reactivate in User Registry's Deleted Archives -
   // there's genuinely nothing to do here but sign out. A merely-suspended

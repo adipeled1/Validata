@@ -48,7 +48,7 @@ All database writes happen through server-side code only. The Supabase anon key 
 - Sessions managed with signed cookies (`SameSite=Strict`, conditional `Secure` flag via `secureFlag()` in `src/lib/cookies.ts`)
 - Middleware (`proxy.ts`) validates the session cookie on every request and redirects to `/login` if invalid
 - **Demo mode** — dev-only bypass via `NEXT_PUBLIC_DEMO_ENABLED=true`; disabled with `NEXT_PUBLIC_DEMO_ENABLED=false` in production; demo sessions are per-visitor isolated and never touch real data
-- New users are auto-created with role `applicant` and status `wait_email_confirm` (auto-expires after 30 days if never confirmed/approved, resetting the expiry once they confirm) via database triggers; a mentor/admin must approve before the account becomes a real `team_member` and can access the dashboard — see `ROLES.md` for the full lifecycle
+- New users are auto-created with role `applicant` and status `wait_email_confirm` (auto-expires after 30 days if never confirmed/approved, resetting the expiry once they confirm) via database triggers; a mentor/admin must approve before the account becomes a real `team_member` and can access the dashboard — see `ROLES_AND_REGISTRATION.md` for the full lifecycle
 
 ---
 
