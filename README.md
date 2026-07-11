@@ -23,6 +23,7 @@ Validata/
 │   ├── INVESTIGATOR.md           ← investigator guide
 │   ├── MENTOR.md                 ← mentor guide
 │   ├── ROLES_AND_REGISTRATION.md ← user roles and registration flow guide
+│   ├── SUPABASE_BOOTSTRAP.md     ← database setup and bootstrap guide
 │   └── SCHEMA.md                 ← database schema diagram
 └── validata-app/                 ← Next.js application
     ├── src/
@@ -50,23 +51,32 @@ Validata/
 
 ## Getting Started
 
-```bash
-cd validata-app
-npm install
-npm run dev
-```
+1. **Install dependencies**:
+   ```bash
+   cd validata-app
+   npm install
+   ```
 
-Create `validata-app/.env.local`:
+2. **Configure environment variables**:
+   Create `validata-app/.env.local` (you can copy `.env.example` as a template):
+   ```bash
+   cp .env.example .env.local
+   ```
+   Configure your Supabase credentials and demo settings:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   # Demo mode is opt-in and off by default - omit these two entirely in any real deployment.
+   NEXT_PUBLIC_DEMO_ENABLED=true
+   DEMO_SESSION_SECRET=a-long-random-dev-only-secret
+   ```
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-# Demo mode is opt-in and off by default - omit these two entirely in any real deployment.
-NEXT_PUBLIC_DEMO_ENABLED=true
-DEMO_SESSION_SECRET=a-long-random-dev-only-secret
-```
+3. **Start the development server**:
+   ```bash
+   npm run dev
+   ```
 
-For the full Supabase project setup (schema, RLS policies, triggers), run [`validata-app/supabase_setup.sql`](validata-app/supabase_setup.sql) against a new Supabase project.
+For the full Supabase project setup (schema, RLS policies, triggers), run [`validata-app/supabase_setup.sql`](validata-app/supabase_setup.sql) against a new Supabase project. For a step-by-step walkthrough on project configuration, enabling email verification, and activating the initial admin account, follow the [`SUPABASE_BOOTSTRAP.md`](documentation/SUPABASE_BOOTSTRAP.md) guide.
 
 For a full description of every feature, see [`FEATURES.md`](documentation/FEATURES.md).
 
