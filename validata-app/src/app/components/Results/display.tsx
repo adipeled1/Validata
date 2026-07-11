@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
+import { ArrowDownUp, ArrowUp, ArrowDown } from 'lucide-react';
 import { formatDateForDisplay } from './service';
 import DataGrid from '../ui/DataGrid';
 
@@ -11,6 +12,16 @@ const toDateStr = (value: any): string => {
   if (isNaN(d.getTime())) return '';
   return d.toISOString().slice(0, 10);
 };
+
+// Participant ids are like "P-1001" - sort by the numeric part, not
+// lexicographically (which would put "P-2" before "P-100").
+const participantSortValue = (name: any): number => {
+  const digits = String(name ?? '').replace(/\D/g, '');
+  return digits ? parseInt(digits, 10) : 0;
+};
+
+type SortableKey = 'enrollmentDate' | 'testDate' | 'participant';
+type SortDirection = 'asc' | 'desc';
 
 const inputStyle: React.CSSProperties = {
   background: 'var(--bg-input)',
@@ -34,6 +45,24 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
   const [filterParticipant, setFilterParticipant] = useState('');
   const [filterEnrollDate, setFilterEnrollDate] = useState('');
   const [filterTestDate, setFilterTestDate] = useState('');
+  // Defaults to matching the incoming order: sortedMeasurements (from
+  // service.ts's sortMeasurementsDescending) already arrives newest-first by
+  // timestamp, and Test Date is the closest visible column to that - without
+  // this, the header would show the neutral icon on all three columns even
+  // though the rows are, in effect, already sorted.
+  const [sortKey, setSortKey] = useState<SortableKey | null>('testDate');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  // Clicking an unsorted (or differently-sorted) column starts it at desc;
+  // clicking the already-active column flips direction instead of resetting.
+  const toggleSort = (key: SortableKey) => {
+    if (sortKey === key) {
+      setSortDirection((d) => (d === 'desc' ? 'asc' : 'desc'));
+    } else {
+      setSortKey(key);
+      setSortDirection('desc');
+    }
+  };
 
   const droppedParticipantIds = new Set(
     participants
@@ -65,6 +94,43 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
     setFilterEnrollDate('');
     setFilterTestDate('');
   };
+
+  // Applied after filtering - sorting doesn't change which rows are shown,
+  // only their order. Null sortKey leaves displayMeasurements in its
+  // incoming order (sortedMeasurements is already newest-first by timestamp).
+  const sortedDisplayMeasurements = useMemo(() => {
+    if (!sortKey) return displayMeasurements;
+    const dir = sortDirection === 'asc' ? 1 : -1;
+    return [...displayMeasurements].sort((a, b) => {
+      if (sortKey === 'participant') {
+        return (participantSortValue(a.participant) - participantSortValue(b.participant)) * dir;
+      }
+      const field = sortKey === 'enrollmentDate' ? 'enrollmentDate' : 'testDate';
+      const rawField = sortKey === 'enrollmentDate' ? 'enrollment_date' : 'test_date';
+      const aStr = toDateStr(a[field] || a[rawField]);
+      const bStr = toDateStr(b[field] || b[rawField]);
+      // Rows with no date always sort last, regardless of direction.
+      if (!aStr && !bStr) return 0;
+      if (!aStr) return 1;
+      if (!bStr) return -1;
+      return aStr < bStr ? -dir : aStr > bStr ? dir : 0;
+    });
+  }, [displayMeasurements, sortKey, sortDirection]);
+
+  const sortIcon = (key: SortableKey) => {
+    if (sortKey !== key) return <ArrowDownUp size={11} style={{ opacity: 0.5 }} />;
+    return sortDirection === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />;
+  };
+
+  const sortableHeader = (label: string, key: SortableKey) => (
+    <span
+      onClick={() => toggleSort(key)}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', userSelect: 'none' }}
+    >
+      {label}
+      {sortIcon(key)}
+    </span>
+  );
 
   const handleExportToExcel = () => {
     setIsExporting(true);
@@ -99,7 +165,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
   const columns = [
     {
       key: 'enrollmentDate',
-      label: 'Enrolled',
+      label: sortableHeader('Enrolled', 'enrollmentDate'),
       width: '100px',
       render: (m: any) => (
         <span style={{ color: 'var(--text-timestamp)', fontFamily: 'var(--font-data)' }}>
@@ -109,7 +175,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
     },
     {
       key: 'testDate',
-      label: 'Test Date',
+      label: sortableHeader('Test Date', 'testDate'),
       width: '100px',
       render: (m: any) => (
         <span style={{ color: 'var(--text-timestamp)', fontFamily: 'var(--font-data)' }}>
@@ -119,7 +185,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
     },
     {
       key: 'participant',
-      label: 'Participant',
+      label: sortableHeader('Participant', 'participant'),
       width: '100px',
       render: (m: any) => (
         <span style={{ color: 'var(--text-id)', fontFamily: 'var(--font-data)' }}>{m.participant}</span>
@@ -162,7 +228,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
-            PARTICIPANTS & DATA / Results Table
+            OVERVIEW & ANALYSIS / Results Table
           </div>
           <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
             Results Table
@@ -259,7 +325,7 @@ const ResultsDisplay = ({ sortedMeasurements, participants = [], onMarkInvalid }
       {/* DataGrid */}
       <DataGrid
         columns={columns}
-        rows={displayMeasurements}
+        rows={sortedDisplayMeasurements}
         keyField="id"
         emptyMessage="No measurements match the current filters."
       />

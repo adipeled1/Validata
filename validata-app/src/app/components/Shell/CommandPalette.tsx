@@ -19,9 +19,9 @@ interface CommandEntry {
 const NAV_COMMANDS: Array<{ label: string; path: string; description: string }> = [
   { label: 'Participant Registry', path: '/participants', description: 'Participants & Data' },
   { label: 'Data Collection', path: '/data-collection', description: 'Participants & Data' },
-  { label: 'Results Table', path: '/results', description: 'Participants & Data' },
-  { label: 'Study Overview', path: '/study-overview', description: 'Analysis' },
-  { label: 'Analysis & Reporting', path: '/analysis', description: 'Analysis' },
+  { label: 'Results Table', path: '/results', description: 'Overview & Analysis' },
+  { label: 'Study Overview', path: '/study-overview', description: 'Overview & Analysis' },
+  { label: 'Analysis & Reporting', path: '/analysis', description: 'Overview & Analysis' },
   { label: 'Query Management', path: '/queries', description: 'Queries' },
   { label: 'Study Log', path: '/study-log', description: 'Compliance' },
   { label: 'Audit Trail', path: '/audit-log', description: 'Compliance' },

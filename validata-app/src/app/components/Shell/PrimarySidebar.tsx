@@ -207,7 +207,11 @@ export default function PrimarySidebar({
 
         {showReadableData && (
           <>
-            {/* Participants & Data */}
+            {/* Participants & Data - active data entry: who's enrolled and
+                collecting new measurements. Reviewing/analyzing what's
+                already been collected lives in Overview & Analysis instead
+                (see below) - Results Table moved there since it's a review
+                screen, not an entry one. */}
             <div>
               <SectionHeader label="Participants & Data" />
               <NavGroup
@@ -215,7 +219,6 @@ export default function PrimarySidebar({
                 items={[
                   { label: 'Participant Registry', path: '/participants' },
                   { label: 'Data Collection', path: '/data-collection' },
-                  { label: 'Results Table', path: '/results' },
                 ]}
               />
             </div>
@@ -224,16 +227,19 @@ export default function PrimarySidebar({
           </>
         )}
 
-        {/* Analysis & Results - Study Overview always shows (it's the app's
-            landing page and has no RLS-gated data); Analysis & Reporting
-            needs READABLE_ROLES since it summarizes participant/measurement
-            data. */}
+        {/* Overview & Analysis - reviewing what's already been collected,
+            from a landing dashboard through a raw results grid to
+            statistical analysis. Study Overview always shows (it's the
+            app's landing page and has no RLS-gated data); Results Table and
+            Analysis & Reporting both need READABLE_ROLES since they
+            summarize participant/measurement data. */}
         <div>
-          <SectionHeader label="Analysis & Results" />
+          <SectionHeader label="Overview & Analysis" />
           <NavGroup
             currentPath={currentPath}
             items={[
               { label: 'Study Overview', path: '/study-overview' },
+              ...(showReadableData ? [{ label: 'Results Table', path: '/results' }] : []),
               ...(showReadableData ? [{ label: 'Analysis & Reporting', path: '/analysis' }] : []),
             ]}
           />

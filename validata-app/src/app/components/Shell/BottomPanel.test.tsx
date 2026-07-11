@@ -83,7 +83,8 @@ describe('BottomPanel', () => {
     vi.mocked(clientDemoStore.getQueries).mockReturnValue([
       { id: 1, status: 'open', severity: 'major', record_table: 'participants', record_id: 'P-1001', field_name: 'age' },
     ] as any);
-    render(<BottomPanel {...baseProps} userRole="site_coordinator" />);
+    sessionValue = { isDemoMode: true, userRole: 'site_coordinator' };
+    render(<BottomPanel {...baseProps} />);
     await user.click(screen.getByText('OPEN QUERIES'));
     await user.click(screen.getByText(/Q-001/));
     expect(push).toHaveBeenCalledWith('/queries');

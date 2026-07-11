@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 
 const openTab = vi.fn();
 vi.mock('../../../context/TabContext', () => ({
@@ -72,6 +72,28 @@ describe('PrimarySidebar', () => {
   it('does not fetch the pending count for non-admin roles', () => {
     render(<PrimarySidebar userRole="team_member" userStatus="active" currentPath="/study-overview" />);
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('Results Table lives under "Overview & Analysis", alongside Study Overview and Analysis & Reporting', () => {
+    render(<PrimarySidebar userRole="investigator" userStatus="active" currentPath="/study-overview" />);
+
+    expect(screen.getByText('Overview & Analysis')).toBeInTheDocument();
+    expect(screen.queryByText('Analysis & Results')).not.toBeInTheDocument(); // old section name is gone
+
+    // SectionHeader renders its own <div> just for the label text; the
+    // wrapping <div> that also holds the NavGroup is one level up.
+    const section = screen.getByText('Overview & Analysis').closest('div')!.parentElement!;
+    expect(within(section).getByText('Study Overview')).toBeInTheDocument();
+    expect(within(section).getByText('Results Table')).toBeInTheDocument();
+    expect(within(section).getByText('Analysis & Reporting')).toBeInTheDocument();
+  });
+
+  it('does not offer Results Table in the "Participants & Data" section', () => {
+    render(<PrimarySidebar userRole="investigator" userStatus="active" currentPath="/participants" />);
+    const dataSection = screen.getByText('Participants & Data').closest('div')!.parentElement!;
+    expect(within(dataSection).getByText('Participant Registry')).toBeInTheDocument();
+    expect(within(dataSection).getByText('Data Collection')).toBeInTheDocument();
+    expect(within(dataSection).queryByText('Results Table')).not.toBeInTheDocument();
   });
 
   it('clicking a nav item calls openTab with its path and label', async () => {

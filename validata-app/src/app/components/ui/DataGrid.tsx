@@ -4,7 +4,10 @@ import { useState } from 'react';
 
 export interface DataGridColumn<T> {
   key: string;
-  label: string;
+  // Usually a plain string, but accepts a ReactNode so a caller can make a
+  // header interactive (e.g. a clickable sort control with an icon) without
+  // DataGrid itself needing to know anything about sorting.
+  label: React.ReactNode;
   width?: string;
   render?: (row: T) => React.ReactNode;
 }

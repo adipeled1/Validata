@@ -330,7 +330,7 @@ export default function StudyOverviewPage() {
               marginBottom: '2px',
             }}
           >
-            ANALYSIS & RESULTS / Study Overview
+            OVERVIEW & ANALYSIS / Study Overview
           </div>
           <h1
             style={{
