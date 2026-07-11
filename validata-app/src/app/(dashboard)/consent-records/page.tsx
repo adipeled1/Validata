@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
-import { READABLE_ROLES, EDIT_ROLES, CONSENT_VERSION_ROLES, hasRole } from '../../../lib/permissions';
+import { READABLE_ROLES, EDIT_ROLES, CONSENT_VERSION_ROLES, hasRole, canAccessPage } from '../../../lib/permissions';
 import * as clientDemoStore from '../../../lib/clientDemoStore';
 import ConsentForm, { type ConsentFormValues } from '../../components/Consent/ConsentForm';
 import { createConsentRecord, fetchConsent } from '../../components/Consent/service';
+import InlinePanel from '../../components/ui/InlinePanel';
+import DataGrid from '../../components/ui/DataGrid';
 
 interface ConsentFormVersion {
   id: number;
@@ -34,8 +36,28 @@ const METHOD_LABELS: Record<string, string> = {
   verbal_with_witness: 'Verbal + Witness',
 };
 
+// Explicit pixel widths (like Participants/display.tsx's DataGrid columns)
+// give the grid a real minimum width, so its own overflow:auto wrapper can
+// scroll horizontally when the panel narrows the available space, instead
+// of just shrinking columns until content clips with nowhere to scroll to.
+const recordColumns = [
+  { key: 'participant_id', label: 'Participant', width: '120px', render: (r: any) => (
+    <span style={{ fontFamily: 'var(--font-data)' }}>{r.participant_id}</span>
+  ) },
+  { key: 'method', label: 'Method', width: '160px', render: (r: any) => METHOD_LABELS[r.method] ?? r.method },
+  { key: 'created_at', label: 'Date (UTC)', width: '200px', render: (r: any) => (
+    <span style={{ fontFamily: 'var(--font-data)' }}>{r.created_at ? new Date(r.created_at).toUTCString() : '—'}</span>
+  ) },
+  { key: 'witnessed_by', label: 'Witnessed By', width: '160px', render: (r: any) => r.witnessed_by ?? '—' },
+  { key: 'copy_delivered', label: 'Copy Delivered', width: '120px', render: (r: any) => (
+    <span style={{ color: r.copy_delivered ? 'var(--status-active)' : 'var(--text-muted)' }}>
+      {r.copy_delivered ? '✓' : '—'}
+    </span>
+  ) },
+];
+
 export default function ConsentRecordsPage() {
-  const { userRole, isDemoMode, currentUserEmail } = useSession();
+  const { userRole, userStatus, isDemoMode, currentUserEmail } = useSession();
   const { currentStudyId, participants } = useStudy();
 
   const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
@@ -149,7 +171,7 @@ export default function ConsentRecordsPage() {
     }
   };
 
-  if (!hasRole(userRole, READABLE_ROLES)) {
+  if (!canAccessPage(userRole, userStatus, READABLE_ROLES)) {
     return (
       <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>
         You do not have access to consent records.
@@ -278,7 +300,7 @@ export default function ConsentRecordsPage() {
         </div>
 
         {/* Right: Records table */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative' }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '6px 8px', borderBottom: '1px solid var(--border)',
@@ -308,55 +330,32 @@ export default function ConsentRecordsPage() {
 
           {/* New record panel - same shared ConsentForm the Participants
               view uses (see ConsentForm.tsx), just triggered from here
-              instead of a participant row. */}
-          {showNewRecord && (
-            <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border)', background: 'var(--bg-editor)', maxWidth: '320px' }}>
-              <ConsentForm
-                versions={versions}
-                participants={participants}
-                form={newRecord}
-                onChange={(field, value) => setNewRecord(p => ({ ...p, [field]: value }))}
-                onSubmit={handleCreateRecord}
-                onCancel={() => setShowNewRecord(false)}
-                saving={saving}
-                error={actionError}
-              />
-            </div>
-          )}
+              instead of a participant row. Uses the same overlay InlinePanel
+              as Participants' Add Participant / Record Consent panels
+              (floats over the table via position: absolute, doesn't resize
+              it), rather than the old block-above-the-table layout. */}
+          <InlinePanel isOpen={showNewRecord} onClose={() => setShowNewRecord(false)} title="New Record">
+            <ConsentForm
+              versions={versions}
+              participants={participants}
+              form={newRecord}
+              onChange={(field, value) => setNewRecord(p => ({ ...p, [field]: value }))}
+              onSubmit={handleCreateRecord}
+              onCancel={() => setShowNewRecord(false)}
+              saving={saving}
+              error={actionError}
+            />
+          </InlinePanel>
 
-          <div style={{ flex: 1, overflowY: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-md)' }}>
-              <thead>
-                <tr style={{ background: 'var(--bg-surface)', position: 'sticky', top: 0, zIndex: 1 }}>
-                  {['Participant', 'Method', 'Date (UTC)', 'Witnessed By', 'Copy Delivered'].map(col => (
-                    <th key={col} style={thStyle}>{col}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={5} style={{ padding: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>Loading…</td></tr>
-                ) : visibleRecords.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ padding: '16px', color: 'var(--text-muted)', textAlign: 'center' }}>
-                      {selectedVersionId ? 'No consent records for this version.' : 'Select a form version to view records.'}
-                    </td>
-                  </tr>
-                ) : visibleRecords.map((r, i) => (
-                  <tr key={r.id} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-surface)', height: 'var(--row-height)' }}>
-                    <td style={tdStyle}>{r.participant_id}</td>
-                    <td style={tdStyle}>{METHOD_LABELS[r.method] ?? r.method}</td>
-                    <td style={{ ...tdStyle, fontFamily: 'var(--font-data)' }}>{r.created_at ? new Date(r.created_at).toUTCString() : '—'}</td>
-                    <td style={tdStyle}>{r.witnessed_by ?? '—'}</td>
-                    <td style={{ ...tdStyle, textAlign: 'center' }}>
-                      <span style={{ color: r.copy_delivered ? 'var(--status-active)' : 'var(--text-muted)' }}>
-                        {r.copy_delivered ? '✓' : '—'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            <DataGrid
+              columns={recordColumns}
+              rows={visibleRecords}
+              keyField="id"
+              loading={loading}
+              emptyMessage={selectedVersionId ? 'No consent records for this version.' : 'Select a form version to view records.'}
+              reserveRight={showNewRecord ? 360 : 0}
+            />
           </div>
         </div>
       </div>
@@ -401,25 +400,3 @@ const btnSecondary: React.CSSProperties = {
   cursor: 'pointer',
 };
 
-const thStyle: React.CSSProperties = {
-  padding: '6px 8px',
-  textAlign: 'left',
-  fontSize: 'var(--font-size-xs)',
-  fontWeight: 600,
-  color: 'var(--text-secondary)',
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  borderBottom: '1px solid var(--border)',
-  whiteSpace: 'nowrap',
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: '0 8px',
-  height: 'var(--row-height)',
-  color: 'var(--text-primary)',
-  borderBottom: '1px solid var(--border)',
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  maxWidth: '200px',
-};

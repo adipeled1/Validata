@@ -10,7 +10,7 @@ interface ConsentRecordEntry { id: string; participant_id: string; form_version_
 
 interface ParticipantsControlProps {
   participants: any[];
-  onAddParticipant: (data: { age: string; gender: string; healthStatus: string; enrollmentDate: string }) => void;
+  onAddParticipant: (data: { age: string; gender: string; healthStatus: string; enrollmentDate: string }) => Promise<string | undefined>;
   // ICH E6(R3) COR-01: reason is now required so the drop is justified and
   // captured in the audit trail.
   onDropParticipant: (id: string, reason: string) => void;
@@ -48,11 +48,12 @@ const ParticipantsControl = ({
     enrollmentDateDisplay: formatDateForDisplay(participant.enrollmentDate || participant.enrollment_date),
   }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Formal consent is tracked via consent_records (ICH E6(R3) CONSENT-01),
-    // not on the participant row.
-    onAddParticipant({
+    // not on the participant row. Returning the new id lets the display
+    // layer offer recording consent immediately, right after enrollment.
+    const newId = await onAddParticipant({
       age,
       gender,
       healthStatus,
@@ -61,6 +62,7 @@ const ParticipantsControl = ({
     setAge('');
     setGender('Male');
     setHealthStatus('Healthy');
+    return newId;
   };
 
   const handleGoalSubmit = (e: React.FormEvent) => {

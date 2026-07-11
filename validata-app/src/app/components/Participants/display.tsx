@@ -28,7 +28,9 @@ interface ParticipantsDisplayProps {
   onGenderChange: (v: string) => void;
   healthStatus: string;
   onHealthStatusChange: (v: string) => void;
-  onSubmit: (e: React.FormEvent) => void;
+  // Resolves to the newly created participant's id (or undefined on
+  // failure), so the panel can offer recording consent for them right away.
+  onSubmit: (e: React.FormEvent) => Promise<string | undefined>;
   onDrop: (id: string) => void;
   onToggleCompleted: (id: string) => void;
   recruitedCount: number;
@@ -744,6 +746,7 @@ const ParticipantsDisplay = ({
           onSelectChange={setSelectedKeys}
           onRowClick={(row) => { setSelectedParticipant(row); setIsPanelOpen(false); }}
           onRowContextMenu={(row, e) => setContextMenu({ row, x: e.clientX, y: e.clientY })}
+          reserveRight={(isPanelOpen || !!selectedParticipant || !!consentParticipantId) ? 360 : 0}
           emptyMessage={
             search || filterStatus !== 'all' || filterGender !== 'all'
               ? 'No participants match the current filters.'
@@ -792,9 +795,14 @@ const ParticipantsDisplay = ({
       {/* Add Participant InlinePanel */}
       <InlinePanel isOpen={isPanelOpen} onClose={() => setIsPanelOpen(false)} title="Add Participant">
         <form
-          onSubmit={(e) => {
-            onSubmit(e);
+          onSubmit={async (e) => {
+            const newId = await onSubmit(e);
             setIsPanelOpen(false);
+            // Go straight into Record Consent for the participant that was
+            // just created - Cancel is still right there if they're not
+            // ready to record it yet. Gated the same as the per-row button,
+            // so this doesn't surface a form to someone who can't submit it.
+            if (newId && canRecordConsent) openConsentPanel(newId);
           }}
           style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
         >
@@ -866,7 +874,9 @@ const ParticipantsDisplay = ({
               lineHeight: 1.5,
             }}
           >
-            After enrolling, create a formal consent record in the Compliance section.
+            {canRecordConsent
+              ? 'After enrolling, you\'ll be prompted to record their formal consent right away — skip it with Cancel if you\'re not ready yet.'
+              : 'After enrolling, create a formal consent record in the Compliance section.'}
           </div>
 
           <button

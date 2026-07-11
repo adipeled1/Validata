@@ -5,7 +5,7 @@ import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 import { Download } from 'lucide-react';
-import { READABLE_ROLES, hasRole } from '../../../lib/permissions';
+import { READABLE_ROLES, canAccessPage } from '../../../lib/permissions';
 import * as clientDemoStore from '../../../lib/clientDemoStore';
 
 const colHeaderStyle: React.CSSProperties = {
@@ -49,7 +49,7 @@ async function fetchSignatures(studyId: string, isDemoMode: boolean): Promise<Si
 }
 
 export default function SignaturesPage() {
-  const { userRole, isDemoMode } = useSession();
+  const { userRole, userStatus, isDemoMode } = useSession();
   const { currentStudyId } = useStudy();
 
   const swrKey = currentStudyId ? `signatures:${currentStudyId}` : null;
@@ -85,7 +85,7 @@ export default function SignaturesPage() {
   // Matches the READABLE_ROLES gate GET /api/signatures enforces server-side,
   // and every other compliance page's client-side gate, so access is
   // consistent across the route, the UI, and site_coordinator/data_manager.
-  if (!hasRole(userRole, READABLE_ROLES)) {
+  if (!canAccessPage(userRole, userStatus, READABLE_ROLES)) {
     return (
       <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>
         You do not have access to the electronic signatures register.

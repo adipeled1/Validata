@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
-import { READABLE_ROLES, DELEGATION_ROLES, hasRole } from '../../../lib/permissions';
+import { READABLE_ROLES, DELEGATION_ROLES, hasRole, canAccessPage } from '../../../lib/permissions';
 import * as clientDemoStore from '../../../lib/clientDemoStore';
 import { DEMO_USERS } from '../../../lib/demoData';
 import { getDelegationStatus, DELEGATION_STATUS_LABELS, DELEGATION_STATUS_COLOR_VARS } from '../../../lib/delegationStatus';
@@ -42,7 +42,7 @@ async function fetchDelegations(studyId: string, isDemoMode: boolean): Promise<D
 }
 
 export default function DelegationLogPage() {
-  const { userRole, isDemoMode, currentUserEmail } = useSession();
+  const { userRole, userStatus, isDemoMode, currentUserEmail } = useSession();
   const { currentStudyId, studies } = useStudy();
 
   const [showPanel, setShowPanel] = useState(false);
@@ -187,7 +187,7 @@ export default function DelegationLogPage() {
     }
   };
 
-  if (!hasRole(userRole, READABLE_ROLES)) {
+  if (!canAccessPage(userRole, userStatus, READABLE_ROLES)) {
     return (
       <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>
         You do not have access to the delegation log.

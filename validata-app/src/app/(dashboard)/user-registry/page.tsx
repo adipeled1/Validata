@@ -2,12 +2,12 @@
 
 import { useSession } from '../../../context/SessionContext';
 import UserRegistry from '../../components/UserRegistry/control';
-import { ADMIN_ROLES, hasRole } from '../../../lib/permissions';
+import { ADMIN_ROLES, canAccessPage } from '../../../lib/permissions';
 
 export default function UserRegistryPage() {
-  const { userRole, isDemoMode, currentUserEmail } = useSession();
+  const { userRole, userStatus, isDemoMode, currentUserEmail } = useSession();
 
-  if (!hasRole(userRole, ADMIN_ROLES)) {
+  if (!canAccessPage(userRole, userStatus, ADMIN_ROLES)) {
     return null;
   }
 

@@ -19,6 +19,15 @@ export interface DataGridProps<T> {
   onSelectChange?: (keys: Set<string>) => void;
   loading?: boolean;
   emptyMessage?: string;
+  // Extra scrollable space (px) to add on the right, e.g. while an absolutely-
+  // positioned InlinePanel is floating over the grid. The panel doesn't
+  // affect layout (it's position: absolute, so it never shrinks the grid's
+  // own container), so without this there's nothing forcing the grid to
+  // become scrollable just because a panel is covering part of it. Adding
+  // this as trailing padding on the scroll container extends its scrollWidth,
+  // so scrolling right-to-left brings columns out from under the panel even
+  // though the grid's own content didn't get any wider.
+  reserveRight?: number;
 }
 
 export default function DataGrid<T extends Record<string, any>>({
@@ -31,6 +40,7 @@ export default function DataGrid<T extends Record<string, any>>({
   onSelectChange,
   loading = false,
   emptyMessage = 'No data.',
+  reserveRight = 0,
 }: DataGridProps<T>) {
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
 
@@ -55,13 +65,27 @@ export default function DataGrid<T extends Record<string, any>>({
   const hasActions = !!onRowContextMenu;
   const allSelected = hasCheckboxes && rows.length > 0 && selectedKeys?.size === rows.length;
 
+  // table-layout: auto (the default) treats a column's `width` as an advisory
+  // hint, not a minimum - combined with the table's own `width: 100%`, the
+  // browser just shrinks columns to fit the container instead of ever
+  // overflowing it. That leaves nothing for the wrapper's overflow:auto to
+  // scroll. table-layout: fixed + an explicit min-width (the sum of every
+  // column's width) makes the table hold its real size and overflow - and
+  // become horizontally scrollable - once the container is narrower than that.
+  const minWidth =
+    (hasCheckboxes ? 30 : 0) +
+    columns.reduce((sum, col) => sum + (col.width ? parseInt(col.width, 10) || 0 : 150), 0) +
+    (hasActions ? 48 : 0);
+
   return (
     <div
       style={{
         width: '100%',
+        height: '100%',
         border: '1px solid var(--border)',
         overflow: 'auto',
         background: 'var(--bg-surface)',
+        paddingRight: reserveRight ? `${reserveRight}px` : undefined,
       }}
     >
       {loading && (
@@ -95,6 +119,8 @@ export default function DataGrid<T extends Record<string, any>>({
         <table
           style={{
             width: '100%',
+            minWidth: `${minWidth}px`,
+            tableLayout: 'fixed',
             borderCollapse: 'collapse',
             fontFamily: 'var(--font-ui)',
             fontSize: 'var(--font-size-md)',

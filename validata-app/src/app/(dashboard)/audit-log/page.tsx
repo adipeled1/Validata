@@ -4,7 +4,7 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
-import { AUDIT_VIEWER_ROLES, hasRole } from '../../../lib/permissions';
+import { AUDIT_VIEWER_ROLES, canAccessPage } from '../../../lib/permissions';
 
 const ACTION_COLORS: Record<string, string> = {
   INSERT: 'var(--status-insert)',
@@ -39,13 +39,13 @@ async function fetchAuditLogs(params: URLSearchParams): Promise<any[]> {
 }
 
 export default function AuditLogPage() {
-  const { userRole } = useSession();
+  const { userRole, userStatus } = useSession();
   const { currentStudyId } = useStudy();
   const [actionFilter, setActionFilter] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
-  const canView = hasRole(userRole, AUDIT_VIEWER_ROLES);
+  const canView = canAccessPage(userRole, userStatus, AUDIT_VIEWER_ROLES);
 
   const swrKey = currentStudyId
     ? `audit-log:${currentStudyId}:${actionFilter}:${fromDate}:${toDate}`

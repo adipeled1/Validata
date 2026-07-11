@@ -3,7 +3,7 @@
 import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
-import { AUDIT_VIEWER_ROLES, hasRole } from '../../../lib/permissions';
+import { AUDIT_VIEWER_ROLES, canAccessPage } from '../../../lib/permissions';
 
 const ACTION_COLORS: Record<string, string> = {
   INSERT: 'var(--status-insert)',
@@ -54,10 +54,10 @@ async function fetchLog(params: URLSearchParams): Promise<any[]> {
 // study-scoped audit data as the Audit Trail page, retold as a readable
 // timeline instead of a raw table.
 export default function StudyLogPage() {
-  const { userRole } = useSession();
+  const { userRole, userStatus } = useSession();
   const { currentStudyId } = useStudy();
 
-  const canView = hasRole(userRole, AUDIT_VIEWER_ROLES);
+  const canView = canAccessPage(userRole, userStatus, AUDIT_VIEWER_ROLES);
 
   const swrKey = currentStudyId ? `study-log:${currentStudyId}` : null;
   const { data: rows = [], isLoading: loading, mutate: refresh } = useSWR(swrKey, () =>

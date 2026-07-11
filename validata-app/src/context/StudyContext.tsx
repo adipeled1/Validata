@@ -23,7 +23,10 @@ interface StudyContextValue {
   updateRecruitmentGoal: (newGoal: string | number) => Promise<void>;
   participants: any[];
   measurements: any[];
-  addParticipant: (data: { age: string; gender: string; healthStatus: string; enrollmentDate: string }) => Promise<void>;
+  // Returns the newly created participant's id (or undefined if the create
+  // failed / was skipped) so the caller can immediately offer recording
+  // consent for them.
+  addParticipant: (data: { age: string; gender: string; healthStatus: string; enrollmentDate: string }) => Promise<string | undefined>;
   // ICH E6(R3) COR-01: reason is required when dropping a participant so the
   // status change is justified and traceable in the audit trail.
   dropParticipant: (id: string, reason: string) => Promise<void>;
@@ -292,6 +295,7 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
       triggerToast(isDemoMode
         ? `Participant ${savedData.id} registered successfully! (Demo)`
         : `Participant ${savedData.id} registered and saved in database!`);
+      return newParticipant.id;
     } catch (error: any) {
       console.error('Error adding participant:', error);
       triggerToast('Failed to save participant: ' + error.message);

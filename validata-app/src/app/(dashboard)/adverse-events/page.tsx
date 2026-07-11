@@ -4,7 +4,7 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
-import { READABLE_ROLES, EDIT_ROLES, hasRole } from '../../../lib/permissions';
+import { READABLE_ROLES, EDIT_ROLES, hasRole, canAccessPage } from '../../../lib/permissions';
 import * as clientDemoStore from '../../../lib/clientDemoStore';
 
 interface AdverseEvent {
@@ -87,7 +87,7 @@ async function fetchAdverseEvents(studyId: string, isDemoMode: boolean): Promise
 }
 
 export default function AdverseEventsPage() {
-  const { userRole, isDemoMode, currentUserEmail } = useSession();
+  const { userRole, userStatus, isDemoMode, currentUserEmail } = useSession();
   const { currentStudyId, participants } = useStudy();
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -175,7 +175,7 @@ export default function AdverseEventsPage() {
     }
   };
 
-  if (!hasRole(userRole, READABLE_ROLES)) {
+  if (!canAccessPage(userRole, userStatus, READABLE_ROLES)) {
     return (
       <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>
         You do not have access to adverse events.

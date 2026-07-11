@@ -2,7 +2,7 @@
 
 import { useSession } from '../../../context/SessionContext';
 import DataGrid from '../../components/ui/DataGrid';
-import { ADMIN_ROLES, hasRole } from '../../../lib/permissions';
+import { ADMIN_ROLES, canAccessPage } from '../../../lib/permissions';
 
 // ICH E6(R3) META-04: System inventory register.
 
@@ -135,9 +135,9 @@ const columns = [
 ];
 
 export default function SystemInventoryPage() {
-  const { userRole } = useSession();
+  const { userRole, userStatus } = useSession();
 
-  if (!hasRole(userRole, ADMIN_ROLES)) {
+  if (!canAccessPage(userRole, userStatus, ADMIN_ROLES)) {
     return (
       <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>
         You do not have access to the system inventory register.

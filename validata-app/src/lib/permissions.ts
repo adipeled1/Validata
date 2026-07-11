@@ -54,3 +54,17 @@ export const ACCESS_REGISTRY_ROLES = ['admin', 'mentor', 'monitor', 'auditor'] a
 export function hasRole(role: string | undefined | null, allowed: readonly string[]): boolean {
   return !!role && allowed.includes(role);
 }
+
+// A role check alone isn't enough to gate a page: RLS blocks every non-
+// 'active' status regardless of role, so a suspended/pending user with an
+// otherwise-sufficient role would still see the page shell render before its
+// data fetch 403s. Pages must check both - this helper keeps that pairing in
+// one place instead of each page.tsx repeating `hasRole(...) && status ===
+// 'active'` (and risking someone copy-pasting the role half only).
+export function canAccessPage(
+  role: string | undefined | null,
+  status: string | undefined | null,
+  allowed: readonly string[]
+): boolean {
+  return status === 'active' && hasRole(role, allowed);
+}

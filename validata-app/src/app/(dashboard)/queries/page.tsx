@@ -5,7 +5,7 @@ import useSWR from 'swr';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
-import { QUERY_MUTATE_ROLES, hasRole } from '../../../lib/permissions';
+import { QUERY_MUTATE_ROLES, canAccessPage } from '../../../lib/permissions';
 import * as clientDemoStore from '../../../lib/clientDemoStore';
 
 const EMPTY_NEW_QUERY = {
@@ -51,7 +51,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 function QueriesPageContent() {
-  const { userRole, isDemoMode, currentUserEmail } = useSession();
+  const { userRole, userStatus, isDemoMode, currentUserEmail } = useSession();
   const { currentStudyId } = useStudy();
   const [answerText, setAnswerText] = useState<Record<number, string>>({});
 
@@ -82,7 +82,7 @@ function QueriesPageContent() {
   const queryIdParam = searchParams.get('id');
   const [lastInitializedParam, setLastInitializedParam] = useState<string | null>(null);
 
-  const canRaiseQuery = hasRole(userRole, QUERY_MUTATE_ROLES);
+  const canRaiseQuery = canAccessPage(userRole, userStatus, QUERY_MUTATE_ROLES);
 
   const swrKey = currentStudyId ? `queries:${currentStudyId}` : null;
   const { data: queries = [], isLoading: loading, mutate: mutateQueries } = useSWR(

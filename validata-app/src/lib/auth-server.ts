@@ -6,7 +6,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type Profile = {
   role: string; // 'applicant' plus the operational role set defined in schemas.ts roleSchema
-  status: 'wait_email_confirm' | 'wait_approval' | 'active' | 'suspended';
+  status: 'wait_email_confirm' | 'wait_approval' | 'active' | 'suspended' | 'deleted';
   deleted_at?: string | null;
 };
 

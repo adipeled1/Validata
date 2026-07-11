@@ -2,7 +2,7 @@
 
 import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
-import { AUDIT_VIEWER_ROLES, hasRole } from '../../../lib/permissions';
+import { AUDIT_VIEWER_ROLES, canAccessPage } from '../../../lib/permissions';
 
 const ACTION_COLORS: Record<string, string> = {
   INSERT: 'var(--status-insert)',
@@ -28,9 +28,9 @@ async function fetchLog(params: URLSearchParams): Promise<any[]> {
 // scoped to any one study, so this page (unlike Study Log/Audit Trail)
 // doesn't filter by currentStudyId.
 export default function SystemLogPage() {
-  const { userRole } = useSession();
+  const { userRole, userStatus } = useSession();
 
-  const canView = hasRole(userRole, AUDIT_VIEWER_ROLES);
+  const canView = canAccessPage(userRole, userStatus, AUDIT_VIEWER_ROLES);
 
   const { data: rows = [], isLoading: loading, mutate: refresh } = useSWR(
     canView ? 'system-log' : null,

@@ -2,7 +2,12 @@ import "./globals.css";
 import { ThemeProvider } from "../context/ThemeContext";
 
 export const metadata = {
-  metadataBase: new URL('https://validata-pink.vercel.app'),
+  // PLACEHOLDER — no live deployment exists yet. metadataBase must be a
+  // valid URL (Next.js resolves relative asset paths like openGraph.images
+  // against it), so this uses an obviously-fake host rather than one that
+  // looks like a real, working deployment. Replace with the real production
+  // URL once one exists.
+  metadataBase: new URL('https://REPLACE-WITH-DEPLOYMENT-URL.example.com'),
   title: "Validata | Clinical Trial Dashboard",
   description: "Secure portal for managing participants, logging measurements, and analyzing clinical data.",
   icons: {
