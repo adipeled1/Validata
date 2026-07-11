@@ -232,6 +232,7 @@ const UserRegistryDisplay = ({
   onRemoveStudyMember,
 }: UserRegistryDisplayProps) => {
   const [showArchive, setShowArchive] = useState(false);
+  const [showUnconfirmed, setShowUnconfirmed] = useState(false);
   const viewerIsAdmin = viewerRole === 'admin';
   // Applicants are split into two groups: unconfirmed sign-ups (haven't
   // clicked the email confirmation link yet - not actionable, informational
@@ -284,6 +285,26 @@ const UserRegistryDisplay = ({
           >
             Export Access Registry (CSV)
           </a>
+          {unconfirmedApplicants.length > 0 && (
+            <button
+              onClick={() => setShowUnconfirmed(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 10px',
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-secondary)',
+                fontSize: 'var(--font-size-sm)',
+                cursor: 'pointer',
+                borderRadius: 'var(--radius)',
+              }}
+            >
+              <Clock size={12} style={{ color: 'var(--text-muted)' }} />
+              Unconfirmed Sign-ups ({unconfirmedApplicants.length})
+            </button>
+          )}
           {deletedUsers.length > 0 && (
             <button
               onClick={() => setShowArchive(true)}
@@ -419,66 +440,11 @@ const UserRegistryDisplay = ({
         </div>
       )}
 
-      {/* Unconfirmed Sign-ups - status: wait_email_confirm. Informational
-          only, no action available: these applicants haven't confirmed
-          their email yet, so there's nothing for a mentor to approve.
-          They'll either confirm (moving to Pending Approvals above) or
-          auto-expire after 30 days like any other applicant. */}
-      {!isLoading && unconfirmedApplicants.length > 0 && (
-        <div>
-          <div style={{
-            fontSize: 'var(--font-size-xs)',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            color: 'var(--text-muted)',
-            padding: '6px 0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-          }}>
-            <Clock size={11} />
-            Unconfirmed Sign-ups ({unconfirmedApplicants.length}) — awaiting email confirmation, not yet actionable
-          </div>
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th style={colHeaderStyle}>Email</th>
-                  <th style={colHeaderStyle}>Expires At</th>
-                </tr>
-              </thead>
-              <tbody>
-                {unconfirmedApplicants.map((user, i) => {
-                  const expiresAt = user.candidate_expires_at
-                    ? new Date(user.candidate_expires_at).toLocaleDateString()
-                    : '—';
-                  return (
-                    <tr
-                      key={user.id}
-                      style={{
-                        background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
-                        borderBottom: '1px solid var(--border)',
-                      }}
-                    >
-                      <td style={cellStyle}>
-                        <span style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>{user.email}</span>
-                      </td>
-                      <td style={{ ...cellStyle, fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)', color: 'var(--text-timestamp)' }}>
-                        {expiresAt}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      
 
       {/* Active users table */}
       <div>
-        {(pendingApprovals.length > 0 || unconfirmedApplicants.length > 0) && (
+        {pendingApprovals.length > 0 && (
           <div style={{
             fontSize: 'var(--font-size-xs)',
             fontWeight: 600,
@@ -773,6 +739,93 @@ const UserRegistryDisplay = ({
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unconfirmed Sign-ups overlay modal */}
+      {showUnconfirmed && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            width: '100%',
+            maxWidth: '540px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            {/* Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '18px 24px',
+              borderBottom: '1px solid var(--border)',
+            }}>
+              <span style={{ fontSize: 'var(--font-size-base)', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                Unconfirmed Sign-ups
+              </span>
+              <button
+                onClick={() => setShowUnconfirmed(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            {/* Content */}
+            <div style={{ padding: '24px', maxHeight: '480px', overflowY: 'auto' }}>
+              <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                These applicants have signed up but have not yet verified their email address. They are fully blocked from access and will auto-expire if not confirmed.
+              </div>
+              {unconfirmedApplicants.length === 0 ? (
+                <div style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-muted)', textAlign: 'center', padding: '24px 0' }}>
+                  No unconfirmed sign-ups.
+                </div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={colHeaderStyle}>Email</th>
+                      <th style={colHeaderStyle}>Expires At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {unconfirmedApplicants.map((user, i) => {
+                      const expiresAt = user.candidate_expires_at
+                        ? new Date(user.candidate_expires_at).toLocaleDateString()
+                        : '—';
+                      return (
+                        <tr
+                          key={user.id}
+                          style={{
+                            background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
+                            borderBottom: '1px solid var(--border)',
+                          }}
+                        >
+                          <td style={{ ...cellStyle, padding: '8px 10px', height: 'auto' }}>
+                            <span style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>{user.email}</span>
+                          </td>
+                          <td style={{ ...cellStyle, padding: '8px 10px', height: 'auto', fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)', color: 'var(--text-timestamp)' }}>
+                            {expiresAt}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
