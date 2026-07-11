@@ -39,7 +39,7 @@ This project is licensed under the [Apache 2.0 License](../LICENSE).
 |---|---|
 | Institution | Braude College of Engineering, Karmiel, Israel |
 | Departments | Software Engineering; Electrical and Electronics Engineering |
-| Partner | Rambam Health Care Campus |
+| Partner | Partner Medical Center |
 | Project code | D-26-4-1 |
 | Project title | Dorsiflexion Angle Measurement |
 | Advisors | Dr. Naomi Unkelos Shpigel, Dr. Einat Ravid |

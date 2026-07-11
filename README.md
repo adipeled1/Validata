@@ -1,6 +1,6 @@
 # Validata — Clinical Research EDC Platform
 
-Validata is a full-stack Electronic Data Capture (EDC) and eCRF web application built by a student team at Braude College of Engineering for a joint clinical research initiative with Rambam Hospital.
+Validata is a full-stack Electronic Data Capture (EDC) and eCRF web application built by a student team at Braude College of Engineering for a joint clinical research initiative with the partner medical center.
 
 The platform manages study participants, records and validates measurements, and compares AI-based angle measurements against manual goniometer reference values.
 
@@ -88,7 +88,7 @@ For a full description of every feature, see [`FEATURES.md`](documentation/FEATU
 |---|---|
 | Institution | Braude College of Engineering, Karmiel, Israel |
 | Departments | Software Engineering; Electrical and Electronics Engineering |
-| Partner | Rambam Health Care Campus |
+| Partner | Partner Medical Center |
 | Advisors | Dr. Naomi Unkelos Shpigel, Dr. Einat Ravid |
 
 ---

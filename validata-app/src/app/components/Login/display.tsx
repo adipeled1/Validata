@@ -245,7 +245,7 @@ export default function LoginDisplay({
                   fontFamily: 'inherit',
                   transition: 'border-color 0.15s',
                 }}
-                placeholder="you@rambam.health.gov.il"
+                placeholder="you@institution.org"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onFocus={e => (e.target.style.borderColor = '#7c3aed')}

@@ -10,7 +10,7 @@ For a diagram of the database schema see [`SCHEMA.md`](SCHEMA.md).
 
 ## What Validata Does
 
-Validata is a full-stack Electronic Data Capture (EDC) and eCRF web application purpose-built for clinical research data management. It was originally developed for project D-26-4-1 (Dorsiflexion Angle Measurement) at Braude College in collaboration with Rambam Hospital.
+Validata is a full-stack Electronic Data Capture (EDC) and eCRF web application purpose-built for clinical research data management. It was originally developed for project D-26-4-1 (Dorsiflexion Angle Measurement) at Braude College in collaboration with the partner medical center.
 
 The system:
 - Manages studies, participants, and clinical measurement data

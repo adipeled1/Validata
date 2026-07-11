@@ -1,7 +1,7 @@
 # Validata — Agent Instructions
 
 Validata is a Next.js (App Router) clinical research EDC platform for project D-26-4-1
-(Dorsiflexion Angle Measurement), built for Braude College / Rambam Hospital. See
+(Dorsiflexion Angle Measurement), built for Braude College in collaboration with the clinical partner. See
 `README.md` for full project context.
 
 ## Stack
