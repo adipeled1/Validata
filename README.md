@@ -4,7 +4,7 @@ Validata is a full-stack Electronic Data Capture (EDC) and eCRF web application 
 
 The platform manages study participants, records and validates measurements, and compares AI-based angle measurements against manual goniometer reference values.
 
-**🚀 Live Demo:** [https://your-vercel-link.vercel.app](https://your-vercel-link.vercel.app) *(Demonstration environment with sandboxed mock data)*
+
 
 > **This is a student academic project.** It does not claim ICH E6(R3) or GCP compliance.
 > Read [`DISCLAIMER.md`](documentation/DISCLAIMER.md) before using this software in any clinical context.
