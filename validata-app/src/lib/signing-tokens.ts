@@ -1,9 +1,9 @@
 import type { ResolvedSession } from '@/lib/auth-server';
 
 // Binds POST /api/auth/verify-credentials to POST /api/signatures so a
-// signature can no longer be recorded without a preceding, successful
-// password re-check (fable_system_review §2.4). A token is minted only
-// after verify-credentials succeeds, is single-use, and expires quickly.
+// signature can never be recorded without a preceding, successful password
+// re-check. A token is minted only after verify-credentials succeeds, is
+// single-use, and expires quickly.
 
 const TOKEN_TTL_MS = 3 * 60 * 1000; // 3 minutes
 const DEMO_TOKEN = 'demo-signing-token';

@@ -1,10 +1,9 @@
-// Single source of truth for "who can do what" (fable_system_review §2.1,
-// §4.1). Previously this was redefined independently in ~6+ places
-// (auth-server.ts, supabase_setup.sql RLS helpers, PrimarySidebar.tsx, every
-// page.tsx's own *_ROLES literal, inline route-handler arrays) and had
-// already drifted - e.g. delegations/consent-version routes accepted roles
-// RLS then rejected, and auditor/irb_reviewer could mutate queries because
-// the mutation endpoint reused the read-only role check.
+// Single source of truth for "who can do what". Defining these role sets in
+// one place - rather than independently in auth-server.ts, supabase_setup.sql
+// RLS helpers, PrimarySidebar.tsx, every page.tsx's own *_ROLES literal, and
+// inline route-handler arrays - is what prevents the two layers from
+// silently drifting apart (e.g. an endpoint accepting a role that RLS then
+// rejects, or a mutation endpoint accidentally reusing a read-only role check).
 //
 // This module has NO server-only imports (no next/headers, no Supabase
 // client) so it can be imported from both client components (pages,

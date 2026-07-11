@@ -14,7 +14,6 @@
   "participants": [
     {
       "id": "P-1001",
-      "consent": true,
       "status": "Completed",
       "age": 45,
       "gender": "Female",
@@ -24,7 +23,6 @@
     },
     {
       "id": "P-1002",
-      "consent": true,
       "status": "Active",
       "age": 62,
       "gender": "Male",
@@ -34,7 +32,6 @@
     },
     {
       "id": "P-1003",
-      "consent": true,
       "status": "Dropped",
       "age": 28,
       "gender": "Female",
@@ -44,7 +41,6 @@
     },
     {
       "id": "P-1004",
-      "consent": true,
       "status": "Active",
       "age": 35,
       "gender": "Male",
@@ -54,7 +50,6 @@
     },
     {
       "id": "P-1005",
-      "consent": true,
       "status": "Active",
       "age": 50,
       "gender": "Female",
@@ -64,7 +59,6 @@
     },
     {
       "id": "P-1006",
-      "consent": true,
       "status": "Active",
       "age": 19,
       "gender": "Male",
@@ -74,7 +68,6 @@
     },
     {
       "id": "P-1007",
-      "consent": true,
       "status": "Dropped",
       "age": 41,
       "gender": "Female",
@@ -84,7 +77,6 @@
     },
     {
       "id": "P-1008",
-      "consent": true,
       "status": "Active",
       "age": 30,
       "gender": "Male",
@@ -94,7 +86,6 @@
     },
     {
       "id": "P-1009",
-      "consent": true,
       "status": "Active",
       "age": 29,
       "gender": "Female",
@@ -104,7 +95,6 @@
     },
     {
       "id": "P-1010",
-      "consent": true,
       "status": "Active",
       "age": 52,
       "gender": "Male",
@@ -114,7 +104,6 @@
     },
     {
       "id": "P-1011",
-      "consent": true,
       "status": "Active",
       "age": 33,
       "gender": "Female",
@@ -124,7 +113,6 @@
     },
     {
       "id": "P-1012",
-      "consent": true,
       "status": "Active",
       "age": 47,
       "gender": "Male",
@@ -134,7 +122,6 @@
     },
     {
       "id": "P-1013",
-      "consent": true,
       "status": "Active",
       "age": 38,
       "gender": "Female",
@@ -144,7 +131,6 @@
     },
     {
       "id": "P-1014",
-      "consent": true,
       "status": "Active",
       "age": 64,
       "gender": "Male",
@@ -154,7 +140,6 @@
     },
     {
       "id": "P-1015",
-      "consent": true,
       "status": "Active",
       "age": 21,
       "gender": "Female",
@@ -164,7 +149,6 @@
     },
     {
       "id": "P-1016",
-      "consent": true,
       "status": "Active",
       "age": 55,
       "gender": "Male",
@@ -174,7 +158,6 @@
     },
     {
       "id": "P-1017",
-      "consent": true,
       "status": "Active",
       "age": 42,
       "gender": "Female",
@@ -184,7 +167,6 @@
     },
     {
       "id": "P-1018",
-      "consent": true,
       "status": "Active",
       "age": 31,
       "gender": "Male",
@@ -194,7 +176,6 @@
     },
     {
       "id": "P-1019",
-      "consent": true,
       "status": "Active",
       "age": 49,
       "gender": "Female",
@@ -204,7 +185,6 @@
     },
     {
       "id": "P-1020",
-      "consent": true,
       "status": "Active",
       "age": 36,
       "gender": "Male",
@@ -214,7 +194,6 @@
     },
     {
       "id": "P-1021",
-      "consent": true,
       "status": "Active",
       "age": 27,
       "gender": "Female",
@@ -224,7 +203,6 @@
     },
     {
       "id": "P-1022",
-      "consent": true,
       "status": "Active",
       "age": 59,
       "gender": "Male",
@@ -234,7 +212,6 @@
     },
     {
       "id": "P-1023",
-      "consent": true,
       "status": "Active",
       "age": 43,
       "gender": "Female",
@@ -244,7 +221,6 @@
     },
     {
       "id": "P-2001",
-      "consent": true,
       "status": "Active",
       "age": 40,
       "gender": "Female",

@@ -1,23 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import { mapParticipants, mapMeasurements, withEnrollmentDates } from './mappers';
 
-// fable_system_review §4.2: mapParticipants/mapMeasurements no longer take an
-// isDemoMode flag or run a separate demo-mode branch - mockData.json now
-// stores raw DB-shaped rows (snake_case, unformatted numbers), so the same
-// single mapping path handles both demo and live data. These tests exercise
-// that one path with both a demo-shaped row and a live-shaped row to confirm
-// they produce the same output shape.
+// mapParticipants/mapMeasurements take no isDemoMode flag and run no
+// separate demo-mode branch - mockData.json stores raw DB-shaped rows
+// (snake_case, unformatted numbers), so the same single mapping path
+// handles both demo and live data. These tests exercise that one path with
+// both a demo-shaped row and a live-shaped row to confirm they produce the
+// same output shape.
 
 describe('mapParticipants', () => {
   it('maps raw DB-shaped rows (snake_case) to the frontend camelCase shape', () => {
-    const raw = [{ id: 'P-1001', consent: true, status: 'Active', age: 30, gender: 'Female', health_status: 'Healthy', enrollment_date: '2026-01-01' }];
+    const raw = [{ id: 'P-1001', status: 'Active', age: 30, gender: 'Female', health_status: 'Healthy', enrollment_date: '2026-01-01' }];
     expect(mapParticipants(raw)).toEqual([
-      { id: 'P-1001', consent: true, status: 'Active', age: 30, gender: 'Female', healthStatus: 'Healthy', enrollmentDate: '2026-01-01' },
+      { id: 'P-1001', status: 'Active', age: 30, gender: 'Female', healthStatus: 'Healthy', enrollmentDate: '2026-01-01' },
     ]);
   });
 
   it('defaults a missing enrollment_date to null', () => {
-    const raw = [{ id: 'P-1001', consent: true, status: 'Active', age: 30, gender: 'Female', health_status: 'Healthy' }];
+    const raw = [{ id: 'P-1001', status: 'Active', age: 30, gender: 'Female', health_status: 'Healthy' }];
     expect(mapParticipants(raw)[0].enrollmentDate).toBeNull();
   });
 });

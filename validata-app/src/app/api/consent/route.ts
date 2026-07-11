@@ -56,10 +56,10 @@ export async function POST(request: Request): Promise<Response> {
     const body = await request.json();
 
     if (body.action === 'create_version') {
-      // fable_system_review §2.2: consent FORM VERSIONING is protocol-level
-      // document control (mentor/admin), distinct from recording an
-      // individual participant's consent below - canEditData() was too
-      // broad here and RLS (mentor/admin-only) silently rejected the rest.
+      // Consent FORM VERSIONING is protocol-level document control
+      // (mentor/admin), distinct from recording an individual participant's
+      // consent below, so it's checked against the narrower
+      // CONSENT_VERSION_ROLES rather than the general canEditData().
       if (!hasRole(session.profile.role, CONSENT_VERSION_ROLES)) {
         return Response.json({ error: 'Forbidden. Mentor or admin role required to create a consent form version.' }, { status: 403 });
       }

@@ -115,7 +115,7 @@ export default function StatusBar({
       {canAdmin ? (
         <button
           style={clickableSegmentStyle}
-          onClick={() => router.push('/user-management')}
+          onClick={() => router.push('/user-registry')}
           onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.textDecoration = 'underline')}
           onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.textDecoration = 'none')}
           title="User Registry"

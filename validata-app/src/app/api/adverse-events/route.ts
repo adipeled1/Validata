@@ -11,11 +11,11 @@ function calculateDeadline(aeType: string, severity: string, expectedness: strin
   const isUnexpected = expectedness === 'unexpected';
   if (!isUnexpected) return null;
   const days = isFatal ? 7 : 15;
-  // fable_system_review §8.12: reportDate is a bare YYYY-MM-DD. `new
-  // Date(reportDate)` parses that as UTC midnight, but setDate()/getDate()
-  // operate in the server's LOCAL timezone - for a server west of UTC this
-  // silently reads back the previous day before adding `days`, shifting the
-  // regulatory deadline by a day. Do the arithmetic in UTC throughout.
+  // reportDate is a bare YYYY-MM-DD. `new Date(reportDate)` parses that as
+  // UTC midnight, but setDate()/getDate() operate in the server's LOCAL
+  // timezone - for a server west of UTC this would silently read back the
+  // previous day before adding `days`, shifting the regulatory deadline by
+  // a day. Do the arithmetic in UTC throughout to avoid that.
   const d = new Date(reportDate + 'T00:00:00Z');
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().split('T')[0];

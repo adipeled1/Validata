@@ -32,7 +32,7 @@ interface ProfileItem {
   status: string;
 }
 
-// fable_system_review §3.2: standardized on SWR instead of a bare useEffect fetch.
+// Uses SWR (shared cache, request de-dupe) instead of a bare useEffect fetch.
 async function fetchDelegations(studyId: string, isDemoMode: boolean): Promise<Delegation[]> {
   if (isDemoMode) return clientDemoStore.getDelegations(studyId) as unknown as Delegation[];
   const res = await fetch(`/api/admin/delegations?studyId=${studyId}`);
@@ -77,7 +77,7 @@ export default function DelegationLogPage() {
     // Narrow, DELEGATION_ROLES-scoped roster (id/email/role only, active users
     // only) - not the full mentor-only listing behind plain GET /api/profiles,
     // which this page's "Delegate To" picker has no business seeing (it never
-    // needs candidate/pending/suspended accounts or their status history).
+    // needs applicant/suspended accounts or their status history).
     fetch('/api/profiles?activeOnly=true')
       .then(r => r.ok ? r.json() : [])
       .then((data: { id: string; email: string; role: string }[]) =>

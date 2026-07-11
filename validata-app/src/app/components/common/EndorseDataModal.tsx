@@ -43,9 +43,8 @@ const btnBase: React.CSSProperties = {
 
 // Modal that re-authenticates the user (ICH E6(R3) SIG-01) then submits an
 // electronic signature for the current study's analysis data (SIG-02, SIG-03).
-// fable_system_review §3.4: this was the one screen in the app styled with
-// Tailwind utility classes in a light theme, clashing with the rest of the
-// dark, inline-style "IDE" idiom used everywhere else - restyled to match.
+// Styled with the same dark, inline-style "IDE" idiom used everywhere else
+// in the app, rather than Tailwind utility classes in a light theme.
 export default function EndorseDataModal({ studyId, signerEmail, isDemoMode, onClose, onSuccess }: Props) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);

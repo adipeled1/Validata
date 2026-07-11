@@ -15,8 +15,8 @@ export async function PATCH(
       return Response.json({ error: session.error }, { status: session.status });
     }
 
-    // fable_system_review §2.3: this used to accept canReadOnly(), which let
-    // auditor/irb_reviewer - roles that must stay read-only - mutate queries.
+    // Gated to QUERY_MUTATE_ROLES, not the broader canReadOnly() - auditor/
+    // irb_reviewer must stay read-only and are deliberately excluded here.
     if (!hasRole(session.profile.role, QUERY_MUTATE_ROLES)) {
       return Response.json({ error: 'Forbidden. Insufficient role.' }, { status: 403 });
     }

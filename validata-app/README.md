@@ -5,10 +5,10 @@ This is the Next.js application for the Validata EDC platform.
 For all documentation, see the repository root:
 
 - [`../README.md`](../README.md) — project overview, contributors, tech stack, getting started
-- [`../docs/getting-started/FEATURES.md`](../docs/getting-started/FEATURES.md) — full feature and technical description, all ICH-inspired additions
-- [`../DISCLAIMER.md`](../DISCLAIMER.md) — ICH / compliance / open-source disclaimer
+- [`../documentation/FEATURES.md`](../documentation/FEATURES.md) — full feature and technical description, all ICH-inspired additions
+- [`../documentation/DISCLAIMER.md`](../documentation/DISCLAIMER.md) — ICH / compliance / open-source disclaimer
 
-For Supabase setup, follow [`../docs/infrastructure/supabase_bootstrap.md`](../docs/infrastructure/supabase_bootstrap.md).
+For Supabase setup (schema, RLS policies, triggers), run [`supabase_setup.sql`](supabase_setup.sql) against a new Supabase project.
 
 ```bash
 npm install

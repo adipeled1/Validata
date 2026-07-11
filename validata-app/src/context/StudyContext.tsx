@@ -23,7 +23,7 @@ interface StudyContextValue {
   updateRecruitmentGoal: (newGoal: string | number) => Promise<void>;
   participants: any[];
   measurements: any[];
-  addParticipant: (data: { consent: boolean; age: string; gender: string; healthStatus: string; enrollmentDate: string }) => Promise<void>;
+  addParticipant: (data: { age: string; gender: string; healthStatus: string; enrollmentDate: string }) => Promise<void>;
   // ICH E6(R3) COR-01: reason is required when dropping a participant so the
   // status change is justified and traceable in the audit trail.
   dropParticipant: (id: string, reason: string) => Promise<void>;
@@ -147,13 +147,10 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     });
   };
 
-  // fable_system_review §4.2: the demo branch used to build its own study
-  // object inline, duplicating (and risking drifting from) the shape
-  // createStudy's own isDemo branch already returns. Studies aren't run
-  // through a mapper (they're used in raw DB shape directly), so this
-  // wasn't a shape-mismatch bug like participants/measurements, but it was
-  // still the same "same decision made twice" duplication - now both modes
-  // just use whatever createStudyAction returns.
+  // Both demo and live modes use whatever createStudyAction returns, rather
+  // than the demo branch building its own study object inline - studies
+  // aren't run through a mapper (they're used in raw DB shape directly), so
+  // there's exactly one place that decides a new study's shape either way.
   const addStudy = async (name: string, goal: string | number) => {
     const recruitmentGoal = parseInt(String(goal)) || 50;
 
@@ -258,15 +255,13 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     }
   };
 
-  // fable_system_review §4.2: this used to hand-build a participant object
-  // locally for demo mode (a shape independent of, and prone to drifting
-  // from, what mapParticipants/the live branch produce) instead of going
-  // through the repository at all. Now both demo and live go through the
-  // same createParticipantAction -> repository -> mapParticipants path -
-  // the repository's own isDemo branch (in participants.ts) is the only
-  // place demo/live diverge, and it returns the same raw-DB-shaped object
-  // either way, so there is exactly one mapping step for both.
-  const addParticipant = async ({ consent, age, gender, healthStatus, enrollmentDate }: { consent: boolean; age: string; gender: string; healthStatus: string; enrollmentDate: string }) => {
+  // Both demo and live go through the same createParticipantAction ->
+  // repository -> mapParticipants path, rather than hand-building a
+  // participant object locally for demo mode - the repository's own isDemo
+  // branch (in participants.ts) is the only place demo/live diverge, and it
+  // returns the same raw-DB-shaped object either way, so there is exactly
+  // one mapping step for both.
+  const addParticipant = async ({ age, gender, healthStatus, enrollmentDate }: { age: string; gender: string; healthStatus: string; enrollmentDate: string }) => {
     if (!currentStudyId) {
       triggerToast('Select or create a study before adding participants.');
       return;
@@ -274,7 +269,6 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
 
     try {
       const savedData = await createParticipantAction({
-        consent,
         age: parseInt(age) || null,
         gender,
         healthStatus,
@@ -320,7 +314,6 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
       await updateMeasurementValidityAction({
         participantId: id,
         studyId: currentStudyId,
-        isValid: false,
         reason: `Participant dropped: ${reason}`,
       });
 
@@ -385,18 +378,14 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     }
   };
 
-  // fable_system_review §4.2: this used to hand-build a measurement object
-  // locally for demo mode (a THIRD independent shape, alongside the one
-  // mapMeasurements produced for lists and the one this same function
-  // hand-built for the live-mode optimistic update) - the exact
-  // "StudyContext.logMeasurement builds yet another shape" the review flagged.
-  // It also formatted the optimistic timestamp in the client's local
-  // timezone via a bespoke formatTimestamp() helper, while every other
-  // rendering of a timestamp goes through mapMeasurements' UTC formatting -
-  // a second, subtler drift (the optimistic row would show a different time
-  // than the same row after SWR revalidates). Both demo and live now go
-  // through the same createMeasurementAction -> repository -> mapMeasurements
-  // path, so there is exactly one place that shapes a measurement for display.
+  // Both demo and live go through the same createMeasurementAction ->
+  // repository -> mapMeasurements path, so there is exactly one place that
+  // shapes a measurement for display - a locally hand-built object for demo
+  // mode (or for the live-mode optimistic update) would be an independent
+  // shape prone to drifting from what mapMeasurements produces for lists.
+  // In particular, timestamps always go through mapMeasurements' UTC
+  // formatting, so an optimistic row and the same row after SWR revalidates
+  // never show a different time due to local-timezone formatting.
   const logMeasurement = async ({ participantId, goniometer, aiModel, notes, testDate }: { participantId: string; goniometer: string; aiModel: string; notes: string; testDate: string }) => {
     if (!currentStudyId) {
       triggerToast('Select or create a study before logging a measurement.');
@@ -444,7 +433,7 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     }
 
     try {
-      await updateMeasurementValidityAction({ id, isValid: false, studyId: currentStudyId, reason });
+      await updateMeasurementValidityAction({ id, studyId: currentStudyId, reason });
 
       mutateMeasurementsData((current: any[] = []) => current.map((m) => (m.id === id ? { ...m, isValid: false } : m)), { revalidate: false });
       if (isDemoMode) {

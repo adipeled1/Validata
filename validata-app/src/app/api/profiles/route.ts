@@ -2,7 +2,7 @@ import { verifySession, isMentor, canManageAccount } from '@/lib/auth-server';
 import { updateProfileSchema, formatValidationError } from '@/lib/schemas';
 import { DELEGATION_ROLES, hasRole } from '@/lib/permissions';
 import { DEMO_USERS } from '@/lib/demoData';
-import { applyUserOverride, setUserOverride, removeUserOverride } from '@/lib/demoStore';
+import { applyUserOverride, setUserOverride, deleteUserOverride } from '@/lib/demoStore';
 
 // GET: Fetch profiles
 export async function GET(request: Request): Promise<Response> {
@@ -12,13 +12,13 @@ export async function GET(request: Request): Promise<Response> {
       return Response.json({ error: session.error }, { status: session.status });
     }
 
-    // fable_system_review §5.4: candidate cleanup used to run here as an
-    // un-awaited side effect of a GET request - a read endpoint that
-    // hard-deletes rows from auth.users as a fire-and-forget action is
-    // surprising, unauditable (the deletion's HTTP context is a list
-    // request), and racy. It's now a scheduled pg_cron job (see
-    // supabase_setup.sql §37) instead, with POST /api/admin/cleanup-
-    // candidates still available for an on-demand manual trigger.
+    // Expired-candidate cleanup deliberately does NOT run here as a side
+    // effect of this GET request - a read endpoint that hard-deletes rows
+    // from auth.users as a fire-and-forget action would be surprising,
+    // unauditable (the deletion's HTTP context is a list request), and
+    // racy. It's a scheduled pg_cron job instead (see the "Scheduled jobs"
+    // section of supabase_setup.sql), with POST /api/admin/cleanup-
+    // candidates available for an on-demand manual trigger.
 
     const { searchParams } = new URL(request.url);
     const fetchCurrentOnly = searchParams.get('current') === 'true';
@@ -35,36 +35,24 @@ export async function GET(request: Request): Promise<Response> {
         });
       }
 
+      // verifySession() above already requires status === 'active' to reach
+      // this point, and handle_new_user() guarantees a profile row exists
+      // for every authenticated user, so this select should never miss.
       const { data: profile, error } = await session.supabaseClient!
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
         .single();
 
-      if (error) {
-        const { data: newProfile, error: createError } = await session.supabaseClient!
-          .from('profiles')
-          .insert({
-            id: session.user.id,
-            email: session.user.email,
-            role: 'team_member',
-            status: 'pending'
-          })
-          .select()
-          .single();
-
-        if (createError) throw createError;
-        return Response.json(newProfile);
-      }
-
+      if (error) throw error;
       return Response.json(profile);
     }
 
     // 2. Minimal active-user roster (id/email/role only, no status/history) -
     // for pickers like Delegation Log's "Delegate To" dropdown. Scoped to
     // DELEGATION_ROLES, not the full mentor-only listing below, since this
-    // never needs to expose candidate/pending/suspended accounts - callers
-    // already throw that away client-side, so this just doesn't send it.
+    // never needs to expose applicant/suspended accounts - callers already
+    // throw that away client-side, so this just doesn't send it.
     if (fetchActiveOnly) {
       if (!hasRole(session.profile.role, DELEGATION_ROLES)) {
         return Response.json({ error: 'Forbidden.' }, { status: 403 });
@@ -204,7 +192,7 @@ export async function DELETE(request: Request): Promise<Response> {
 
     if (session.isDemo) {
       const target = DEMO_USERS.find((u) => u.id === id);
-      removeUserOverride(id, target?.email ?? id, session.user.email);
+      deleteUserOverride(id, target?.email ?? id, session.user.email);
       return Response.json({ success: true, deletedId: id });
     }
 
@@ -220,15 +208,22 @@ export async function DELETE(request: Request): Promise<Response> {
       return Response.json({ error: 'Forbidden. Only an admin can delete mentor/admin accounts.' }, { status: 403 });
     }
 
+    // Never-approved accounts (role = 'applicant', covering both
+    // wait_email_confirm and wait_approval) are hard-deleted - same as if
+    // their 30-day window had simply expired unreviewed. Ever-approved
+    // accounts are soft-deleted only: status: 'deleted' is the authoritative
+    // signal (distinct from 'suspended' - a mentor can tell them apart from
+    // status alone, not just by also checking deleted_at); deleted_at is
+    // kept purely as the "when" audit timestamp alongside it.
     let error;
-    if (targetProfile.status === 'candidate') {
+    if (targetProfile.role === 'applicant') {
       const { error: rpcError } = await session.supabaseClient!
         .rpc('delete_candidate_user', { p_user_id: id });
       error = rpcError;
     } else {
       const { error: updateError } = await session.supabaseClient!
         .from('profiles')
-        .update({ deleted_at: new Date().toISOString(), status: 'suspended' })
+        .update({ deleted_at: new Date().toISOString(), status: 'deleted' })
         .eq('id', id);
       error = updateError;
     }

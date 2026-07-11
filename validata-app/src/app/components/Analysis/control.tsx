@@ -31,10 +31,10 @@ const AnalysisControl = ({
   const canSign = hasRole(userRole, SIGNING_ROLES);
 
   // Analysis uses client-side fetch-on-mount by design — the server computes
-  // the analysis from the DB by studyId (fable_system_review §4.3), and it
-  // re-fetches whenever threshold/study changes, so a Server Component
-  // initial load would not help here. This is an intentional exception to
-  // the Server Component pattern used elsewhere.
+  // the analysis from the DB by studyId, and it re-fetches whenever
+  // threshold/study changes, so a Server Component initial load would not
+  // help here. This is an intentional exception to the Server Component
+  // pattern used elsewhere.
   useEffect(() => {
     if (!studyId) return;
 

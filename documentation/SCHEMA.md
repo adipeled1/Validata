@@ -14,7 +14,6 @@ erDiagram
     STUDIES ||--o{ CONSENT_FORM_VERSIONS : "has"
     STUDIES ||--o{ CONSENT_RECORDS : "has"
     STUDIES ||--o{ ADVERSE_EVENTS : "has"
-    STUDIES ||--o{ EDIT_CHECK_RULES : "has"
     STUDIES ||--o{ DELEGATIONS : "has"
     STUDIES ||--o{ TREATMENT_ASSIGNMENTS : "has"
     STUDIES ||--o{ UNBLINDING_EVENTS : "has"
@@ -36,13 +35,13 @@ erDiagram
     PROFILES {
         UUID id PK,FK "-> auth.users"
         TEXT email
-        TEXT role "admin, mentor, investigator, site_coordinator, data_manager, monitor, auditor, irb_reviewer, team_member"
-        TEXT status "candidate, pending, active, suspended"
-        TIMESTAMPTZ candidate_expires_at
+        TEXT role "applicant, admin, mentor, investigator, site_coordinator, data_manager, monitor, auditor, irb_reviewer, team_member"
+        TEXT status "wait_email_confirm, wait_approval, active, suspended, deleted - composite CHECK ties wait_* to role=applicant only"
+        TIMESTAMPTZ candidate_expires_at "applicant-only expiry; reset when wait_email_confirm -> wait_approval"
         TEXT change_reason
         UUID organisation_id FK
         TIMESTAMPTZ created_at
-        TIMESTAMPTZ deleted_at
+        TIMESTAMPTZ deleted_at "audit timestamp only - status='deleted' is authoritative, not this column"
     }
 
     STUDIES {
@@ -71,7 +70,6 @@ erDiagram
         UUID created_by FK
         INTEGER age
         TEXT gender
-        BOOLEAN consent
     }
 
     MEASUREMENTS {
@@ -96,7 +94,7 @@ erDiagram
         TEXT actor_email
         TEXT table_name
         TEXT record_id
-        TEXT action "INSERT, UPDATE, DELETE, LOGIN, LOGOUT, ROLE_CHANGE, STATUS_CHANGE, LOCK, UNLOCK, SIGN_OFF, SOFT_DELETE, DESTRUCTION_REQUEST, DESTRUCTION_APPROVED"
+        TEXT action "INSERT, UPDATE, DELETE, ROLE_CHANGE, STATUS_CHANGE, LOCK, UNLOCK, SIGN_OFF, SOFT_DELETE, DESTRUCTION_REQUEST"
         JSONB old_value
         JSONB new_value
         TEXT reason
@@ -179,20 +177,6 @@ erDiagram
         TEXT notes
     }
 
-    EDIT_CHECK_RULES {
-        BIGSERIAL id PK
-        UUID study_id FK
-        TEXT table_name "measurements or participants"
-        TEXT field_name
-        TEXT rule_type "range, cross_field, required, regex"
-        JSONB rule_params
-        TEXT severity "error, warning"
-        TEXT message
-        BOOLEAN is_active
-        UUID created_by FK
-        TIMESTAMPTZ created_at
-    }
-
     DELEGATIONS {
         BIGSERIAL id PK
         UUID study_id FK
@@ -266,7 +250,7 @@ erDiagram
 
     PARTICIPANT_ID_COUNTERS {
         UUID study_id PK,FK
-        INTEGER last_id "atomic counter, starts at 1000"
+        INTEGER last_id "atomic counter; seeded at 1000, incremented before use, so the first participant issued is P-1001"
     }
 
     SIGNING_TOKENS {
@@ -292,8 +276,8 @@ erDiagram
     may change. `participant_id`, `study_id`, `goniometer`, `ai_model`, `notes`, `timestamp`,
     `test_date`, `created_by`, and `capture_method` are frozen after insert.
   - `participants` (`enforce_participants_immutability`) — only `status` and `status_reason` may
-    change. `study_id`, `consent`, `age`, `gender`, `health_status`, `enrollment_date`, and
-    `created_by` are frozen after insert.
+    change. `study_id`, `age`, `gender`, `health_status`, `enrollment_date`, and `created_by`
+    are frozen after insert.
 - **`audit_log`** is append-only (no UPDATE/DELETE policy) and is written to by a trigger
   (`log_audit_event`) attached to nearly every table above.
 - `SIGNING_TOKENS` has no FK relationship drawn to other domain tables — it only relates to

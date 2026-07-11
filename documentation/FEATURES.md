@@ -2,7 +2,7 @@
 
 This document describes every feature in the Validata EDC platform in detail, including the ICH E6(R3)-inspired additions.
 
-For a short overview see [`README.md`](README.md).
+For a short overview see [`README.md`](../README.md).
 For the full disclaimer see [`DISCLAIMER.md`](DISCLAIMER.md).
 For a diagram of the database schema see [`SCHEMA.md`](SCHEMA.md).
 
@@ -48,16 +48,17 @@ All database writes happen through server-side code only. The Supabase anon key 
 - Sessions managed with signed cookies (`SameSite=Strict`, conditional `Secure` flag via `secureFlag()` in `src/lib/cookies.ts`)
 - Middleware (`proxy.ts`) validates the session cookie on every request and redirects to `/login` if invalid
 - **Demo mode** — dev-only bypass via `NEXT_PUBLIC_DEMO_ENABLED=true`; disabled with `NEXT_PUBLIC_DEMO_ENABLED=false` in production; demo sessions are per-visitor isolated and never touch real data
-- New users are auto-created with role `team_member` and status `candidate` (auto-expires after 30 days if never approved) via a database trigger; a mentor/admin must approve before they can access the dashboard
+- New users are auto-created with role `applicant` and status `wait_email_confirm` (auto-expires after 30 days if never confirmed/approved, resetting the expiry once they confirm) via database triggers; a mentor/admin must approve before the account becomes a real `team_member` and can access the dashboard — see `ROLES.md` for the full lifecycle
 
 ---
 
-## Role-Based Access Control (9 Roles)
+## Role-Based Access Control (10 Roles)
 
-The platform implements a 9-role model, defined once in `src/lib/permissions.ts` and mirrored in the SQL RLS policies (`supabase_setup.sql`) so the two layers can't silently drift apart.
+The platform implements a 10-role model, defined once in `src/lib/permissions.ts` and mirrored in the SQL RLS policies (`supabase_setup.sql`) so the two layers can't silently drift apart.
 
 | Role | Description |
 |---|---|
+| `applicant` | A new registration, before it's reviewed; fully blocked from the app, carries only `wait_email_confirm`/`wait_approval` status |
 | `admin` | Separation-of-duties tier above mentor; same global access, plus sole authority to manage mentor/admin accounts |
 | `mentor` | Highest operational authority; covers the professor/PI and developers |
 | `investigator` | PI / sub-investigator; can enter and correct data, sign off, delegate |
@@ -66,7 +67,7 @@ The platform implements a 9-role model, defined once in `src/lib/permissions.ts`
 | `monitor` | CRA / clinical monitor; read-only + can raise/resolve queries |
 | `auditor` | Read-only access to audit trail and signatures |
 | `irb_reviewer` | Read-only access to consent records and study protocols |
-| `team_member` | Default role for new registrations, before a real role is granted |
+| `team_member` | What an approved applicant becomes automatically; active but no operational role until a mentor/admin assigns one |
 
 **Permission sets** (`src/lib/permissions.ts`, mirrored by SQL helper functions of the same shape):
 
@@ -114,7 +115,7 @@ The platform implements a 9-role model, defined once in `src/lib/permissions.ts`
 
 - Manual entry of measurement values per participant, or batch import from XLSX/CSV/JSON files via SheetJS
 - Fields: `goniometer` (manual reference value), `ai_model` (AI-predicted value), `test_date`, `notes`
-- `capture_method` (`manual_entry` / `file_import`) and `is_valid` / `validity_reason` for data quality annotation — a measurement's raw values are never edited in place once written; only its validity flag can be toggled
+- `capture_method` (`manual_entry` / `file_import`) and `is_valid` / `validity_reason` for data quality annotation — a measurement's raw values are never edited in place once written; its validity flag can only be set to invalid (one-way, recorded in the audit trail)
 - A `BEFORE UPDATE` trigger enforces this at the database level, independent of the application layer
 - Locked studies block measurement inserts/updates at the database level
 
@@ -188,18 +189,19 @@ Versioned consent forms decoupled from participant records.
 - **`adverse_events`** table: `participant_id`, `study_id`, `ae_type` (`ae` / `sae` / `susar`), `description`, `severity` (`mild` / `moderate` / `severe` / `life_threatening` / `fatal`), `causality`, `expectedness` (`expected` / `unexpected`), `onset_date`, `report_date`, `resolution_date`, `outcome`, `authority_deadline`, `authority_submitted_at`
 - **Automatic deadline calculation** (server-side, in `/api/adverse-events`):
   - Fatal or life-threatening + unexpected → **7-day** reporting deadline (per ICH E2A)
-  - All other unexpected → **15-day** deadline
-  - Expected events → no automatic deadline
+  - Other serious (SAE/SUSAR) + unexpected → **15-day** deadline
+  - Non-serious AEs (`ae_type: 'ae'`) or expected events → no automatic expedited deadline, regardless of severity
 - **`/api/adverse-events`** — GET + POST
 - **`/api/adverse-events/[id]`** — PATCH (update outcome/resolution)
 
 ---
 
-## User Management
+## User Registry
 
 - `admin`/`mentor` roles can view all registered users and approve or change role/status with a mandatory reason field (`change_reason`, logged on the profile row)
-- Users in `candidate` or `pending` status cannot access the dashboard
-- Expired, never-approved candidates are cleaned up automatically by a daily `pg_cron` job (`cleanup_expired_candidates()`); `/api/admin/cleanup-candidates` remains available for an on-demand manual trigger
+- Users with the `applicant` role (status `wait_email_confirm` or `wait_approval`) cannot access the dashboard at all
+- Expired, never-approved applicants are cleaned up automatically by a daily `pg_cron` job (`cleanup_expired_candidates()`); `/api/admin/cleanup-candidates` remains available for an on-demand manual trigger
+- "Delete" on an already-approved account is a **soft delete** (`status: deleted`, its own distinct value, plus a `deleted_at` audit timestamp), separate from `suspended` and from the hard delete used to reject/expire an applicant — deleted accounts move to a "Deleted Archives" view and can be reactivated (`deleted_at` cleared, `status: active`) at any time
 
 ---
 
@@ -217,16 +219,16 @@ Versioned consent forms decoupled from participant records.
 
 ---
 
-## Blinding / Treatment Assignment Vault
+## Data-model foundations (schema + RLS only — no application UI yet)
 
+These tables are fully defined in `supabase_setup.sql` with Row-Level Security policies, but have no API routes, Server Actions, or dashboard pages built on top of them yet — there is currently no UI in the app for any of the following.
+
+**Blinding / Treatment Assignment Vault**
 - **`treatment_assignments`** table — participant → treatment arm mapping, readable only by `mentor`/`admin` via RLS (blinded-study default)
 - **`unblinding_events`** — records any emergency unblinding request with reason, requester, approver, and the revealed arm
 - **`organisations`** table — foundation for multi-sponsor / multi-site configuration (`profiles.organisation_id` FK)
 
----
-
-## IP (Investigational Product) Accountability
-
+**IP (Investigational Product) Accountability**
 - **`ip_inventory`** — batch/lot records (batch number, treatment arm, quantity received, expiry date)
 - **`ip_dispensations`** — records each dispensing event linked to a participant and an inventory batch
 
@@ -235,7 +237,7 @@ Versioned consent forms decoupled from participant records.
 ## System Inventory Register
 
 - **`/system-inventory` dashboard page** — visible to `ADMIN_ROLES` (admin, mentor) only
-- Lists all software components (Next.js, Supabase, Vercel, Chart.js, etc.) with their GAMP 5 category, version, supplier, and validation status
+- Lists all software components (Next.js, Supabase, Vercel, Recharts, etc.) with their GAMP 5 category, version, supplier, and validation status
 - Serves as the META-04 computerised system register
 
 ---
@@ -295,7 +297,7 @@ All API and Server Action inputs are validated with Zod schemas defined centrall
 | Audit Log | `/audit-log` | `AUDIT_VIEWER_ROLES` |
 | Study Overview | `/study-overview` | all authenticated (approvals: `ADMIN_ROLES`) |
 | Study Management | `/study-management` | `ADMIN_ROLES` |
-| User Management | `/user-management` | `ADMIN_ROLES` |
+| User Registry | `/user-registry` | `ADMIN_ROLES` |
 | System Inventory | `/system-inventory` | `ADMIN_ROLES` |
 
 ---
@@ -306,12 +308,6 @@ All API and Server Action inputs are validated with Zod schemas defined centrall
 |---|---|
 | `validata-app/supabase_setup.sql` | Full Postgres schema, RLS policies, and triggers — sufficient to bootstrap a new Supabase project |
 | `SCHEMA.md` | Entity-relationship diagram of the database schema |
-| `docs/infrastructure/supabase_bootstrap.md` | Step-by-step new Supabase project setup guide |
-| `docs/quality/validation_master_plan.md` | VMP skeleton (student reference; IQ/OQ/PQ templates) |
-| `docs/quality/disaster_recovery_runbook.md` | DR plan (RPO 15 min, RTO 4 hours) |
-| `docs/quality/csv_periodic_review.md` | Annual computer system review checklist |
-| `docs/compliance/road_to_compliance_plan.md` | ICH E6(R3) gap analysis |
-| `docs/compliance/ich_compliance_report.md` | Per-task implementation report |
 
 ---
 
@@ -322,7 +318,7 @@ Validata includes a set of features added in the *direction of* ICH E6(R3) Good 
 The following additions to this codebase were directly inspired by those requirements:
 
 - Append-only audit log generated by database triggers (SECURITY DEFINER, so the actor is always the authenticated user)
-- 9-role access control model with differentiated SQL and TypeScript helpers
+- 10-role access control model with differentiated SQL and TypeScript helpers, including a dedicated `applicant` onboarding role with a DB-enforced role/status invariant
 - Study lock mechanism enforced at the Row-Level Security layer
 - Electronic signature with re-authentication and legal-meaning text display
 - Full data-query lifecycle (open → answered → resolved → closed)
@@ -333,7 +329,6 @@ The following additions to this codebase were directly inspired by those require
 - Demo mode gate disabled in production (`NEXT_PUBLIC_DEMO_ENABLED=false`)
 - Cookie hardening (`SameSite=Strict`, conditional `Secure` flag)
 - System component inventory register (GAMP 5 categories)
-- Disaster recovery runbook and computerised system validation master plan skeleton
 
 The following features were added after a structured gap analysis against ICH E6(R3) GCP. They represent the *code-level direction* of the requirements.
 
@@ -346,7 +341,7 @@ The following features were added after a structured gap analysis against ICH E6
 | INT-02 (Attribution) | `created_by` UUID server-injected; `actor_id` in audit log captured by trigger, not application code |
 | AUDIT-06 (UTC) | All timestamp columns are `TIMESTAMPTZ`; UI displays UTC |
 | RET-01–03 | Soft-delete columns (`deleted_at`, `deleted_by`, `retention_hold`); hard DELETE blocked by RLS; 15-year destruction check in API |
-| AUTH-01–04 | 9-role CHECK constraint in SQL; permission sets mirrored between `permissions.ts` and RLS policies |
+| AUTH-01–04 | 10-role CHECK constraint in SQL, plus a composite constraint coupling the `applicant` role to its onboarding statuses; permission sets mirrored between `permissions.ts` and RLS policies |
 | AUTH-02 (RBAC) | `monitor`, `auditor`, `irb_reviewer` have differentiated read-only access |
 | ACC-01–03 | `study_members` per-study access control; `/api/admin/access-registry`; `delegations` table |
 | CAP-04 (Queries) | Full query lifecycle: `open` → `answered` → `resolved` → `closed`; `answered_by`, `resolved_by`, `closed_by` with timestamps |
@@ -357,9 +352,9 @@ The following features were added after a structured gap analysis against ICH E6
 | SEC-02 (Cookies) | `SameSite=Strict`; conditional `Secure` flag via `secureFlag()` helper |
 | RET-04 (Export) | `/api/admin/export` returns JSON + SHA-256 integrity hash |
 | META-04 (System Reg.) | `/system-inventory` page lists all components with GAMP 5 category and validation status |
-| BCP-01–02 | `docs/quality/disaster_recovery_runbook.md` (RPO 15 min / RTO 4 h); Supabase PITR instructions |
-| CSV-01–04 | `docs/quality/validation_master_plan.md` (VMP/IQ/OQ/PQ skeleton); `docs/quality/csv_periodic_review.md` |
+| BCP-01–02 | Point-in-Time Recovery is a Supabase paid-plan feature (not enabled on this project's free-tier reference deployment — see `DISCLAIMER.md`); no disaster recovery runbook is included in this repository |
+| CSV-01–04 | No VMP/IQ/OQ/PQ validation documentation is included in this repository — see `DISCLAIMER.md`'s System Validation note |
 | DEL-01 | `delegations` table + API route |
-| BLIND-01–03 | `treatment_assignments` (mentor/admin-only RLS); `unblinding_events` table |
-| IP-01–04 | `ip_inventory` + `ip_dispensations` tables |
-| ORG-01 | `organisations` table; `profiles.organisation_id` FK |
+| BLIND-01–03 | Schema/RLS scaffold only, no application UI: `treatment_assignments` (mentor/admin-only RLS); `unblinding_events` table |
+| IP-01–04 | Schema/RLS scaffold only, no application UI: `ip_inventory` + `ip_dispensations` tables |
+| ORG-01 | Schema/RLS scaffold only, no application UI: `organisations` table; `profiles.organisation_id` FK |

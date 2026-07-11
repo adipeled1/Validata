@@ -24,7 +24,6 @@ export const roleSchema = z.enum([
 
 export const createParticipantSchema = z.object({
   id: z.string().optional(),
-  consent: z.boolean(),
   age: idOrNumber.nullish(),
   gender: z.string().min(1),
   healthStatus: z.enum(['Healthy', 'Ankle Injured']),
@@ -51,12 +50,13 @@ export const createMeasurementSchema = z.object({
   captureMethod: z.enum(['manual_entry', 'file_import']).optional().default('manual_entry'),
 });
 
+// Invalidation is one-way (see FEATURES.md/MENTOR.md/INVESTIGATOR.md) - there
+// is no "mark valid again" path, so this only ever sets is_valid to false.
 export const updateMeasurementValiditySchema = z.object({
   id: idOrNumber.optional(),
-  isValid: z.boolean(),
   participantId: z.string().optional(),
   studyId: z.string().min(1),
-  // ICH E6(R3) COR-01: reason for the validity change
+  // ICH E6(R3) COR-01: reason for the invalidation
   reason: z.string().optional(),
 });
 
@@ -74,10 +74,24 @@ export const updateStudyGoalSchema = z.object({
 
 export const deleteStudySchema = z.string().min(1);
 
+// role/status here are deliberately narrower than the full profiles.status
+// enum: 'applicant' is not in roleSchema and 'wait_email_confirm' /
+// 'wait_approval' are not in this status enum, because this endpoint is for
+// mentor-driven changes to an already-reviewed account (approve/suspend/
+// reactivate, or change an operational role) - the applicant statuses are
+// only ever set by the DB triggers (handle_new_user / handle_email_confirmed),
+// never directly by application code. Approving a wait_approval applicant
+// sets role + status together in one call (e.g. role: 'team_member',
+// status: 'active'); the profiles_applicant_status_exclusive CHECK
+// constraint would reject setting only one of the two.
+// 'deleted' is also deliberately excluded here - it's only ever set by the
+// dedicated DELETE handler (a soft-delete, distinct from suspend), not this
+// generic PATCH, so this endpoint can never accidentally delete an account
+// by being passed the wrong status string.
 export const updateProfileSchema = z.object({
   id: z.string().min(1),
   role: roleSchema.optional(),
-  status: z.enum(['candidate', 'pending', 'active', 'suspended']).optional(),
+  status: z.enum(['active', 'suspended']).optional(),
   // ICH E6(R3) COR-01: reason for role/status change captured and stored in the audit trail
   reason: z.string().optional(),
 });
@@ -112,8 +126,8 @@ export const createSignatureSchema = z.object({
   recordId: z.string().min(1),
   milestone: z.string().min(1),
   meaning: z.string().min(1),
-  // fable_system_review §2.4: binds this request to a prior, successful
-  // POST /api/auth/verify-credentials call - see signing-tokens.ts.
+  // Binds this request to a prior, successful POST /api/auth/verify-credentials
+  // call - see signing-tokens.ts.
   signingToken: z.string().min(1),
 });
 
@@ -162,9 +176,10 @@ export const createDestructionRequestSchema = z.object({
   reason: z.string().min(1, 'Destruction reason is required (ICH E6(R3) RET-02)'),
 });
 
-// fable_system_review §4.3: analysis is computed from the DB by studyId, not
-// from client-submitted participants/measurements arrays - a client used to
-// be able to POST arbitrary data and get back an "official" analysis.
+// Analysis is computed from the DB by studyId, not from client-submitted
+// participants/measurements arrays - trusting client-supplied data here
+// would let a caller POST arbitrary numbers and get back an "official"
+// analysis computed on them.
 export const analysisRequestSchema = z.object({
   studyId: z.string().min(1),
   threshold: idOrNumber.optional(),

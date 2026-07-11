@@ -127,11 +127,14 @@ If your study actually needs a scanned/drawn signature or a cryptographic e-sign
 - **Create Study** ✓
 - **Update Recruitment Goal** ✓ — just a target number, freely editable.
 - **Toggle Lock / Unlock** — freezes/unfreezes the study for further data entry. The state itself can be flipped back and forth, but every lock/unlock transition is written to the audit trail (so you can always see when and by whom the study was frozen).
-- **Delete Study** ✗ — **the single most dangerous button in the app.** This is a hard delete of the study record. Depending on how the database's referential rules are configured, this can cascade and remove associated data. There is no confirmation-proof recovery path in the UI — treat this as equivalent to permanently destroying the study. Do not click this unless you are certain, and ideally only after export/backup.
+- **Delete Study** ✗ — this is a **soft delete**, not a hard delete: the study record isn't erased, it's flagged `deleted_at` and moves into the "Deleted Studies — Retention" panel below, where it's kept for a minimum of 15 years before physical destruction can even be requested. All of the study's participants, measurements, and other records are preserved intact — nothing is dropped from the database and there is no cascading data loss. There is, however, no "undo" button in the UI: once deleted, a study stays in the retention panel and only leaves it via the separate, audited destruction-request workflow (mentor/admin only, requires the study to already be soft-deleted, unheld, and at least 15 years old). Treat it as "archive, not destroy" — but still not something to click casually, since it does remove the study from every normal working view immediately.
 
-### User Registry (`/user-management`)
-- **Approve/Reject candidate accounts** — approving grants access immediately; rejecting hard-deletes the account on the spot, same as if it had simply expired unreviewed. There is no undo on either action.
+### User Registry (`/user-registry`)
+- **Approve/Reject applicant accounts** — a new sign-up first appears here, read-only, as an "Unconfirmed Sign-up" until they confirm their email; once confirmed it moves to the actionable "Pending Approvals" queue. Approving sets their role to `team_member` and status to `active` in one step (they can then be assigned a real operational role separately); rejecting hard-deletes the account on the spot, same as if it had simply expired unreviewed. There is no undo on either action. See `ROLES.md` for the full lifecycle.
 - **Change role/status** — a direct edit on the person's profile, made right here with a mandatory reason field. This is not related to the Delegation Log below — delegation never changes anyone's actual role.
+- **Suspend / Unsuspend** ✓ — toggles an already-approved account's status between `active` and `suspended`. Fully reversible, and doesn't touch anything else about the account.
+- **Delete** — for an already-approved account, this is **not** the same hard delete as rejecting an applicant. It's a **soft delete**: the account's status is set to its own `deleted` value (a distinct state, not a repurposed "suspended"), with a `deleted_at` timestamp recording when. It then moves out of the main table into the **Deleted Archives** overlay (the button next to Export/Refresh, top right). Nothing is removed from the database.
+- **Reactivate** ✓ — the button inside Deleted Archives. Restores a soft-deleted account to `active`, clears `deleted_at`, and puts it back in the main table exactly as it was — same role, same history. So an approved account's "Delete" is fully undoable via this, unlike an applicant reject/expiry, which is permanent.
 
 ---
 
@@ -157,7 +160,7 @@ If you only remember one section, remember this one — these are the actions wi
 3. **Endorse Analysis** — creates a permanent, re-authenticated electronic signature. No un-sign.
 4. **New Consent Form Version** — permanent protocol document version, no delete.
 5. **New Consent Record** — permanent attestation that consent occurred; no delete/edit, only new corrective records.
-6. **Delete Study** — hard delete, potentially cascading. The most destructive action in the app.
+6. **Delete Study** — soft delete (moves to the Deleted Studies — Retention panel; all data preserved for a minimum of 15 years). Not reversible from the UI, but not destructive either — actual data destruction requires the separate, audited destruction-request workflow.
 7. Every audit-trail-logged action (locks, role changes, status changes) is permanently visible in the Audit Trail even if the *current state* can be changed back — the history of it having happened cannot be erased.
 
 When you're unsure whether something can be undone, assume it can't until you've verified otherwise — that's the safer default in a compliance-driven system like this one.

@@ -39,7 +39,7 @@ interface Signature {
   meaning: string;
 }
 
-// fable_system_review §3.2: standardized on SWR instead of a bare useEffect fetch.
+// Uses SWR (shared cache, request de-dupe) instead of a bare useEffect fetch.
 async function fetchSignatures(studyId: string, isDemoMode: boolean): Promise<Signature[]> {
   if (isDemoMode) return clientDemoStore.getSignatures(studyId) as unknown as Signature[];
   const res = await fetch(`/api/signatures?studyId=${studyId}`);
@@ -82,10 +82,9 @@ export default function SignaturesPage() {
     URL.revokeObjectURL(url);
   };
 
-  // fable_system_review §2.1: standardized to the same READABLE_ROLES set
-  // GET /api/signatures now enforces (it previously had no role check
-  // there at all, and this page's set was missing site_coordinator/
-  // data_manager relative to every other compliance-page gate).
+  // Matches the READABLE_ROLES gate GET /api/signatures enforces server-side,
+  // and every other compliance page's client-side gate, so access is
+  // consistent across the route, the UI, and site_coordinator/data_manager.
   if (!hasRole(userRole, READABLE_ROLES)) {
     return (
       <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: 'var(--font-size-md)' }}>

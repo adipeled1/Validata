@@ -1,12 +1,12 @@
 "use client";
 
-// fable_system_review §3.1: lock state is a property of a study, so it's
-// surfaced right on that study's own header - as a plain-language sentence,
-// not a colored badge, so it can't be mistaken for the "Active Workspace"
-// badge next to it (workspace selection and data-entry lock are unrelated
-// axes of state). Actually locking/unlocking happens in StudyLockModal,
-// which this links out to - keeping the compliance action and its audit
-// trail in one place instead of duplicating the control here.
+// Lock state is a property of a study, so it's surfaced right on that
+// study's own header - as a plain-language sentence, not a colored badge,
+// so it can't be mistaken for the "Active Workspace" badge next to it
+// (workspace selection and data-entry lock are unrelated axes of state).
+// Actually locking/unlocking happens in StudyLockModal, which this links
+// out to - keeping the compliance action and its audit trail in one place
+// instead of duplicating the control here.
 import { useState, useEffect, useCallback } from 'react';
 import type { LockableStudy } from './StudyLockModal';
 import { useSession } from '../../../context/SessionContext';

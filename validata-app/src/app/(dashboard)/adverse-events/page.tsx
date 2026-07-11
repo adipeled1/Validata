@@ -77,7 +77,7 @@ const EMPTY_FORM = {
   notes: '',
 };
 
-// fable_system_review §3.2: standardized on SWR instead of a bare useEffect fetch.
+// Uses SWR (shared cache, request de-dupe) instead of a bare useEffect fetch.
 async function fetchAdverseEvents(studyId: string, isDemoMode: boolean): Promise<AdverseEvent[]> {
   if (isDemoMode) return clientDemoStore.getAdverseEvents(studyId) as unknown as AdverseEvent[];
   const res = await fetch(`/api/adverse-events?studyId=${studyId}`);

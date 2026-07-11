@@ -4,22 +4,18 @@
 // there's exactly one place that knows how to translate either shape,
 // instead of the client and server each carrying their own copy.
 //
-// fable_system_review §4.2: these used to take an `isDemoMode` flag and run
-// an entirely separate mapping branch for demo data, because mockData.json
-// stored participants/measurements in a different, already-"mapped" shape
-// (camelCase, pre-formatted "45.0°" strings) than the raw DB rows this file
-// otherwise expects. That meant demo and live data could describe the same
-// concept with different keys/formats and silently drift (e.g. a repository
-// mutation's demo branch returning `goniometer` as a raw number while this
-// file's demo branch expected an already-formatted string) - the exact
-// sprawl the review flagged. mockData.json now stores raw DB-shaped rows
-// (snake_case, unformatted numbers) just like a live Supabase query would
-// return, so a single mapping path handles both.
+// mockData.json stores raw DB-shaped rows (snake_case, unformatted numbers)
+// just like a live Supabase query would return, so a single mapping path
+// handles both demo and live data - these functions take no `isDemoMode`
+// flag and run no separate mapping branch for demo data. Without that, demo
+// and live data could describe the same concept with different keys/formats
+// and silently drift (e.g. a repository mutation's demo branch returning
+// `goniometer` as a raw number while this file expected an
+// already-formatted string).
 
 export function mapParticipants(rawParticipants: any[]): any[] {
   return rawParticipants.map((p) => ({
     id: p.id,
-    consent: p.consent,
     status: p.status,
     age: p.age,
     gender: p.gender,
@@ -62,9 +58,8 @@ export function mapMeasurements(rawMeasurements: any[]): any[] {
 // Joins each measurement's participant's enrollmentDate onto it (by
 // participant id) - kept as a separate step since it depends on the
 // participants list, not just the raw measurement row.
-// fable_system_review §5.6: this used to call participants.find() inside the
-// measurements.map(), an O(n*m) scan re-run on every render via useMemo.
-// Building the lookup Map once first makes each join O(1).
+// Builds a lookup Map once first so each join is O(1), rather than calling
+// participants.find() inside measurements.map() (an O(n*m) scan).
 export function withEnrollmentDates(measurements: any[], participants: any[]): any[] {
   const enrollmentDateById = new Map(participants.map((p) => [p.id, p.enrollmentDate]));
   return measurements.map((m) => ({

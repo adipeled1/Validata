@@ -5,6 +5,20 @@ import * as XLSX from 'xlsx';
 import DataGrid from '../ui/DataGrid';
 import StatusDot from '../ui/StatusDot';
 import InlinePanel from '../ui/InlinePanel';
+import ConsentForm, { type ConsentFormValues } from '../Consent/ConsentForm';
+import type { CreateConsentRecordInput } from '../Consent/service';
+
+interface ConsentVersionEntry { id: number; version: string; }
+interface ConsentRecordEntry { id: string; participant_id: string; form_version_id: number; method: string; copy_delivered: boolean; witnessed_by: string | null; notes: string | null; created_at: string; }
+
+const EMPTY_CONSENT_FORM = (participantId: string): ConsentFormValues => ({
+  participantId,
+  formVersionId: '',
+  method: 'written',
+  witnessedBy: '',
+  copyDelivered: false,
+  notes: '',
+});
 
 interface ParticipantsDisplayProps {
   participants: any[];
@@ -23,6 +37,10 @@ interface ParticipantsDisplayProps {
   goalInput: string;
   onGoalInputChange: (v: string) => void;
   onGoalSubmit: (e: React.FormEvent) => void;
+  consentVersions: ConsentVersionEntry[];
+  consentRecords: ConsentRecordEntry[];
+  canRecordConsent: boolean;
+  onRecordConsent: (input: Omit<CreateConsentRecordInput, 'studyId' | 'isDemoMode' | 'currentUserEmail'>) => Promise<void>;
 }
 
 const inputStyle: React.CSSProperties = {
@@ -246,6 +264,10 @@ const ParticipantsDisplay = ({
   goalInput,
   onGoalInputChange,
   onGoalSubmit,
+  consentVersions,
+  consentRecords,
+  canRecordConsent,
+  onRecordConsent,
 }: ParticipantsDisplayProps) => {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [selectedParticipant, setSelectedParticipant] = useState<any | null>(null);
@@ -254,6 +276,52 @@ const ParticipantsDisplay = ({
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterGender, setFilterGender] = useState('all');
   const [contextMenu, setContextMenu] = useState<{ row: any; x: number; y: number } | null>(null);
+
+  // Consent panel - opened per-row via "Record Consent"; button stays
+  // available after a first record so a participant can have multiple
+  // consents (re-consent on protocol amendment, etc).
+  const [consentParticipantId, setConsentParticipantId] = useState<string | null>(null);
+  const [consentForm, setConsentForm] = useState<ConsentFormValues>(EMPTY_CONSENT_FORM(''));
+  const [consentSaving, setConsentSaving] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
+
+  const latestConsentByParticipant = useMemo(() => {
+    const map = new Map<string, ConsentRecordEntry>();
+    for (const r of consentRecords) {
+      const existing = map.get(r.participant_id);
+      if (!existing || new Date(r.created_at).getTime() > new Date(existing.created_at).getTime()) {
+        map.set(r.participant_id, r);
+      }
+    }
+    return map;
+  }, [consentRecords]);
+
+  const openConsentPanel = (participantId: string) => {
+    setConsentParticipantId(participantId);
+    setConsentForm(EMPTY_CONSENT_FORM(participantId));
+    setConsentError(null);
+  };
+
+  const handleConsentSubmit = async () => {
+    if (!consentParticipantId || !consentForm.formVersionId) return;
+    setConsentSaving(true);
+    setConsentError(null);
+    try {
+      await onRecordConsent({
+        participantId: consentParticipantId,
+        formVersionId: consentForm.formVersionId,
+        method: consentForm.method,
+        copyDelivered: consentForm.copyDelivered,
+        witnessedBy: consentForm.witnessedBy || undefined,
+        notes: consentForm.notes || undefined,
+      });
+      setConsentParticipantId(null);
+    } catch (e) {
+      setConsentError((e as Error).message);
+    } finally {
+      setConsentSaving(false);
+    }
+  };
 
   const goalPercent = recruitmentGoal
     ? Math.min(100, Math.round((recruitedCount / recruitmentGoal) * 100))
@@ -302,11 +370,29 @@ const ParticipantsDisplay = ({
       width: '100px',
     },
     {
+      key: '_consent',
+      label: 'Consent',
+      width: '90px',
+      render: (row: any) => {
+        const latest = latestConsentByParticipant.get(String(row.id));
+        if (!latest) return <span style={{ color: 'var(--text-muted)' }}>—</span>;
+        return (
+          <span
+            title={`${latest.method} · ${latest.created_at ? new Date(latest.created_at).toUTCString() : ''}`}
+            style={{ color: 'var(--status-active)' }}
+          >
+            ✓ on file
+          </span>
+        );
+      },
+    },
+    {
       key: '_actions',
       label: 'Actions',
-      width: '200px',
+      width: canRecordConsent ? '300px' : '200px',
       render: (row: any) => {
         const s = String(row.status || '').toLowerCase();
+        const hasConsent = latestConsentByParticipant.has(String(row.id));
         if (s === 'dropped')
           return <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)' }}>Dropped</span>;
         return (
@@ -331,6 +417,26 @@ const ParticipantsDisplay = ({
             >
               {s === 'completed' ? 'Unmark' : 'Mark Complete'}
             </button>
+            {canRecordConsent && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openConsentPanel(String(row.id));
+                }}
+                style={{
+                  padding: '2px 8px',
+                  fontSize: 'var(--font-size-sm)',
+                  background: hasConsent ? 'transparent' : 'var(--accent-soft)',
+                  color: hasConsent ? 'var(--text-secondary)' : '#fff',
+                  border: hasConsent ? '1px solid var(--border)' : 'none',
+                  borderRadius: 'var(--radius)',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Record Consent
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -779,6 +885,25 @@ const ParticipantsDisplay = ({
             Add Participant
           </button>
         </form>
+      </InlinePanel>
+
+      {/* Record Consent InlinePanel - same shared ConsentForm the Consent
+          Records screen uses (see Consent/ConsentForm.tsx), locked to the
+          row's participant. */}
+      <InlinePanel isOpen={!!consentParticipantId} onClose={() => setConsentParticipantId(null)} title="Record Consent">
+        {consentParticipantId && (
+          <ConsentForm
+            versions={consentVersions}
+            participants={[]}
+            lockedParticipantId={consentParticipantId}
+            form={consentForm}
+            onChange={(field, value) => setConsentForm((p) => ({ ...p, [field]: value } as ConsentFormValues))}
+            onSubmit={handleConsentSubmit}
+            onCancel={() => setConsentParticipantId(null)}
+            saving={consentSaving}
+            error={consentError}
+          />
+        )}
       </InlinePanel>
     </div>
   );

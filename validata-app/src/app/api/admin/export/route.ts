@@ -6,22 +6,20 @@ import { createHash } from 'crypto';
 // and generation timestamp (ICH E6(R3) RET-01, RET-03).
 // Restricted to mentor.
 //
-// fable_system_review §6.5: this used to fetch everything, JSON.stringify it
-// TWICE (once to hash, once to embed the hash and stringify again), and hold
-// the whole archive as one in-memory string before responding - for a study
-// with a large audit log this risks the lambda's memory ceiling and/or
-// wall-clock timeout, and produces nothing if it's hit mid-request.
+// The response is streamed rather than built as one in-memory JSON string:
+// for a study with a large audit log, holding the whole archive in memory
+// (and JSON.stringify-ing it twice - once to hash, once to embed the hash)
+// risks the lambda's memory ceiling and/or wall-clock timeout.
 //
-// Fix: stream the response. The body is built incrementally as a sequence of
-// JSON fragments; each fragment is fed into a running SHA-256 hash as it's
-// enqueued, then a final `,"sha256":"<hash>"}` fragment closes the object -
-// so the hash still covers exactly the same `payload` (everything except the
-// sha256 field itself) as before, without ever holding the full JSON string
-// in memory at once. The hash can no longer also be exposed as a response
-// header (HTTP headers must be sent before the body, and the digest isn't
-// final until the body is) - it's now only available inside the JSON body's
-// trailing "sha256" field, which is the one place a consumer needs it to
-// verify the archive anyway.
+// The body is built incrementally as a sequence of JSON fragments; each
+// fragment is fed into a running SHA-256 hash as it's enqueued, then a final
+// `,"sha256":"<hash>"}` fragment closes the object - so the hash covers
+// exactly the same `payload` (everything except the sha256 field itself)
+// without ever holding the full JSON string in memory at once. The hash
+// can't also be exposed as a response header (HTTP headers must be sent
+// before the body, and the digest isn't final until the body is) - it's
+// only available inside the JSON body's trailing "sha256" field, which is
+// the one place a consumer needs it to verify the archive anyway.
 export async function GET(request: Request): Promise<Response> {
   try {
     const session = await verifySession();

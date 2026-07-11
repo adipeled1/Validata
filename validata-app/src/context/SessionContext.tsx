@@ -35,8 +35,8 @@ export function SessionProvider({ children, initialSession }: { children: React.
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(!initialSession);
   const [isDemoMode, setIsDemoMode] = useState(initialSession?.isDemoMode ?? true);
-  const [userRole, setUserRole] = useState(initialSession?.userRole ?? 'team_member');
-  const [userStatus, setUserStatus] = useState(initialSession?.userStatus ?? 'pending');
+  const [userRole, setUserRole] = useState(initialSession?.userRole ?? 'applicant');
+  const [userStatus, setUserStatus] = useState(initialSession?.userStatus ?? 'wait_email_confirm');
   const [currentUserEmail, setCurrentUserEmail] = useState(initialSession?.currentUserEmail ?? '');
 
   const handleLogout = useCallback(async () => {
@@ -64,16 +64,16 @@ export function SessionProvider({ children, initialSession }: { children: React.
     const initializeAuth = async () => {
       setIsLoading(true);
 
-      // Note: the demo-session cookie is HttpOnly (fable_system_review §6.1
-      // fix - it's server-verified, not client-trusted), so it can no longer
-      // be read/parsed here. This fallback only runs when the server-side
-      // dashboard layout didn't already resolve a session (see
-      // (dashboard)/layout.tsx's getDashboardSession()), so it always falls
-      // through to the real Supabase check below - a demo user without an
-      // initialSession will correctly fail this and be redirected to /login.
+      // Note: the demo-session cookie is HttpOnly and server-verified, not
+      // client-trusted, so it can't be read/parsed here. This fallback only
+      // runs when the server-side dashboard layout didn't already resolve a
+      // session (see (dashboard)/layout.tsx's getDashboardSession()), so it
+      // always falls through to the real Supabase check below - a demo user
+      // without an initialSession will correctly fail this and be
+      // redirected to /login.
       let email = '';
-      let role = 'team_member';
-      let status = 'pending';
+      let role = 'applicant';
+      let status = 'wait_email_confirm';
       let isDemo = false;
 
       try {
@@ -87,6 +87,9 @@ export function SessionProvider({ children, initialSession }: { children: React.
 
         email = user.email ?? '';
 
+        // Applicants (role = 'applicant') are excluded by RLS from this
+        // direct select - it returns no row for them by design, not because
+        // their profile doesn't exist.
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -94,15 +97,28 @@ export function SessionProvider({ children, initialSession }: { children: React.
           .single();
 
         if (profileError || !profile) {
-          // fable_system_review §2.5: this used to fall back to the
-          // client-writable user-role/user-status cookies, so breaking the
-          // profile fetch (or just writing the cookies directly via
-          // document.cookie) could force an elevated role into the sidebar.
-          // Role/status must come from the DB or not be trusted at all -
-          // treat a failed fetch as a session error and log out.
-          console.warn('Profile fetch failed; logging out rather than trusting client-side role cookies:', profileError?.message);
-          if (!cancelled) await handleLogout();
-          return;
+          // Fall back to the narrow my_onboarding_status() RPC, which is
+          // the one thing an applicant is allowed to read about their own
+          // account - only log out if that ALSO comes back empty, since
+          // that means there is genuinely no profile row (shouldn't happen
+          // given handle_new_user(), but there's no legitimate state a
+          // logout can't safely fall back to here).
+          const { data: onboardingStatus } = await supabase.rpc('my_onboarding_status');
+          if (onboardingStatus) {
+            role = 'applicant';
+            status = onboardingStatus;
+            setCookie('user-role', role, 7);
+            setCookie('user-status', status, 7);
+          } else {
+            // Role/status must come from the DB or not be trusted at all -
+            // falling back to the client-writable user-role/user-status
+            // cookies here would let a failed profile fetch (or just
+            // writing the cookies directly via document.cookie) force an
+            // elevated role into the sidebar.
+            console.warn('No profile or onboarding status found; logging out rather than trusting client-side role cookies:', profileError?.message);
+            if (!cancelled) await handleLogout();
+            return;
+          }
         } else {
           role = profile.role;
           status = profile.status;

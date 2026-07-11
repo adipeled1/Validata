@@ -6,6 +6,8 @@ import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 import { READABLE_ROLES, EDIT_ROLES, CONSENT_VERSION_ROLES, hasRole } from '../../../lib/permissions';
 import * as clientDemoStore from '../../../lib/clientDemoStore';
+import ConsentForm, { type ConsentFormValues } from '../../components/Consent/ConsentForm';
+import { createConsentRecord, fetchConsent } from '../../components/Consent/service';
 
 interface ConsentFormVersion {
   id: number;
@@ -32,20 +34,6 @@ const METHOD_LABELS: Record<string, string> = {
   verbal_with_witness: 'Verbal + Witness',
 };
 
-// fable_system_review §3.2: standardized on SWR instead of a bare useEffect fetch.
-async function fetchConsent(studyId: string, isDemoMode: boolean): Promise<{ versions: ConsentFormVersion[]; records: ConsentRecord[] }> {
-  if (isDemoMode) {
-    return {
-      versions: clientDemoStore.getConsentVersions(studyId) as unknown as ConsentFormVersion[],
-      records: clientDemoStore.getConsentRecords(studyId) as unknown as ConsentRecord[],
-    };
-  }
-  const res = await fetch(`/api/consent?studyId=${studyId}`);
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return { versions: data.versions || [], records: data.records || [] };
-}
-
 export default function ConsentRecordsPage() {
   const { userRole, isDemoMode, currentUserEmail } = useSession();
   const { currentStudyId, participants } = useStudy();
@@ -56,9 +44,11 @@ export default function ConsentRecordsPage() {
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // New record form state
-  const [newRecord, setNewRecord] = useState({
+  // New record form state - shape matches ConsentFormValues since this is
+  // now rendered via the shared <ConsentForm />.
+  const [newRecord, setNewRecord] = useState<ConsentFormValues>({
     participantId: '',
+    formVersionId: '',
     method: 'written',
     copyDelivered: false,
     witnessedBy: '',
@@ -94,45 +84,23 @@ export default function ConsentRecordsPage() {
     : records;
 
   const handleCreateRecord = async () => {
-    if (!currentStudyId || !selectedVersionId) return;
+    if (!currentStudyId || !newRecord.formVersionId) return;
     setSaving(true);
     setActionError(null);
     try {
-      if (isDemoMode) {
-        clientDemoStore.addConsentRecord({
-          studyId: currentStudyId,
-          participantId: newRecord.participantId,
-          formVersionId: selectedVersionId,
-          method: newRecord.method,
-          copyDelivered: newRecord.copyDelivered,
-          witnessedBy: newRecord.witnessedBy || undefined,
-          notes: newRecord.notes || undefined,
-          actorEmail: currentUserEmail,
-        });
-      } else {
-        const res = await fetch('/api/consent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            // fable_system_review: this call was missing `action`, which
-            // POST /api/consent requires to route the request - it always hit
-            // the "Unknown action." 400 branch and consent recording never
-            // actually worked. Found and fixed while converting this page to SWR.
-            action: 'record_consent',
-            participantId: newRecord.participantId,
-            studyId: currentStudyId,
-            formVersionId: selectedVersionId,
-            method: newRecord.method,
-            copyDelivered: newRecord.copyDelivered,
-            witnessedBy: newRecord.witnessedBy || undefined,
-            notes: newRecord.notes || undefined,
-          }),
-        });
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
-      }
+      await createConsentRecord({
+        studyId: currentStudyId,
+        participantId: newRecord.participantId,
+        formVersionId: newRecord.formVersionId,
+        method: newRecord.method,
+        copyDelivered: newRecord.copyDelivered,
+        witnessedBy: newRecord.witnessedBy || undefined,
+        notes: newRecord.notes || undefined,
+        isDemoMode,
+        currentUserEmail,
+      });
       setShowNewRecord(false);
-      setNewRecord({ participantId: '', method: 'written', copyDelivered: false, witnessedBy: '', notes: '' });
+      setNewRecord({ participantId: '', formVersionId: '', method: 'written', copyDelivered: false, witnessedBy: '', notes: '' });
       mutateConsent();
     } catch (e) {
       setActionError((e as Error).message);
@@ -159,9 +127,8 @@ export default function ConsentRecordsPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            // fable_system_review: this sent `type: 'version'`, but the route
-            // switches on `action === 'create_version'` - same bug as above,
-            // version creation always 400'd. Fixed alongside the SWR conversion.
+            // The route switches on `action === 'create_version'`, not `type` -
+            // sending the wrong key hits the same "Unknown action." 400 branch.
             action: 'create_version',
             studyId: currentStudyId,
             version: newVersion.version,
@@ -190,11 +157,11 @@ export default function ConsentRecordsPage() {
     );
   }
 
-  // fable_system_review §2.2: consent FORM VERSIONING (protocol-level
-  // document control) is a narrower capability than recording an individual
-  // participant's consent - these used to share one `canEdit` flag, which
-  // showed the "+ New Version" button (mentor/admin-only per the API/RLS) to
-  // investigators/site_coordinators, who would then hit a 403 on submit.
+  // Consent FORM VERSIONING (protocol-level document control) is a narrower
+  // capability than recording an individual participant's consent, so these
+  // are checked separately - a single shared `canEdit` flag would show the
+  // "+ New Version" button (mentor/admin-only per the API/RLS) to
+  // investigators/site_coordinators, who'd then hit a 403 on submit.
   const canCreateVersion = hasRole(userRole, CONSENT_VERSION_ROLES);
   const canRecordConsent = hasRole(userRole, EDIT_ROLES);
 
@@ -322,9 +289,15 @@ export default function ConsentRecordsPage() {
               <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '8px' }}>({visibleRecords.length})</span>
             </span>
             <div style={{ display: 'flex', gap: '6px' }}>
-              {canRecordConsent && selectedVersionId && (
+              {canRecordConsent && versions.length > 0 && (
                 <button
-                  onClick={() => setShowNewRecord(r => !r)}
+                  onClick={() => {
+                    // Pre-fill from whichever version is selected in the
+                    // left pane, but the form's own Form Version field lets
+                    // this be changed before saving.
+                    setNewRecord(p => ({ ...p, formVersionId: selectedVersionId ?? '' }));
+                    setShowNewRecord(r => !r);
+                  }}
                   style={{ fontSize: 'var(--font-size-sm)', padding: '3px 8px', background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer' }}
                 >
                   + New Record
@@ -333,40 +306,21 @@ export default function ConsentRecordsPage() {
             </div>
           </div>
 
-          {/* New record inline panel */}
+          {/* New record panel - same shared ConsentForm the Participants
+              view uses (see ConsentForm.tsx), just triggered from here
+              instead of a participant row. */}
           {showNewRecord && (
-            <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border)', background: 'var(--bg-editor)', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <div>
-                <div style={labelStyle}>Participant</div>
-                <select value={newRecord.participantId} onChange={e => setNewRecord(p => ({ ...p, participantId: e.target.value }))} style={inputStyle}>
-                  <option value="">— select —</option>
-                  {participants.map((p: any) => (
-                    <option key={p.id} value={p.id}>{p.participant_id ?? p.id}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <div style={labelStyle}>Method</div>
-                <select value={newRecord.method} onChange={e => setNewRecord(p => ({ ...p, method: e.target.value }))} style={inputStyle}>
-                  <option value="written">Written</option>
-                  <option value="electronic">Electronic</option>
-                  <option value="verbal_with_witness">Verbal + Witness</option>
-                </select>
-              </div>
-              <div>
-                <div style={labelStyle}>Witnessed By</div>
-                <input placeholder="Name or email" value={newRecord.witnessedBy} onChange={e => setNewRecord(p => ({ ...p, witnessedBy: e.target.value }))} style={inputStyle} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <input type="checkbox" id="copyDelivered" checked={newRecord.copyDelivered} onChange={e => setNewRecord(p => ({ ...p, copyDelivered: e.target.checked }))} />
-                <label htmlFor="copyDelivered" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', cursor: 'pointer' }}>Copy Delivered</label>
-              </div>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <button onClick={handleCreateRecord} disabled={saving || !newRecord.participantId} style={btnPrimary}>
-                  {saving ? '…' : 'Save'}
-                </button>
-                <button onClick={() => setShowNewRecord(false)} style={btnSecondary}>Cancel</button>
-              </div>
+            <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border)', background: 'var(--bg-editor)', maxWidth: '320px' }}>
+              <ConsentForm
+                versions={versions}
+                participants={participants}
+                form={newRecord}
+                onChange={(field, value) => setNewRecord(p => ({ ...p, [field]: value }))}
+                onSubmit={handleCreateRecord}
+                onCancel={() => setShowNewRecord(false)}
+                saving={saving}
+                error={actionError}
+              />
             </div>
           )}
 

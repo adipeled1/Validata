@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import UserManagementDisplay from './display';
-import { fetchUsersAPI, updateRoleAPI, updateStatusAPI, deleteUserAPI } from './service';
+import UserRegistryDisplay from './display';
+import { fetchUsersAPI, updateRoleAPI, updateStatusAPI, approveApplicantAPI, deleteUserAPI } from './service';
 import { useStudy } from '../../../context/StudyContext';
 import ConfirmWithReasonModal from '../common/ConfirmWithReasonModal';
 import * as clientDemoStore from '../../../lib/clientDemoStore';
 import { DEMO_USERS } from '../../../lib/demoData';
 
-interface UserManagementControlProps {
+interface UserRegistryControlProps {
   isDemoMode: boolean;
   currentUserEmail: string;
   viewerRole: string;
@@ -20,7 +20,7 @@ interface User {
   deleted_at?: string | null;
 }
 
-const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: UserManagementControlProps) => {
+const UserRegistryControl = ({ isDemoMode, currentUserEmail, viewerRole }: UserRegistryControlProps) => {
   const { studies } = useStudy();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -113,7 +113,7 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
     }
   }, [isDemoMode]);
 
-  // UserManagement uses client-side fetch-on-mount by design — user profiles
+  // UserRegistry uses client-side fetch-on-mount by design — user profiles
   // are not part of the dashboard Server Component layout (they're mentor-only
   // and fetched on demand), so this is an intentional exception to the
   // Server Component initial-load pattern used elsewhere.
@@ -154,6 +154,32 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
     }
   };
 
+  // Approving an applicant sets role AND status together in one call - the
+  // DB's composite CHECK constraint rejects a half-applied change (role:
+  // 'team_member' while status is still 'wait_approval'), so this can't
+  // reuse handleRoleChange/handleStatusChange, which each only touch one field.
+  const handleApprove = async (userId: string) => {
+    try {
+      if (isDemoMode) {
+        const target = users.find((u) => u.id === userId);
+        clientDemoStore.setUserOverride({
+          userId,
+          userEmail: target?.email ?? userId,
+          role: 'team_member',
+          status: 'active',
+          actorEmail: currentUserEmail,
+        });
+      } else {
+        await approveApplicantAPI(userId);
+      }
+      setUsers((prevUsers) =>
+        prevUsers.map((user) => (user.id === userId ? { ...user, role: 'team_member', status: 'active' } : user))
+      );
+    } catch (err: any) {
+      alert('Error approving applicant: ' + err.message);
+    }
+  };
+
   const handleDelete = (userId: string) => {
     setConfirmDeleteUserId(userId);
   };
@@ -166,30 +192,49 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
     try {
       if (isDemoMode) {
         const target = users.find((u) => u.id === userId);
-        clientDemoStore.removeUserOverride(userId, target?.email ?? userId, currentUserEmail);
+        clientDemoStore.deleteUserOverride(userId, target?.email ?? userId, currentUserEmail);
       } else {
         await deleteUserAPI(userId);
       }
-      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+      // Move the user to status: 'deleted' locally rather than removing them
+      // from state - removing them would also make them vanish from Deleted
+      // Archives (derived from this same array) until the next full
+      // fetchUsers() refresh, undermining the point of that view.
+      setUsers(prevUsers =>
+        prevUsers.map(user => (user.id === userId ? { ...user, status: 'deleted', deleted_at: new Date().toISOString() } : user))
+      );
     } catch (err: any) {
       alert('Error deleting user: ' + err.message);
     }
   };
 
+  // This same delete flow is shared by "Reject" (an unreviewed applicant)
+  // and "Delete" (an already-approved account) - they have very different
+  // consequences (hard delete vs. reversible soft delete), so the
+  // confirmation copy is picked based on which one is actually happening
+  // rather than a one-size-fits-all warning that would overstate permanence
+  // for the reversible case.
+  const deleteTarget = confirmDeleteUserId ? users.find((u) => u.id === confirmDeleteUserId) : null;
+  const isApplicantTarget = deleteTarget?.role === 'applicant';
+
   return (
     <>
       {confirmDeleteUserId && (
         <ConfirmWithReasonModal
-          title="Delete User Profile"
-          body="This user will permanently lose access to the portal. This action cannot be undone."
-          reasonLabel="Reason for deletion"
+          title={isApplicantTarget ? 'Reject Applicant' : 'Delete User Profile'}
+          body={
+            isApplicantTarget
+              ? 'This permanently deletes the applicant account. This action cannot be undone.'
+              : 'This moves the account to Deleted Archives (soft delete) - it can be restored later via Reactivate. The account immediately loses access to the portal.'
+          }
+          reasonLabel={isApplicantTarget ? 'Reason for rejection' : 'Reason for deletion'}
           reasonRequired={false}
-          confirmLabel="Delete User"
+          confirmLabel={isApplicantTarget ? 'Reject Applicant' : 'Delete User'}
           onConfirm={handleConfirmDelete}
           onCancel={() => setConfirmDeleteUserId(null)}
         />
       )}
-      <UserManagementDisplay
+      <UserRegistryDisplay
         users={users}
         isLoading={isLoading}
         error={error}
@@ -199,6 +244,7 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
         membershipsByUser={membershipsByUser}
         onRoleChange={handleRoleChange}
         onStatusChange={handleStatusChange}
+        onApprove={handleApprove}
         onDelete={handleDelete}
         onRefresh={fetchUsers}
         onAddStudyMember={handleAddStudyMember}
@@ -208,4 +254,4 @@ const UserManagementControl = ({ isDemoMode, currentUserEmail, viewerRole }: Use
   );
 };
 
-export default UserManagementControl;
+export default UserRegistryControl;

@@ -114,17 +114,17 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (userStatus === 'candidate' || userStatus === 'pending') {
-    const heading = userStatus === 'candidate'
+  if (userStatus === 'wait_email_confirm' || userStatus === 'wait_approval') {
+    const heading = userStatus === 'wait_email_confirm'
       ? 'Check Your Inbox'
       : 'Awaiting Mentor Approval';
-    const body = userStatus === 'candidate'
+    const body = userStatus === 'wait_email_confirm'
       ? <>Confirm your email address to continue registration for{' '}
-          <code style={{ fontFamily: 'var(--font-data)', color: 'var(--accent-soft)' }}>{currentUserEmail}</code>.
-          {' '}Check your inbox and click the link we sent you.</>
+        <code style={{ fontFamily: 'var(--font-data)', color: 'var(--accent-soft)' }}>{currentUserEmail}</code>.
+        {' '}Check your inbox and click the link we sent you.</>
       : <>Email confirmed. A mentor needs to activate{' '}
-          <code style={{ fontFamily: 'var(--font-data)', color: 'var(--accent-soft)' }}>{currentUserEmail}</code>
-          {' '}in the User Registry before you can sign in.</>;
+        <code style={{ fontFamily: 'var(--font-data)', color: 'var(--accent-soft)' }}>{currentUserEmail}</code>
+        {' '}in the User Registry before you can sign in.</>;
     return (
       <div
         style={{
@@ -187,7 +187,16 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (userStatus === 'suspended') {
+  // 'deleted' (not 'suspended') is the full-block, can't-sign-in-at-all
+  // state: this is the account's own soft-delete (see ROLES.md's
+  // "Suspending vs. deleting" section), and the only way back in is a
+  // mentor/admin clicking Reactivate in User Registry's Deleted Archives -
+  // there's genuinely nothing to do here but sign out. A merely-suspended
+  // account is NOT blocked this way - it falls through to the normal shell
+  // below, with reduced nav (see PrimarySidebar's isActive gate) and its
+  // own explanatory note on Study Overview, mirroring how an approved-but-
+  // unassigned team_member is handled.
+  if (userStatus === 'deleted') {
     return (
       <div
         style={{
@@ -221,14 +230,15 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               marginBottom: '8px',
             }}
           >
-            Account Access Suspended
+            Account Deleted
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-md)', lineHeight: 1.6, marginBottom: '20px' }}>
-            Your access to Validata has been suspended. Contact the Project Mentor regarding{' '}
+            This account has been deleted and can't sign in. Contact a Project Mentor or Admin
+            regarding{' '}
             <code style={{ fontFamily: 'var(--font-data)', color: 'var(--status-dropped)' }}>
               {currentUserEmail}
             </code>
-            .
+            {' '}— they can restore it from Deleted Archives in User Registry.
           </p>
           <button
             onClick={handleLogout}
@@ -277,7 +287,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       {/* Body row */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Sidebar (ActivityBar + PrimarySidebar) */}
-        <Sidebar userRole={userRole} currentUserEmail={currentUserEmail} />
+        <Sidebar userRole={userRole} userStatus={userStatus} currentUserEmail={currentUserEmail} />
 
         {/* Main area */}
         <main

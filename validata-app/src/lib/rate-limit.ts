@@ -1,8 +1,8 @@
-// Minimal in-memory rate limiter (fable_system_review §6.3: unthrottled
-// credential probe on /api/auth/verify-credentials). This is process-local -
-// on Vercel's serverless platform each instance has its own counters, so it
-// is best-effort defense-in-depth, not a hard guarantee. A shared store
-// (e.g. Redis/Upstash) would be needed for a real guarantee across instances.
+// Minimal in-memory rate limiter, used to throttle credential probes on
+// /api/auth/verify-credentials. This is process-local - on Vercel's
+// serverless platform each instance has its own counters, so it is
+// best-effort defense-in-depth, not a hard guarantee. A shared store (e.g.
+// Redis/Upstash) would be needed for a real guarantee across instances.
 const attempts = new Map<string, { count: number; resetAt: number }>();
 
 export function isRateLimited(key: string, maxAttempts: number, windowMs: number): boolean {

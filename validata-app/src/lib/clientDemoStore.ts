@@ -245,6 +245,31 @@ function initState(): ClientDemoState {
     created_at: new Date(Date.now() - 4 * 24 * 3600 * 1000).toISOString(),
   };
 
+  // Seeded so the Consent Records page (and the Participants view's
+  // "consent on file" indicator) aren't empty on first load - a mentor/
+  // reviewer can see the full flow immediately instead of having to create
+  // a form version themselves first.
+  const consentV1: DemoConsentVersion = {
+    id: 301,
+    study_id: 'demo-study-1',
+    version: 'v1.0',
+    irb_approved_at: new Date(Date.now() - 20 * 24 * 3600 * 1000).toISOString(),
+    activated_at: new Date(Date.now() - 18 * 24 * 3600 * 1000).toISOString(),
+    content_hash: 'a3f5c9e21b7d4f68091c2e5a7b3d9f1e4c6a8b0d2f4e6c8a0b2d4f6e8c0a2b4d',
+  };
+
+  const consentRecord1: DemoConsentRecord = {
+    id: 'CR-401',
+    study_id: 'demo-study-1',
+    participant_id: 'P-1001',
+    form_version_id: consentV1.id,
+    method: 'written',
+    copy_delivered: true,
+    witnessed_by: null,
+    notes: null,
+    created_at: new Date(Date.now() - 15 * 24 * 3600 * 1000).toISOString(),
+  };
+
   return {
     counter: 1000,
     auditLog: [
@@ -313,13 +338,35 @@ function initState(): ClientDemoState {
         reason: 'Delegated "Perform safety assessments on adverse events reported in the last 7 days." to demo-investigator-id',
         study_id: 'demo-study-1',
         scope: 'study',
+      },
+      {
+        id: 'AUD-301',
+        occurred_at: consentV1.activated_at as string,
+        actor_email: 'mentor@demo.com',
+        table_name: 'consent_form_versions',
+        record_id: String(consentV1.id),
+        action: 'INSERT',
+        reason: 'Created consent form version v1.0',
+        study_id: 'demo-study-1',
+        scope: 'study',
+      },
+      {
+        id: 'AUD-401',
+        occurred_at: consentRecord1.created_at,
+        actor_email: 'investigator@demo.com',
+        table_name: 'consent_records',
+        record_id: consentRecord1.id,
+        action: 'INSERT',
+        reason: 'Recorded consent for P-1001',
+        study_id: 'demo-study-1',
+        scope: 'study',
       }
     ],
     signatures: [],
     queries: [query1, query2],
     adverseEvents: [],
-    consentVersions: [],
-    consentRecords: [],
+    consentVersions: [consentV1],
+    consentRecords: [consentRecord1],
     delegations: [del1, del3, del4, del5],
     studyLockOverrides: {},
     userOverrides: {},
@@ -868,9 +915,17 @@ export function setUserOverride(input: {
   return merged;
 }
 
-export function removeUserOverride(userId: string, userEmail: string, actorEmail: string): void {
+// Soft-deletes a user in demo mode, mirroring the live DELETE endpoint:
+// sets status: 'deleted' (the authoritative signal, distinct from
+// 'suspended') plus a deleted_at audit timestamp, via the same override
+// mechanism setUserOverride uses - NOT a removal of the override, despite
+// the old name this replaced ("removeUserOverride") suggesting otherwise.
+// Deleting the override entirely would have reset the user back to their
+// unmodified DEMO_USERS row on the next fetch, silently undoing the delete.
+export function deleteUserOverride(userId: string, userEmail: string, actorEmail: string): void {
   const state = loadState();
-  delete state.userOverrides[userId];
+  const existing = state.userOverrides[userId] ?? {};
+  state.userOverrides[userId] = { ...existing, status: 'deleted', deleted_at: new Date().toISOString() };
   state.auditLog.unshift({
     id: `AUD-${nextId(state)}`,
     occurred_at: new Date().toISOString(),

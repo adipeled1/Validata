@@ -17,6 +17,9 @@ describe('ParticipantsControl (add participant golden path)', () => {
         recruitmentGoal={50}
         onUpdateRecruitmentGoal={vi.fn()}
         userRole="team_member"
+        consentVersions={[]}
+        consentRecords={[]}
+        onRecordConsent={vi.fn()}
       />
     );
 
@@ -31,7 +34,6 @@ describe('ParticipantsControl (add participant golden path)', () => {
     await user.selectOptions(selects[0], 'Female'); // Gender select
     await user.selectOptions(selects[1], 'Healthy'); // Health Status select
 
-    // Consent is hardcoded to true (tracked via consent_records ICH E6(R3))
     // Submit via the submit button inside the panel
     const addButtons = screen.getAllByRole('button', { name: /add participant/i });
     await user.click(addButtons[addButtons.length - 1]);
@@ -39,7 +41,6 @@ describe('ParticipantsControl (add participant golden path)', () => {
     expect(onAddParticipant).toHaveBeenCalledTimes(1);
     const payload = onAddParticipant.mock.calls[0][0];
     expect(payload.age).toBe('35');
-    expect(payload.consent).toBe(true);
     expect(payload.enrollmentDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });

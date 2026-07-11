@@ -21,7 +21,6 @@ export type CreateMeasurementInput = {
 
 export type UpdateMeasurementValidityInput = {
   id?: string | number;
-  isValid: boolean;
   participantId?: string;
   studyId: string;
   // ICH E6(R3) COR-01: reason for every data correction must be captured
@@ -107,15 +106,17 @@ export async function createMeasurement(
   return data[0];
 }
 
-// Toggle a measurement's valid/invalid flag, or bulk-invalidate every
-// measurement for a participant (used when a participant is dropped).
+// Mark a measurement invalid, or bulk-invalidate every measurement for a
+// participant (used when a participant is dropped). One-way: there is no
+// "mark valid again" path (see FEATURES.md/MENTOR.md/INVESTIGATOR.md).
 // ICH E6(R3) COR-01: reason is captured and flows to the audit_log trigger.
-// Only is_valid/validity_reason may ever be written here — this is now also
+// Only is_valid/validity_reason may ever be written here — this is also
 // enforced at the DB level by enforce_measurements_immutability() in
-// supabase_setup.sql, which rejects any UPDATE touching another column.
+// supabase_setup.sql, which rejects any UPDATE touching another column (and
+// rejects is_valid going back to true).
 export async function updateMeasurementValidity(
   session: ResolvedSession,
-  { id, isValid, participantId, studyId, reason }: UpdateMeasurementValidityInput
+  { id, participantId, studyId, reason }: UpdateMeasurementValidityInput
 ) {
   if (session.isDemo) {
     addAuditEntry({
@@ -124,9 +125,9 @@ export async function updateMeasurementValidity(
       recordId: String(id ?? participantId ?? '-'),
       action: 'UPDATE',
       studyId,
-      reason: reason ?? (isValid ? 'Marked valid' : 'Marked invalid'),
+      reason: reason ?? 'Marked invalid',
     });
-    return { id, participantId, is_valid: isValid };
+    return { id, participantId, is_valid: false };
   }
 
   if (participantId) {
@@ -137,7 +138,7 @@ export async function updateMeasurementValidity(
     const { data, error } = await session.supabaseClient!
       .from('measurements')
       .update({
-        is_valid: isValid,
+        is_valid: false,
         // Store the reason in a dedicated column so the audit trigger picks
         // it up in new_value; a separate audit_log.reason column is written
         // by the application-level audit helper (see API/action layers).
@@ -158,7 +159,7 @@ export async function updateMeasurementValidity(
   const { data, error } = await session.supabaseClient!
     .from('measurements')
     .update({
-      is_valid: isValid,
+      is_valid: false,
       ...(reason ? { validity_reason: reason } : {}),
     })
     .eq('id', id)

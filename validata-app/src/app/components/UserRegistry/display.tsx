@@ -15,7 +15,7 @@ interface Study {
   name: string;
 }
 
-interface UserManagementDisplayProps {
+interface UserRegistryDisplayProps {
   users: User[];
   isLoading: boolean;
   error: string;
@@ -25,6 +25,7 @@ interface UserManagementDisplayProps {
   membershipsByUser: Record<string, string[]>;
   onRoleChange: (userId: string, newRole: string) => void;
   onStatusChange: (userId: string, newStatus: string) => void;
+  onApprove: (userId: string) => void;
   onDelete: (userId: string) => void;
   onRefresh: () => void;
   onAddStudyMember: (userId: string, studyId: string) => void;
@@ -52,10 +53,11 @@ const cellStyle: React.CSSProperties = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  candidate: 'var(--status-warning)',
+  wait_email_confirm: 'var(--status-warning)',
+  wait_approval: 'var(--status-pending)',
   active: 'var(--status-active)',
-  pending: 'var(--status-pending)',
   suspended: 'var(--status-dropped)',
+  deleted: 'var(--status-dropped)',
 };
 
 const chipStyle: React.CSSProperties = {
@@ -213,7 +215,7 @@ function StudiesCell({
   );
 }
 
-const UserManagementDisplay = ({
+const UserRegistryDisplay = ({
   users,
   isLoading,
   error,
@@ -223,16 +225,26 @@ const UserManagementDisplay = ({
   membershipsByUser,
   onRoleChange,
   onStatusChange,
+  onApprove,
   onDelete,
   onRefresh,
   onAddStudyMember,
   onRemoveStudyMember,
-}: UserManagementDisplayProps) => {
+}: UserRegistryDisplayProps) => {
   const [showArchive, setShowArchive] = useState(false);
   const viewerIsAdmin = viewerRole === 'admin';
-  const candidates = users.filter((u) => u.status === 'candidate');
-  const activeUsers = users.filter((u) => u.status !== 'candidate' && !u.deleted_at);
-  const deletedUsers = users.filter((u) => u.status !== 'candidate' && !!u.deleted_at);
+  // Applicants are split into two groups: unconfirmed sign-ups (haven't
+  // clicked the email confirmation link yet - not actionable, informational
+  // only) and pending approvals (confirmed, waiting on a mentor - the one
+  // actionable queue). Everyone else (role !== 'applicant') is a real,
+  // ever-approved account, shown in the main table below.
+  const unconfirmedApplicants = users.filter((u) => u.status === 'wait_email_confirm');
+  const pendingApprovals = users.filter((u) => u.status === 'wait_approval');
+  // status: 'deleted' is the authoritative signal (not deleted_at, which is
+  // just the audit "when" timestamp) - this is what distinguishes a deleted
+  // account from a merely-suspended one, which shares nothing else in common.
+  const activeUsers = users.filter((u) => u.role !== 'applicant' && u.status !== 'deleted');
+  const deletedUsers = users.filter((u) => u.role !== 'applicant' && u.status === 'deleted');
   // A plain mentor can't touch an account that's already mentor/admin —
   // separation of duties so mentors can't demote/suspend/delete each other.
   const canManage = (targetRole: string) => viewerIsAdmin || (targetRole !== 'mentor' && targetRole !== 'admin');
@@ -331,8 +343,10 @@ const UserManagementDisplay = ({
         </div>
       )}
 
-      {/* Candidates section */}
-      {!isLoading && candidates.length > 0 && (
+      {/* Pending Approvals section - confirmed applicants (status:
+          wait_approval), the one actionable onboarding queue. Approving
+          sets role + status together in one call (see onApprove). */}
+      {!isLoading && pendingApprovals.length > 0 && (
         <div>
           <div style={{
             fontSize: 'var(--font-size-xs)',
@@ -346,7 +360,7 @@ const UserManagementDisplay = ({
             gap: '6px',
           }}>
             <Clock size={11} />
-            Pending Candidates ({candidates.length}) — Auto-expire after 30 days if not approved
+            Pending Approvals ({pendingApprovals.length}) — Auto-expire after 30 days if not approved
           </div>
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -358,7 +372,7 @@ const UserManagementDisplay = ({
                 </tr>
               </thead>
               <tbody>
-                {candidates.map((user, i) => {
+                {pendingApprovals.map((user, i) => {
                   const expiresAt = user.candidate_expires_at
                     ? new Date(user.candidate_expires_at).toLocaleDateString()
                     : '—';
@@ -378,9 +392,9 @@ const UserManagementDisplay = ({
                       </td>
                       <td style={{ ...cellStyle, textAlign: 'right' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
-                          {/* Approve: candidate → active */}
+                          {/* Approve: applicant/wait_approval → team_member/active */}
                           <button
-                            onClick={() => onStatusChange(user.id, 'active')}
+                            onClick={() => onApprove(user.id)}
                             title="Approve and activate account"
                             style={{ background: 'transparent', border: 'none', color: 'var(--status-active)', cursor: 'pointer', padding: '3px', display: 'flex' }}
                           >
@@ -405,9 +419,66 @@ const UserManagementDisplay = ({
         </div>
       )}
 
+      {/* Unconfirmed Sign-ups - status: wait_email_confirm. Informational
+          only, no action available: these applicants haven't confirmed
+          their email yet, so there's nothing for a mentor to approve.
+          They'll either confirm (moving to Pending Approvals above) or
+          auto-expire after 30 days like any other applicant. */}
+      {!isLoading && unconfirmedApplicants.length > 0 && (
+        <div>
+          <div style={{
+            fontSize: 'var(--font-size-xs)',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            color: 'var(--text-muted)',
+            padding: '6px 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}>
+            <Clock size={11} />
+            Unconfirmed Sign-ups ({unconfirmedApplicants.length}) — awaiting email confirmation, not yet actionable
+          </div>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={colHeaderStyle}>Email</th>
+                  <th style={colHeaderStyle}>Expires At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {unconfirmedApplicants.map((user, i) => {
+                  const expiresAt = user.candidate_expires_at
+                    ? new Date(user.candidate_expires_at).toLocaleDateString()
+                    : '—';
+                  return (
+                    <tr
+                      key={user.id}
+                      style={{
+                        background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
+                        borderBottom: '1px solid var(--border)',
+                      }}
+                    >
+                      <td style={cellStyle}>
+                        <span style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>{user.email}</span>
+                      </td>
+                      <td style={{ ...cellStyle, fontFamily: 'var(--font-data)', fontSize: 'var(--font-size-sm)', color: 'var(--text-timestamp)' }}>
+                        {expiresAt}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Active users table */}
       <div>
-        {candidates.length > 0 && (
+        {(pendingApprovals.length > 0 || unconfirmedApplicants.length > 0) && (
           <div style={{
             fontSize: 'var(--font-size-xs)',
             fontWeight: 600,
@@ -522,7 +593,11 @@ const UserManagementDisplay = ({
                         )}
                       </td>
 
-                      {/* Status */}
+                      {/* Status — this table is scoped to role !== 'applicant'
+                          (see activeUsers above), so status here is always
+                          'active' or 'suspended'; wait_email_confirm/
+                          wait_approval accounts live in the two applicant
+                          sections above instead. */}
                       <td style={cellStyle}>
                         <span style={{
                           fontSize: 'var(--font-size-xs)',
@@ -530,7 +605,7 @@ const UserManagementDisplay = ({
                           color: STATUS_COLOR[user.status] ?? 'var(--text-muted)',
                           textTransform: 'uppercase',
                         }}>
-                          {user.status === 'pending' ? 'Pending Approval' : user.status}
+                          {user.status}
                         </span>
                       </td>
 
@@ -553,18 +628,6 @@ const UserManagementDisplay = ({
                       {/* Actions */}
                       <td style={{ ...cellStyle, textAlign: 'right' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
-
-                          {/* Approve pending */}
-                          {user.status === 'pending' && canManage(user.role) && (
-                            <button
-                              onClick={() => onStatusChange(user.id, 'active')}
-                              title="Approve account"
-                              style={{ background: 'transparent', border: 'none', color: 'var(--status-active)', cursor: 'pointer', padding: '3px', display: 'flex' }}
-                            >
-                              <UserCheck size={14} />
-                            </button>
-                          )}
-
 
                           {/* Suspend */}
                           {!isSelf && user.status === 'active' && canManage(user.role) && (
@@ -721,4 +784,4 @@ const UserManagementDisplay = ({
   );
 };
 
-export default UserManagementDisplay;
+export default UserRegistryDisplay;

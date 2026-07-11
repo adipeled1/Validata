@@ -29,9 +29,9 @@ const inputStyle: React.CSSProperties = {
   outline: 'none',
 };
 
-// fable_system_review §3.2: standardized on SWR instead of a bare useEffect
-// fetch - the key encodes every filter param so changing a filter is just a
-// new SWR key (and thus a fresh cache entry) rather than an imperative reload.
+// Uses SWR instead of a bare useEffect fetch - the key encodes every filter
+// param so changing a filter is just a new SWR key (and thus a fresh cache
+// entry) rather than an imperative reload.
 async function fetchAuditLogs(params: URLSearchParams): Promise<any[]> {
   const res = await fetch(`/api/audit-log?${params}`);
   if (!res.ok) return [];

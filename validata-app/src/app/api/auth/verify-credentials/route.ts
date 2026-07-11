@@ -11,9 +11,9 @@ const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 // such as electronic signature (ICH E6(R3) SIG-01, SIG-02).
 // Body: { email: string; password: string }
 // Returns 200 OK + a short-lived signingToken if credentials are valid, 401 if not.
-// fable_system_review §2.4/§6.3: the signingToken binds this call to the
-// subsequent POST /api/signatures, and attempts are rate-limited per user so
-// this endpoint can't be used as a password oracle.
+// The signingToken binds this call to the subsequent POST /api/signatures,
+// and attempts are rate-limited per user so this endpoint can't be used as
+// a password oracle.
 export async function POST(request: Request): Promise<Response> {
   try {
     const session = await verifySession();

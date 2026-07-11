@@ -1,8 +1,8 @@
-// Signs and verifies the `demo-session` cookie so demo mode fails closed
-// (fable_system_review §6.1): the cookie payload is no longer trusted
-// unsigned client JSON with an attacker-chosen role. Uses Web Crypto
-// (available in both the Edge middleware runtime and Node) instead of
-// node:crypto so the same code runs in src/proxy.ts and auth-server.ts.
+// Signs and verifies the `demo-session` cookie so demo mode fails closed:
+// the cookie payload is never trusted as unsigned client JSON with an
+// attacker-chosen role. Uses Web Crypto (available in both the Edge
+// middleware runtime and Node) instead of node:crypto so the same code
+// runs in src/proxy.ts and auth-server.ts.
 
 export type DemoSessionPayload = {
   email: string;

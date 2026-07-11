@@ -9,7 +9,6 @@ import { addAuditEntry } from '@/lib/demoStore';
 
 export type CreateParticipantInput = {
   id?: string;
-  consent: boolean;
   status?: string;
   age?: string | number | null;
   gender: string;
@@ -51,7 +50,7 @@ export async function listParticipants(session: ResolvedSession, studyId?: strin
 
 export async function createParticipant(
   session: ResolvedSession,
-  { id, consent, status, age, gender, healthStatus, enrollmentDate, studyId }: CreateParticipantInput
+  { id, status, age, gender, healthStatus, enrollmentDate, studyId }: CreateParticipantInput
 ) {
   if (!studyId) {
     throw new Error('A study must be selected before adding a participant.');
@@ -69,7 +68,6 @@ export async function createParticipant(
     });
     return {
       id: newId,
-      consent,
       status: status || 'Active',
       age: parseInt(String(age)) || null,
       gender,
@@ -82,12 +80,11 @@ export async function createParticipant(
 
   let participantId = id;
   if (!participantId) {
-    // fable_system_review §4.5: this used to SELECT all participants and
-    // compute max+1 in application code - two concurrent enrollments could
-    // read the same max and generate the same id, hitting the composite PK
-    // (id, study_id). next_participant_id() atomically increments a
-    // per-study counter row in the DB, so concurrent callers always get
-    // distinct values.
+    // next_participant_id() atomically increments a per-study counter row
+    // in the DB, so concurrent callers always get distinct values - doing
+    // this in application code instead (SELECT all participants, compute
+    // max+1) would let two concurrent enrollments read the same max and
+    // generate the same id, hitting the composite PK (id, study_id).
     const { data: nextId, error: idError } = await session.supabaseClient!
       .rpc('next_participant_id', { p_study_id: studyId });
 
@@ -99,7 +96,6 @@ export async function createParticipant(
     .from('participants')
     .insert({
       id: participantId,
-      consent,
       status: status || 'Active',
       age: parseInt(String(age)) || null,
       gender,

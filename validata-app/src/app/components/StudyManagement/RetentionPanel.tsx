@@ -1,8 +1,8 @@
 "use client";
 
-// fable_system_review §3.3/§3.2: extracted out of the StudyManagement god
-// component (it was one of several distinct responsibilities crammed into
-// one 851-line file) and converted to SWR in the same pass.
+// Kept as its own component, separate from StudyManagement, since retention
+// is a distinct responsibility (viewing/managing soft-deleted studies) from
+// the rest of that page's active-study management.
 import { useState } from 'react';
 import useSWR from 'swr';
 import { ShieldAlert } from 'lucide-react';

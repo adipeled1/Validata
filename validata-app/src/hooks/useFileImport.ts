@@ -18,13 +18,10 @@ interface FileImportDeps {
   triggerToast: (message: string) => void;
 }
 
-// fable_system_review §4.2: this used to build its own demo-mode measurement
-// shape (`validDemoRows`) separately from the live-mode path, which did its
-// own manual snake_case-to-UI-shape mapping of `savedBatch` - a third and
-// fourth independent copy of what mapMeasurements already does. Both demo
-// and live now go through createMeasurementsBatchAction -> repository
+// Both demo and live go through createMeasurementsBatchAction -> repository
 // (whose isDemo branch returns the same raw-DB shape as the live insert) ->
-// mapMeasurements, so there's exactly one shape-building step for either mode.
+// mapMeasurements, so there's exactly one shape-building step for either
+// mode, rather than a separate hand-built demo-mode measurement shape.
 export function useFileImport({
   participants,
   currentStudyId,

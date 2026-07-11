@@ -46,12 +46,11 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // Record the destruction request in the audit log as its own
-    // DESTRUCTION_REQUEST action. fable_system_review §5.2: this used to
-    // overwrite the study's lock_reason as a workaround for the lack of an
-    // audit_log INSERT policy, which corrupted Study Lock Control's "Reason"
-    // display and recorded a plain UPDATE instead of the real action.
-    // record_destruction_request() is SECURITY DEFINER (bypasses RLS for
-    // this one insert only), matching the pattern used by log_audit_event().
+    // DESTRUCTION_REQUEST action via a dedicated RPC, rather than writing to
+    // audit_log directly (application code has no INSERT policy on it) or
+    // repurposing another column as a workaround. record_destruction_request()
+    // is SECURITY DEFINER (bypasses RLS for this one insert only), matching
+    // the pattern used by log_audit_event().
     const { error: rpcErr } = await session.supabaseClient!
       .rpc('record_destruction_request', { p_study_id: studyId, p_reason: reason });
 

@@ -5,7 +5,7 @@
 
 **This is a student academic project. It does not claim to be ICH E6(R3) compliant, GCP compliant, or suitable for use in a real regulated clinical trial.**
 
-We are students at Braude College of Engineering. The features listed above reflect what the ICH E6(R3) guideline asks for at the *code level*. We wrote code that moves in the direction of those requirements. We do not claim that this code alone achieves compliance with the guideline or with any regulatory requirement.
+We are students at Braude College of Engineering. The ICH E6(R3)-inspired features in this project reflect what the guideline asks for at the *code level*. We wrote code that moves in the direction of those requirements. We do not claim that this code alone achieves compliance with the guideline or with any regulatory requirement.
 
 **Compliance depends on things outside this repository:**
 
@@ -15,7 +15,7 @@ We are students at Braude College of Engineering. The features listed above refl
 
 - **Regulatory jurisdiction.** Requirements differ between the FDA (21 CFR Part 11), EMA, and other health authorities. This project does not target any specific regulatory submission pathway and has not been reviewed by any regulatory authority.
 
-- **System validation.** A validated computerised system requires executed Installation Qualification (IQ), Operational Qualification (OQ), and Performance Qualification (PQ) test protocols, signed by qualified personnel, against a locked and controlled production environment. The `docs/quality/validation_master_plan.md` file in this repository is a skeleton template for learning purposes only — it has not been executed, signed, or reviewed by any qualified person.
+- **System validation.** A validated computerised system requires executed Installation Qualification (IQ), Operational Qualification (OQ), and Performance Qualification (PQ) test protocols, signed by qualified personnel, against a locked and controlled production environment. No such protocol has been executed, signed, or reviewed by any qualified person for this project.
 
 - **Security audit.** This code has not undergone an independent penetration test or security audit. Do not rely on it to protect sensitive clinical data without an independent review.
 
@@ -29,7 +29,7 @@ We are students at Braude College of Engineering. The features listed above refl
 
 This project is provided as-is, without warranty of any kind, express or implied. The contributors make no representation that this software meets any regulatory requirement. Use at your own risk.
 
-This project is licensed under the [Apache 2.0 License](LICENSE).
+This project is licensed under the [Apache 2.0 License](../LICENSE).
 
 ---
 
@@ -37,10 +37,11 @@ This project is licensed under the [Apache 2.0 License](LICENSE).
 
 | | |
 |---|---|
-| Institution | Braude College of Engineering — Department of Electrical Engineering |
+| Institution | Braude College of Engineering, Karmiel, Israel |
+| Departments | Software Engineering; Electrical and Electronics Engineering |
 | Partner | Rambam Health Care Campus |
 | Project code | D-26-4-1 |
 | Project title | Dorsiflexion Angle Measurement |
-| Project advisor | Dr. Einat Ravid |
+| Advisors | Dr. Naomi Unkelos Shpigel, Dr. Einat Ravid |
 | Contributors | ororbach, liraztubul, adipeled1, shakedm341-lang, ofir2207 |
 

@@ -51,7 +51,7 @@ export default function LoginControl() {
 
     // Handle Auth if Supabase is not configured (demo mode fallback - only
     // takes effect server-side if NEXT_PUBLIC_DEMO_ENABLED=true; see
-    // /api/auth/demo-login and fable_system_review §6.1).
+    // /api/auth/demo-login).
     if (!isSupabaseConfigured) {
       try {
         await performDemoLogin(email, password);

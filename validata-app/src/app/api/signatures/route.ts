@@ -6,11 +6,11 @@ import { addSignature, getSignatures } from '@/lib/demoStore';
 
 // POST /api/signatures
 // Records an electronic signature for a data milestone (ICH E6(R3) SIG-01, SIG-02, SIG-03).
-// fable_system_review §2.4: re-authentication is now enforced here, not just
-// choreographed by the client - a signingToken minted by a prior, successful
-// POST /api/auth/verify-credentials is required and atomically consumed
-// (single use), so this endpoint can't be called directly to sign without
-// ever presenting a password. Signatures are append-only (no UPDATE/DELETE RLS policy).
+// Re-authentication is enforced server-side, not just choreographed by the
+// client - a signingToken minted by a prior, successful POST
+// /api/auth/verify-credentials is required and atomically consumed (single
+// use), so this endpoint can't be called directly to sign without ever
+// presenting a password. Signatures are append-only (no UPDATE/DELETE RLS policy).
 export async function POST(request: Request): Promise<Response> {
   try {
     const session = await verifySession();
@@ -84,10 +84,10 @@ export async function GET(request: Request): Promise<Response> {
       return Response.json({ error: session.error }, { status: session.status });
     }
 
-    // fable_system_review §2.1: this endpoint previously had no role check at
-    // all while the signatures log page restricted viewing to compliance
-    // roles - any authenticated active user could list every signature for a
-    // study. Aligned to the same READABLE_ROLES set used everywhere else.
+    // Gated to canReadOnly() (READABLE_ROLES) so it matches the signatures
+    // log page's own viewing restriction - without a server-side check here,
+    // any authenticated active user could list every signature for a study
+    // by calling the route directly, regardless of the page-level gate.
     if (!canReadOnly(session)) {
       return Response.json({ error: 'Forbidden.' }, { status: 403 });
     }

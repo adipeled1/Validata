@@ -1,10 +1,9 @@
 import { signDemoSession } from '@/lib/demoSession';
 
 // POST /api/auth/demo-login
-// fable_system_review §6.1: demo mode must fail closed. Previously the
-// client wrote an unsigned `demo-session` cookie directly via document.cookie
-// with an attacker-chosen role - anyone could forge "admin" access with dev
-// tools regardless of whether Supabase was configured. Now:
+// Demo mode fails closed by design, since a client-writable, unsigned
+// `demo-session` cookie would let anyone forge "admin" access via dev tools
+// regardless of whether Supabase was configured. So:
 //   1. Demo mode is opt-in (NEXT_PUBLIC_DEMO_ENABLED must be exactly 'true').
 //   2. Credentials are checked here, server-side, against a fixed demo list.
 //   3. The cookie is HMAC-signed (DEMO_SESSION_SECRET) so it can't be forged

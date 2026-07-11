@@ -5,8 +5,8 @@ import { ADMIN_ROLES, EDIT_ROLES, READABLE_ROLES, hasRole } from './permissions'
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type Profile = {
-  role: string; // expanded role set defined in schemas.ts roleSchema
-  status: 'candidate' | 'pending' | 'active' | 'suspended';
+  role: string; // 'applicant' plus the operational role set defined in schemas.ts roleSchema
+  status: 'wait_email_confirm' | 'wait_approval' | 'active' | 'suspended';
   deleted_at?: string | null;
 };
 
@@ -40,7 +40,7 @@ if (DEMO_ENABLED && process.env.NODE_ENV === 'production') {
 // Resolves who's making the request (demo or real Supabase user) and their
 // profile, without judging whether their account status is allowed to
 // proceed - that gate differs by caller (API routes reject non-active users
-// outright; the dashboard layout instead needs to render a "pending" /
+// outright; the dashboard layout instead needs to render an onboarding /
 // "suspended" screen for them). See verifySession() and getDashboardSession().
 async function resolveSession(): Promise<Session> {
   const cookieStore = await cookies();
@@ -72,7 +72,11 @@ async function resolveSession(): Promise<Session> {
     return { error: 'Unauthorized. Invalid session token.', status: 401 };
   }
 
-  // Fetch the user's role and status from the profiles table
+  // Fetch the user's role and status from the profiles table. Applicants
+  // (role = 'applicant') are deliberately excluded by RLS from this direct
+  // select - onboarding lifecycle restructure: applicants are blocked from
+  // every possible database read - so this returns no row for them by
+  // design, not because their profile doesn't exist.
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('role, status, deleted_at')
@@ -80,30 +84,26 @@ async function resolveSession(): Promise<Session> {
     .single();
 
   if (profileError || !profile) {
-    // If user exists in Auth but has no profile, create a candidate profile
-    const { data: newProfile, error: createError } = await supabase
-      .from('profiles')
-      .insert({
-        id: user.id,
-        email: user.email,
-        role: 'team_member',
-        status: 'candidate',
-        candidate_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-      })
-      .select()
-      .single();
-
-    if (createError) {
-      console.error('Error creating profile for user:', createError);
-      return { error: 'Forbidden. Profile setup failed.', status: 403 };
+    // Fall back to the narrow my_onboarding_status() RPC, which is exactly
+    // the "which onboarding screen do I show" signal an applicant is
+    // allowed to read - it returns only the caller's own status, nothing
+    // else. handle_new_user() already creates a profile row on every
+    // sign-up, so application code never creates one here.
+    const { data: onboardingStatus } = await supabase.rpc('my_onboarding_status');
+    if (onboardingStatus) {
+      return {
+        user: { id: user.id, email: user.email ?? '' },
+        profile: { role: 'applicant', status: onboardingStatus as Profile['status'] },
+        isDemo: false,
+        supabaseClient: supabase
+      };
     }
 
-    return {
-      user: { id: user.id, email: user.email ?? '' },
-      profile: newProfile as Profile,
-      isDemo: false,
-      supabaseClient: supabase
-    };
+    // Truly no profile row and not an applicant either - shouldn't happen
+    // given handle_new_user(), but there is no legitimate account state this
+    // could represent, so treat it as a session error rather than guessing.
+    console.error('No profile found for authenticated user:', user.id);
+    return { error: 'Forbidden. No profile found for this account.', status: 403 };
   }
 
   if (profile.deleted_at) {
@@ -132,14 +132,15 @@ export async function verifySession(): Promise<Session> {
 
 // For the dashboard layout (Server Component): resolves the session once,
 // server-side, so the client doesn't need its own separate auth check.
-// Candidate/pending/suspended users are still resolved successfully here - the layout
-// renders a status screen for them instead of dashboard content.
+// Applicants (wait_email_confirm/wait_approval) and suspended users are
+// still resolved successfully here - the layout renders an onboarding/status
+// screen for them instead of dashboard content.
 export async function getDashboardSession(): Promise<Session> {
   return resolveSession();
 }
 
 // ICH E6(R3) AUTH-02: role helpers used by API routes and Server Actions
-// to enforce function-based access control beyond the basic active/pending gate.
+// to enforce function-based access control beyond the basic active/status gate.
 
 // 'admin' sits above 'mentor' (separation of duties: only an admin can change
 // or remove a mentor/admin account, so mentors can't lock each other out).

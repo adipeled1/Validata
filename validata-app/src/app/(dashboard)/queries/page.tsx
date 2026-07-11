@@ -16,8 +16,8 @@ const EMPTY_NEW_QUERY = {
   queryText: '',
 };
 
-// fable_system_review §3.2: standardized on SWR (shared cache, no bespoke
-// per-page fetch/loading/error triplet) instead of a bare useEffect fetch.
+// Uses SWR (shared cache, no bespoke per-page fetch/loading/error triplet)
+// instead of a bare useEffect fetch.
 async function fetchQueries(studyId: string, isDemoMode: boolean) {
   if (isDemoMode) return clientDemoStore.getQueries(studyId);
   const res = await fetch(`/api/queries?studyId=${studyId}`);

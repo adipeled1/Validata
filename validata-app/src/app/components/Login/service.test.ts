@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { performDemoLogin } from './service';
 import { getCookie } from '../../../lib/cookies';
 
-// fable_system_review §6.1: performDemoLogin no longer writes the
-// demo-session cookie itself (it's HMAC-signed and HttpOnly, set by the
-// server in POST /api/auth/demo-login) - it just calls that endpoint and
-// caches the UI-only user-role/user-status hints.
+// performDemoLogin does not write the demo-session cookie itself (it's
+// HMAC-signed and HttpOnly, set by the server in POST /api/auth/demo-login)
+// - it just calls that endpoint and caches the UI-only user-role/user-status
+// hints.
 describe('performDemoLogin (demo login golden path)', () => {
   beforeEach(() => {
     document.cookie.split(';').forEach((c) => {

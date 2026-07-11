@@ -120,7 +120,7 @@ function AttentionPanel({ rows }: { rows: AttentionRow[] }) {
 
 export default function StudyOverviewPage() {
   const { currentStudy, currentStudyId } = useStudy();
-  const { userRole, isDemoMode, currentUserEmail } = useSession();
+  const { userRole, userStatus, isDemoMode, currentUserEmail } = useSession();
   const router = useRouter();
   const canSeeApprovals = hasRole(userRole, ADMIN_ROLES);
   const canDelegate = hasRole(userRole, DELEGATION_ROLES);
@@ -150,7 +150,7 @@ export default function StudyOverviewPage() {
       const demoProfiles = DEMO_USERS.map((u) => clientDemoStore.applyUserOverride(u));
       setProfiles(demoProfiles);
       setDelegateRoster(demoProfiles.filter((u) => u.status === 'active'));
-      setPendingApprovals(canSeeApprovals ? demoProfiles.filter((u) => u.status === 'pending').length : 0);
+      setPendingApprovals(canSeeApprovals ? demoProfiles.filter((u) => u.status === 'wait_approval').length : 0);
       setDelegations(clientDemoStore.getDelegations(currentStudyId));
       return;
     }
@@ -170,7 +170,7 @@ export default function StudyOverviewPage() {
       const profileList = Array.isArray(profs) ? profs : [];
       setProfiles(profileList);
       setDelegateRoster(Array.isArray(roster) ? roster : []);
-      setPendingApprovals(canSeeApprovals ? profileList.filter((p: any) => p.status === 'pending').length : 0);
+      setPendingApprovals(canSeeApprovals ? profileList.filter((p: any) => p.status === 'wait_approval').length : 0);
       setDelegations(Array.isArray(dels) ? dels : []);
     }).finally(() => setLoadingAudit(false));
   }, [currentStudyId, canSeeApprovals, canDelegate, isDemoMode]);
@@ -206,8 +206,8 @@ export default function StudyOverviewPage() {
   const openDelegatedByMe = canDelegate ? delegations.filter((d) => isDelegatedByMe(d) && isDelegationOpen(d)) : [];
   const recentlyCompletedByMe = canDelegate
     ? delegations
-        .filter((d) => isDelegatedByMe(d) && getDelegationStatus(d) === 'completed' && Date.now() - new Date(d.completed_at).getTime() < FOURTEEN_DAYS_MS)
-        .sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())
+      .filter((d) => isDelegatedByMe(d) && getDelegationStatus(d) === 'completed' && Date.now() - new Date(d.completed_at).getTime() < FOURTEEN_DAYS_MS)
+      .sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())
     : [];
 
   const handleCompleteDelegation = async (id: number) => {
@@ -298,12 +298,12 @@ export default function StudyOverviewPage() {
     },
     ...(canSeeApprovals
       ? [{
-          key: 'approvals',
-          label: `Pending user ${pendingApprovals === 1 ? 'approval' : 'approvals'}`,
-          count: pendingApprovals,
-          urgent: false,
-          onClick: () => router.push('/user-management'),
-        }]
+        key: 'approvals',
+        label: `Pending user ${pendingApprovals === 1 ? 'approval' : 'approvals'}`,
+        count: pendingApprovals,
+        urgent: false,
+        onClick: () => router.push('/user-registry'),
+      }]
       : []),
   ];
 
@@ -361,6 +361,57 @@ export default function StudyOverviewPage() {
           </span>
         </div>
       </div>
+
+      {/* Suspended: unlike 'deleted', a suspended account CAN still sign in
+          and lands here same as anyone else - it's just blocked from every
+          read/write by RLS (status must be 'active'), same underlying
+          mechanism as an unassigned team_member, regardless of what role it
+          holds. PrimarySidebar's isActive gate hides the same role-gated nav
+          sections for a suspended user as it does for team_member, so this
+          note explains why. Checked before the team_member note below so
+          the two never show together - suspension is the more serious,
+          more specific fact when both would technically apply. */}
+      {userStatus === 'suspended' ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 14px',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            borderLeft: '3px solid var(--status-dropped)',
+            color: 'var(--text-secondary)',
+            fontSize: 'var(--font-size-sm)',
+          }}
+        >
+          Your account access has been suspended — contact a mentor or admin. Most screens will be unavailable until access is restored.
+        </div>
+      ) : userRole === 'team_member' && (
+        // Approved-but-unassigned team_member: a real, active account that
+        // lands here (Study Overview is the app's default page and has no
+        // RLS-gated data of its own), but has near-zero functional
+        // permissions until a mentor assigns an operational role - the
+        // Participants/Analysis/Queries sidebar sections are hidden for them
+        // (see PrimarySidebar's showReadableData gate) for exactly this
+        // reason, so this note explains why rather than leaving a sparse
+        // sidebar unexplained.
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 14px',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            borderLeft: '3px solid var(--accent-soft)',
+            color: 'var(--text-secondary)',
+            fontSize: 'var(--font-size-sm)',
+          }}
+        >
+          Your account is active, but a mentor hasn't assigned you a study role yet — ask a mentor or admin to assign you one in the User Registry.
+        </div>
+      )}
 
       {/* Needs My Attention - consolidates everything a mentor would otherwise
           have to click through Queries, Adverse Events, and User Registry

@@ -1,8 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-// This app runs in Demo Mode whenever Supabase isn't configured (the current
-// working copy has no real Supabase project yet - see SUPABASE_CONNECTION_PLAN.md),
-// so these run entirely against in-memory demo data, no backend required.
+// This app runs in Demo Mode whenever Supabase isn't configured, so these
+// run entirely against in-memory demo data, no backend required.
 
 test.describe('Golden paths (demo mode)', () => {
   test('login -> add participant -> log measurement -> view in results', async ({ page }) => {
@@ -13,7 +12,7 @@ test.describe('Golden paths (demo mode)', () => {
     // Two "Sign In" buttons exist (the tab toggle and the form submit) - scope to the submit one.
     await page.locator('button[type="submit"]', { hasText: 'Sign In' }).click();
 
-    // VS2026 shell: landing page is Participant Registry (renamed from Participant Management).
+    // Landing page after login is Participant Registry.
     await expect(page.getByRole('heading', { name: 'Participant Registry' })).toBeVisible({ timeout: 10_000 });
 
     // Add a participant via the inline panel (the form is no longer inline in the page).

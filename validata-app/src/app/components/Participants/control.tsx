@@ -2,10 +2,15 @@ import { useState } from 'react';
 import ParticipantsDisplay from './display';
 import ConfirmWithReasonModal from '../common/ConfirmWithReasonModal';
 import { formatDateForDisplay, getTodayDateString, countRecruitedParticipants } from './service';
+import { hasRole, EDIT_ROLES } from '../../../lib/permissions';
+import type { CreateConsentRecordInput } from '../Consent/service';
+
+interface ConsentVersionEntry { id: number; version: string; }
+interface ConsentRecordEntry { id: string; participant_id: string; form_version_id: number; method: string; copy_delivered: boolean; witnessed_by: string | null; notes: string | null; created_at: string; }
 
 interface ParticipantsControlProps {
   participants: any[];
-  onAddParticipant: (data: { consent: boolean; age: string; gender: string; healthStatus: string; enrollmentDate: string }) => void;
+  onAddParticipant: (data: { age: string; gender: string; healthStatus: string; enrollmentDate: string }) => void;
   // ICH E6(R3) COR-01: reason is now required so the drop is justified and
   // captured in the audit trail.
   onDropParticipant: (id: string, reason: string) => void;
@@ -13,6 +18,9 @@ interface ParticipantsControlProps {
   recruitmentGoal: number | null;
   onUpdateRecruitmentGoal: (goal: string) => void;
   userRole: string;
+  consentVersions: ConsentVersionEntry[];
+  consentRecords: ConsentRecordEntry[];
+  onRecordConsent: (input: Omit<CreateConsentRecordInput, 'studyId' | 'isDemoMode' | 'currentUserEmail'>) => Promise<void>;
 }
 
 const ParticipantsControl = ({
@@ -22,7 +30,10 @@ const ParticipantsControl = ({
   onToggleParticipantCompleted,
   recruitmentGoal,
   onUpdateRecruitmentGoal,
-  userRole
+  userRole,
+  consentVersions,
+  consentRecords,
+  onRecordConsent,
 }: ParticipantsControlProps) => {
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('Male');
@@ -39,8 +50,9 @@ const ParticipantsControl = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Formal consent is tracked via consent_records (ICH E6(R3) CONSENT-01),
+    // not on the participant row.
     onAddParticipant({
-      consent: true, // formal consent is tracked via consent_records (ICH E6(R3) CONSENT-01)
       age,
       gender,
       healthStatus,
@@ -101,6 +113,10 @@ const ParticipantsControl = ({
         goalInput={goalInput}
         onGoalInputChange={setGoalInput}
         onGoalSubmit={handleGoalSubmit}
+        consentVersions={consentVersions}
+        consentRecords={consentRecords}
+        canRecordConsent={hasRole(userRole, EDIT_ROLES)}
+        onRecordConsent={onRecordConsent}
       />
     </>
   );

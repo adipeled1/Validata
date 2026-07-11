@@ -6,6 +6,7 @@ import { ADMIN_ROLES, DELEGATION_ROLES, READABLE_ROLES, AUDIT_VIEWER_ROLES, hasR
 
 interface PrimarySidebarProps {
   userRole: string;
+  userStatus: string;
   currentPath: string;
 }
 
@@ -130,15 +131,34 @@ function Divider() {
 
 export default function PrimarySidebar({
   userRole,
+  userStatus,
   currentPath,
 }: PrimarySidebarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const showCompliance = hasRole(userRole, READABLE_ROLES);
-  const showAdmin = hasRole(userRole, ADMIN_ROLES);
-  const showDelegation = hasRole(userRole, DELEGATION_ROLES);
-  const showSystem = userRole === 'mentor' || userRole === 'admin';
-  const showAuditLogs = hasRole(userRole, AUDIT_VIEWER_ROLES);
+  // Every RLS helper (can_read_only, can_edit_data, is_mentor, ...) requires
+  // status = 'active' in addition to the role check - a suspended mentor is
+  // blocked from reading/writing exactly like a suspended team_member, so
+  // role-gated nav sections must also require isActive, not just the role
+  // check, or a suspended user with an otherwise-privileged role would see
+  // nav entries that all land on "nothing here" / a 403.
+  const isActive = userStatus === 'active';
+
+  // READABLE_ROLES gates every screen whose underlying data RLS actually
+  // requires can_read_only() - Participants/Data Collection/Results/Queries/
+  // Compliance all resolve to an empty list for a role outside this set (e.g.
+  // team_member before a mentor assigns an operational role, or anyone who
+  // is suspended), so hiding their nav entries avoids a sidebar full of
+  // links that always land on "nothing here". Study Overview is
+  // deliberately NOT gated by this - it's the app's landing page (see
+  // src/app/page.tsx) and has no RLS-gated data of its own, so it stays
+  // visible even for a suspended user (with its own explanatory note there).
+  const showReadableData = hasRole(userRole, READABLE_ROLES) && isActive;
+  const showCompliance = showReadableData;
+  const showAdmin = hasRole(userRole, ADMIN_ROLES) && isActive;
+  const showDelegation = hasRole(userRole, DELEGATION_ROLES) && isActive;
+  const showSystem = (userRole === 'mentor' || userRole === 'admin') && isActive;
+  const showAuditLogs = hasRole(userRole, AUDIT_VIEWER_ROLES) && isActive;
 
   const complianceItems = [
     ...(showAuditLogs ? [
@@ -152,7 +172,7 @@ export default function PrimarySidebar({
   ];
 
   // Surface "someone is waiting for approval" without the mentor having to
-  // remember to open User Registry and check — see critical_system_review_5.7.26.md §2.
+  // remember to open User Registry and check.
   const [pendingCount, setPendingCount] = useState(0);
   useEffect(() => {
     if (!showAdmin) return;
@@ -161,7 +181,10 @@ export default function PrimarySidebar({
       .then((r) => (r.ok ? r.json() : []))
       .then((profiles: { status: string }[]) => {
         if (cancelled) return;
-        const count = profiles.filter((p) => p.status === 'pending' || p.status === 'candidate').length;
+        // Only wait_approval needs a mentor's action - wait_email_confirm
+        // applicants haven't even confirmed their email yet, so they're not
+        // actionable from the approval queue.
+        const count = profiles.filter((p) => p.status === 'wait_approval').length;
         setPendingCount(count);
       })
       .catch(() => {});
@@ -182,40 +205,51 @@ export default function PrimarySidebar({
     >
       <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingTop: '4px' }}>
 
-        {/* Participants & Data */}
-        <div>
-          <SectionHeader label="Participants & Data" />
-          <NavGroup
-            currentPath={currentPath}
-            items={[
-              { label: 'Participant Registry', path: '/participants' },
-              { label: 'Data Collection', path: '/data-collection' },
-              { label: 'Results Table', path: '/results' },
-            ]}
-          />
-        </div>
+        {showReadableData && (
+          <>
+            {/* Participants & Data */}
+            <div>
+              <SectionHeader label="Participants & Data" />
+              <NavGroup
+                currentPath={currentPath}
+                items={[
+                  { label: 'Participant Registry', path: '/participants' },
+                  { label: 'Data Collection', path: '/data-collection' },
+                  { label: 'Results Table', path: '/results' },
+                ]}
+              />
+            </div>
 
-        <Divider />
+            <Divider />
+          </>
+        )}
 
-        {/* Analysis & Results */}
+        {/* Analysis & Results - Study Overview always shows (it's the app's
+            landing page and has no RLS-gated data); Analysis & Reporting
+            needs READABLE_ROLES since it summarizes participant/measurement
+            data. */}
         <div>
           <SectionHeader label="Analysis & Results" />
           <NavGroup
             currentPath={currentPath}
             items={[
               { label: 'Study Overview', path: '/study-overview' },
-              { label: 'Analysis & Reporting', path: '/analysis' },
+              ...(showReadableData ? [{ label: 'Analysis & Reporting', path: '/analysis' }] : []),
             ]}
           />
         </div>
 
-        <Divider />
+        {showReadableData && (
+          <>
+            <Divider />
 
-        {/* Query Management */}
-        <div>
-          <SectionHeader label="Query Management" />
-          <NavItem label="Queries" path="/queries" currentPath={currentPath} />
-        </div>
+            {/* Query Management */}
+            <div>
+              <SectionHeader label="Query Management" />
+              <NavItem label="Queries" path="/queries" currentPath={currentPath} />
+            </div>
+          </>
+        )}
 
         {showCompliance && complianceItems.length > 0 && (
           <>
@@ -239,7 +273,7 @@ export default function PrimarySidebar({
                 currentPath={currentPath}
                 items={[
                   { label: 'Study Management', path: '/study-management' },
-                  { label: 'User Registry', path: '/user-management', badge: pendingCount },
+                  { label: 'User Registry', path: '/user-registry', badge: pendingCount },
                 ]}
               />
             </div>

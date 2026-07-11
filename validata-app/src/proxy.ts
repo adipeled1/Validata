@@ -73,13 +73,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Note: an account-status gate used to live here, keyed off the
-  // client-writable `user-status` cookie (fable_system_review §2.5 - a
-  // suspended user could set `user-status=active` via document.cookie and
-  // pass this check). It's been removed: verifySession() in auth-server.ts
-  // already re-reads status from the DB on every API route and rejects
-  // non-active accounts there, so this was a redundant gate whose only
-  // effect was to make a decision on a value the adversary controls.
+  // Note: there is deliberately no account-status gate here keyed off the
+  // client-writable `user-status` cookie - a suspended user could set
+  // `user-status=active` via document.cookie and pass such a check.
+  // verifySession() in auth-server.ts already re-reads status from the DB
+  // on every API route and rejects non-active accounts there, so a
+  // cookie-based gate here would be redundant at best and would make a
+  // security decision on a value the adversary controls at worst.
 
   return response;
 }

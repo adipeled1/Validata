@@ -40,10 +40,10 @@ export async function GET(request: Request): Promise<Response> {
 
 // POST: Calculate analysis (measurement mutations moved to Server Actions -
 // see src/app/actions/measurements.ts)
-// fable_system_review §4.3: participants/measurements are read from the DB by
-// studyId (under RLS) rather than trusted from the request body - previously
-// a client could POST arbitrary arrays and get back an "official" analysis
-// computed on fabricated numbers.
+// Participants/measurements are read from the DB by studyId (under RLS)
+// rather than trusted from the request body - trusting client-supplied
+// arrays would let a caller POST fabricated numbers and get back an
+// "official" analysis computed on them.
 export async function POST(request: Request): Promise<Response> {
   try {
     const session = await verifySession();

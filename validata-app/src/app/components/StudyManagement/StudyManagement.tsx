@@ -208,10 +208,10 @@ const StudyManagement = () => {
 
       {/* Main content grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '12px', alignItems: 'start' }}>
-        
+
         {/* Left column: Study list navigation & Create Study form */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          
+
           {/* Create Study Form */}
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '16px' }}>
             <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '6px' }}>
@@ -351,7 +351,7 @@ const StudyManagement = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {selectedStudy ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              
+
               {/* Selected Study Header Card */}
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '16px', borderRadius: 'var(--radius)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
@@ -421,7 +421,7 @@ const StudyManagement = () => {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                  
+
                   {/* Left Column: Enrolled participants */}
                   <div style={{ background: 'var(--bg-surface-alt)', border: '1px solid var(--border)', padding: '12px', borderRadius: 'var(--radius)' }}>
                     <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -501,14 +501,12 @@ const StudyManagement = () => {
               </div>
 
               {/* Staff Access Registry (ICH E6(R3) AUTH-05) — read-only here.
-                  fable_system_review §3.1: membership was editable in two
-                  places (here and User Registry), two code paths hitting the
-                  same API with two local caches that could disagree, and a
-                  mentor confirming a new investigator's role in User Registry
-                  had no way to know they needed to switch screens to also
-                  assign them to a study. User Registry is now the single
-                  owner of add/remove; this panel just shows current roster
-                  with a link to go manage it. */}
+                  User Registry is the single owner of add/remove membership,
+                  so there's only one code path hitting the API and one place
+                  a mentor confirms a role and assigns study access together;
+                  this panel just shows the current roster with a link to go
+                  manage it, rather than duplicating editable membership
+                  controls (and their own local cache) here. */}
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
                 <div style={{
                   display: 'flex',
@@ -522,7 +520,7 @@ const StudyManagement = () => {
                     Authorized Research Staff
                   </div>
                   <button
-                    onClick={() => openTab('/user-management', 'User Registry')}
+                    onClick={() => openTab('/user-registry', 'User Registry')}
                     style={{
                       display: 'flex',
                       alignItems: 'center',

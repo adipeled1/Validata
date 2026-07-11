@@ -24,11 +24,23 @@ CREATE TABLE IF NOT EXISTS public.organisations (
 -- 'admin' sits above 'mentor' purely for account-safety separation of
 -- duties: same global access as mentor, plus the sole authority to manage
 -- other mentor/admin accounts, so two mentors can't lock each other out or
--- demote each other. Every other role maps to an ICH E6(R3) stakeholder:
--- investigator (PI/sub-I), site_coordinator (CRC), data_manager (DM),
--- monitor (CRA), auditor (GCP auditor), irb_reviewer (ethics committee).
--- team_member is the default for a brand-new registration, before a mentor
--- assigns a real role.
+-- demote each other. Every other operational role maps to an ICH E6(R3)
+-- stakeholder: investigator (PI/sub-I), site_coordinator (CRC), data_manager
+-- (DM), monitor (CRA), auditor (GCP auditor), irb_reviewer (ethics
+-- committee). 'team_member' is the default an applicant is promoted to on
+-- approval - it can log in and see the shell, but has near-zero functional
+-- permissions until a mentor/admin assigns it an operational role.
+--
+-- 'applicant' is a dedicated, non-operational role for a new registration
+-- that has not yet been approved: it is fully blocked from the application
+-- (every read/write, via RLS and API routes) and is redirected to an
+-- onboarding block screen instead of the dashboard. It carries its own
+-- statuses ('wait_email_confirm' / 'wait_approval') that no other role may
+-- ever have - the composite CHECK below makes that a hard DB invariant, not
+-- just an application convention: an applicant is always in one of those two
+-- statuses, and every other role is always 'active' or 'suspended'. This
+-- means a role/status pair can never describe someone who is "half approved"
+-- or an operational role stuck in a pending state.
 --
 -- There is no in-app path to create the first admin account (only an admin
 -- can promote someone to admin/mentor). Seed it directly, once:
@@ -36,18 +48,33 @@ CREATE TABLE IF NOT EXISTS public.organisations (
 CREATE TABLE IF NOT EXISTS public.profiles (
     id                   UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email                TEXT NOT NULL,
-    role                 TEXT NOT NULL DEFAULT 'team_member'
+    role                 TEXT NOT NULL DEFAULT 'applicant'
                              CHECK (role IN (
+                                 'applicant',
                                  'admin', 'mentor', 'team_member',
                                  'investigator', 'site_coordinator',
                                  'data_manager', 'monitor', 'auditor', 'irb_reviewer'
                              )),
-    status               TEXT NOT NULL DEFAULT 'pending'
-                             CHECK (status IN ('candidate', 'pending', 'active', 'suspended')),
+    status               TEXT NOT NULL DEFAULT 'wait_email_confirm'
+                             CHECK (status IN ('wait_email_confirm', 'wait_approval', 'active', 'suspended', 'deleted')),
+    -- Applicant statuses are exclusive to the applicant role; every other
+    -- role is always active, suspended, or deleted. Keeps the onboarding
+    -- lifecycle a DB-enforced invariant instead of something only the
+    -- application layer promises to maintain.
+    CONSTRAINT profiles_applicant_status_exclusive CHECK (
+        (role = 'applicant' AND status IN ('wait_email_confirm', 'wait_approval'))
+        OR (role <> 'applicant' AND status IN ('active', 'suspended', 'deleted'))
+    ),
     change_reason        TEXT, -- why a role/status change happened; captured by the audit trigger
-    candidate_expires_at TIMESTAMPTZ, -- candidates are auto-deleted after this if never approved
+    candidate_expires_at TIMESTAMPTZ, -- applicants are auto-deleted after this if never approved
     organisation_id      UUID REFERENCES public.organisations(id),
     created_at           TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    -- 'deleted' is the authoritative signal that an ever-approved account was
+    -- soft-deleted (see User Registry's "Delete"/"Reactivate" actions and
+    -- ROLES.md) - this column is just the audit timestamp of when that
+    -- happened, not something callers should branch on. It's unrelated to
+    -- deleting a not-yet-approved applicant, which is a genuine hard delete
+    -- of the row (see delete_candidate_user() below) and never sets this.
     deleted_at           TIMESTAMPTZ
 );
 
@@ -106,7 +133,6 @@ CREATE TABLE IF NOT EXISTS public.participants (
     health_status   TEXT CHECK (health_status IN ('Healthy', 'Ankle Injured')),
     status          TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Completed', 'Dropped')),
     status_reason   TEXT,
-    consent         BOOLEAN,
     enrollment_date DATE,
     created_by      UUID REFERENCES auth.users(id),
     PRIMARY KEY (id, study_id)
@@ -151,11 +177,10 @@ CREATE TABLE IF NOT EXISTS public.audit_log (
     record_id   TEXT NOT NULL,
     action      TEXT NOT NULL CHECK (action IN (
                     'INSERT', 'UPDATE', 'DELETE',
-                    'LOGIN', 'LOGOUT',
                     'ROLE_CHANGE', 'STATUS_CHANGE',
                     'LOCK', 'UNLOCK',
                     'SIGN_OFF',
-                    'SOFT_DELETE', 'DESTRUCTION_REQUEST', 'DESTRUCTION_APPROVED'
+                    'SOFT_DELETE', 'DESTRUCTION_REQUEST'
                 )),
     old_value   JSONB,
     new_value   JSONB,
@@ -258,22 +283,6 @@ CREATE TABLE IF NOT EXISTS public.adverse_events (
     created_at             TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
     notes                  TEXT,
     FOREIGN KEY (participant_id, study_id) REFERENCES public.participants (id, study_id)
-);
-
--- Edit-check rule definitions, configured by sponsor/DM and evaluated at
--- data entry time.
-CREATE TABLE IF NOT EXISTS public.edit_check_rules (
-    id          BIGSERIAL PRIMARY KEY,
-    study_id    UUID NOT NULL REFERENCES public.studies(id),
-    table_name  TEXT NOT NULL, -- 'measurements' or 'participants'
-    field_name  TEXT NOT NULL,
-    rule_type   TEXT NOT NULL CHECK (rule_type IN ('range', 'cross_field', 'required', 'regex')),
-    rule_params JSONB NOT NULL, -- e.g. {"min": 0, "max": 180} for a range rule
-    severity    TEXT NOT NULL DEFAULT 'error' CHECK (severity IN ('error', 'warning')),
-    message     TEXT NOT NULL,
-    is_active   BOOLEAN NOT NULL DEFAULT TRUE,
-    created_by  UUID REFERENCES auth.users(id),
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
 );
 
 -- Formal delegation of duties to sub-investigators/site staff - a paper
@@ -386,6 +395,24 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- The one way an applicant (role = 'applicant', blocked from SELECTing
+-- profiles directly - see the "Allow users to view profiles" policy) can
+-- learn their own onboarding state, so the dashboard can pick between the
+-- "Check Your Inbox" and "Awaiting Mentor Approval" screens. Returns only
+-- the caller's own status - never their role, never any other user's row,
+-- never NULL-vs-missing-row ambiguity beyond an empty result for a caller
+-- with no profile at all (shouldn't happen post-handle_new_user, but is
+-- handled by simply returning no row rather than raising).
+CREATE OR REPLACE FUNCTION public.my_onboarding_status()
+RETURNS TEXT LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+    v_status TEXT;
+BEGIN
+    SELECT status INTO v_status FROM public.profiles WHERE id = auth.uid();
+    RETURN v_status;
+END;
+$$;
+
 -- True for roles that may insert/update clinical data.
 CREATE OR REPLACE FUNCTION public.can_edit_data()
 RETURNS BOOLEAN AS $$
@@ -482,7 +509,6 @@ ALTER TABLE public.signatures              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.consent_form_versions   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.consent_records         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.adverse_events          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.edit_check_rules        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.delegations             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.treatment_assignments   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.unblinding_events       ENABLE ROW LEVEL SECURITY;
@@ -491,10 +517,18 @@ ALTER TABLE public.ip_dispensations        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.signing_tokens          ENABLE ROW LEVEL SECURITY;
 
 -- profiles
+-- Applicants (role = 'applicant') are excluded from reading their own row
+-- here - onboarding lifecycle restructure: "blocked from every possible
+-- database read or write action". An applicant's own status is instead
+-- readable only through the narrow public.my_onboarding_status() RPC below,
+-- which returns nothing but the caller's own status - not their role, not
+-- any other column, and nothing about anyone else. Mentors still see every
+-- profile, including applicants, via the is_mentor() branch (needed for the
+-- User Registry approval queue).
 DROP POLICY IF EXISTS "Allow users to view profiles" ON public.profiles;
 CREATE POLICY "Allow users to view profiles"
 ON public.profiles FOR SELECT TO authenticated
-USING (auth.uid() = id OR public.is_mentor());
+USING ((auth.uid() = id AND role <> 'applicant') OR public.is_mentor());
 
 -- A mentor can update any non-mentor/admin profile (including promoting
 -- someone TO mentor, which stays unrestricted). Only an admin may update a
@@ -756,22 +790,6 @@ CREATE POLICY "adverse_events_update"
 ON public.adverse_events FOR UPDATE TO authenticated
 USING (public.can_edit_data() AND public.is_study_member(study_id));
 
--- edit_check_rules
-DROP POLICY IF EXISTS "edit_check_rules_select" ON public.edit_check_rules;
-CREATE POLICY "edit_check_rules_select"
-ON public.edit_check_rules FOR SELECT TO authenticated
-USING (public.can_read_only() AND public.is_study_member(study_id));
-
-DROP POLICY IF EXISTS "edit_check_rules_insert" ON public.edit_check_rules;
-CREATE POLICY "edit_check_rules_insert"
-ON public.edit_check_rules FOR INSERT TO authenticated
-WITH CHECK (public.is_mentor());
-
-DROP POLICY IF EXISTS "edit_check_rules_update" ON public.edit_check_rules;
-CREATE POLICY "edit_check_rules_update"
-ON public.edit_check_rules FOR UPDATE TO authenticated
-USING (public.is_mentor());
-
 -- delegations. UPDATE is shared by two different actors for two different
 -- reasons (delegator revokes vs. delegate completes) - this policy only
 -- decides who may attempt an update at all; enforce_delegations_lifecycle()
@@ -859,14 +877,14 @@ WITH CHECK (user_id = auth.uid());
 -- Triggers
 -- ============================================================
 
--- New sign-ups start as a 'candidate' with a 30-day expiry, not directly
--- 'pending' - see cleanup_expired_candidates() below for what happens if
--- nobody reviews them in time.
+-- New sign-ups start as an 'applicant' with status 'wait_email_confirm' and a
+-- 30-day expiry, not directly 'wait_approval' - see cleanup_expired_candidates()
+-- below for what happens if nobody confirms/reviews them in time.
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
     INSERT INTO public.profiles (id, email, role, status, candidate_expires_at)
-    VALUES (NEW.id, NEW.email, 'team_member', 'candidate', NOW() + INTERVAL '30 days');
+    VALUES (NEW.id, NEW.email, 'applicant', 'wait_email_confirm', NOW() + INTERVAL '30 days');
     RETURN NEW;
 END;
 $$;
@@ -876,26 +894,27 @@ CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- When a candidate confirms their email (email_confirmed_at flips NULL -> NOT
--- NULL), advance them from 'candidate' (registered, not yet reviewable) to
--- 'pending' (confirmed, awaiting mentor approval), and reset the 30-day expiry
--- so the mentor gets a fresh window to approve. Only ever promotes a row that
--- is still 'candidate' - active/suspended/already-pending profiles are left
--- untouched, and if no matching profile exists the UPDATE simply affects zero
--- rows (never raises, so it can't block Supabase's confirmation flow).
+-- When an applicant confirms their email (email_confirmed_at flips NULL ->
+-- NOT NULL), advance them from 'wait_email_confirm' (registered, not yet
+-- reviewable) to 'wait_approval' (confirmed, awaiting mentor approval), and
+-- reset the 30-day expiry so the mentor gets a fresh window to approve.
+-- Only ever promotes a row that is still 'wait_email_confirm' -
+-- active/suspended/already-wait_approval profiles are left untouched, and if
+-- no matching profile exists the UPDATE simply affects zero rows (never
+-- raises, so it can't block Supabase's confirmation flow).
 -- SECURITY DEFINER so it can write public.profiles regardless of caller,
--- mirroring handle_new_user() above. Requires "Confirm email" to be enabled in
--- Supabase Auth settings, otherwise email_confirmed_at is set at sign-up and no
--- candidate state is ever observable.
+-- mirroring handle_new_user() above. Requires "Confirm email" to be enabled
+-- in Supabase Auth settings, otherwise email_confirmed_at is set at sign-up
+-- and the wait_email_confirm state is never observable.
 CREATE OR REPLACE FUNCTION public.handle_email_confirmed()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
     IF OLD.email_confirmed_at IS NULL AND NEW.email_confirmed_at IS NOT NULL THEN
         UPDATE public.profiles
-           SET status = 'pending',
+           SET status = 'wait_approval',
                candidate_expires_at = NOW() + INTERVAL '30 days'
          WHERE id = NEW.id
-           AND status = 'candidate';
+           AND status = 'wait_email_confirm';
     END IF;
     RETURN NEW;
 END;
@@ -932,6 +951,8 @@ BEGIN
         ELSIF TG_TABLE_NAME = 'profiles' AND OLD.role <> NEW.role THEN
             v_action := 'ROLE_CHANGE';
         ELSIF TG_TABLE_NAME = 'profiles' AND OLD.status <> NEW.status THEN
+            v_action := 'STATUS_CHANGE';
+        ELSIF TG_TABLE_NAME = 'participants' AND OLD.status <> NEW.status THEN
             v_action := 'STATUS_CHANGE';
         ELSE
             v_action := 'UPDATE';
@@ -1094,6 +1115,13 @@ BEGIN
         RAISE EXCEPTION 'measurements is immutable: only is_valid and validity_reason may be updated (attempted change on record %)', OLD.id
             USING ERRCODE = 'raise_exception';
     END IF;
+    -- Invalidation is one-way (see FEATURES.md/MENTOR.md/INVESTIGATOR.md) -
+    -- once a measurement is flagged invalid there is no "mark valid again"
+    -- path, so reject is_valid going false -> true even via a direct API call.
+    IF OLD.is_valid = false AND NEW.is_valid = true THEN
+        RAISE EXCEPTION 'measurements is_valid cannot be reversed once set to false (record %)', OLD.id
+            USING ERRCODE = 'raise_exception';
+    END IF;
     RETURN NEW;
 END;
 $$;
@@ -1107,7 +1135,6 @@ CREATE OR REPLACE FUNCTION public.enforce_participants_immutability()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
     IF NEW.study_id IS DISTINCT FROM OLD.study_id
-       OR NEW.consent IS DISTINCT FROM OLD.consent
        OR NEW.age IS DISTINCT FROM OLD.age
        OR NEW.gender IS DISTINCT FROM OLD.gender
        OR NEW.health_status IS DISTINCT FROM OLD.health_status
@@ -1202,13 +1229,17 @@ CREATE TRIGGER enforce_delegations_lifecycle
 -- RPCs
 -- ============================================================
 
--- Hard-deletes a candidate from auth.users (cascades to profiles). Used by
--- both the manual "reject" action in User Registry and, indirectly, by
--- cleanup_expired_candidates() below.
+-- Hard-deletes an applicant (never-approved account) from auth.users
+-- (cascades to profiles). Used by both the manual "reject" action in User
+-- Registry and, indirectly, by cleanup_expired_candidates() below. Checked
+-- against role = 'applicant' rather than a specific status, since the
+-- profiles_applicant_status_exclusive constraint guarantees that covers both
+-- 'wait_email_confirm' and 'wait_approval' - any applicant is by definition
+-- never-approved, and an approved account is never 'applicant' again.
 CREATE OR REPLACE FUNCTION public.delete_candidate_user(p_user_id UUID)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM public.profiles WHERE id = p_user_id AND status = 'candidate') THEN
+    IF EXISTS (SELECT 1 FROM public.profiles WHERE id = p_user_id AND role = 'applicant') THEN
         DELETE FROM auth.users WHERE id = p_user_id;
         RETURN TRUE;
     END IF;
@@ -1217,7 +1248,11 @@ END;
 $$;
 
 -- Scheduled daily via pg_cron below; POST /api/admin/cleanup-candidates
--- remains available for an on-demand manual trigger.
+-- remains available for an on-demand manual trigger. Removes any applicant
+-- (unconfirmed or confirmed-but-unapproved) whose 30-day window has lapsed -
+-- never-approved accounts are hard-deleted; ever-approved accounts are never
+-- 'applicant' and so are never touched here (see profiles DELETE/UPDATE RLS
+-- for how an approved account is soft-deleted instead).
 CREATE OR REPLACE FUNCTION public.cleanup_expired_candidates()
 RETURNS INTEGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
@@ -1225,7 +1260,7 @@ DECLARE
 BEGIN
     DELETE FROM auth.users
     WHERE id IN (
-        SELECT id FROM public.profiles WHERE status = 'candidate' AND candidate_expires_at < NOW()
+        SELECT id FROM public.profiles WHERE role = 'applicant' AND candidate_expires_at < NOW()
     );
     GET DIAGNOSTICS deleted_count = ROW_COUNT;
     RETURN deleted_count;

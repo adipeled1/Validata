@@ -36,7 +36,7 @@ export const PATH_LABELS: Record<string, string> = {
   '/consent-records': 'Consent Records',
   '/adverse-events': 'Adverse Events',
   '/study-management': 'Study Management',
-  '/user-management': 'User Registry',
+  '/user-registry': 'User Registry',
   '/delegation-log': 'Delegation Log',
   '/system-inventory': 'System Inventory',
 };

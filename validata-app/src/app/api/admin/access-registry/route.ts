@@ -4,9 +4,9 @@ import { ACCESS_REGISTRY_ROLES, hasRole } from '@/lib/permissions';
 // GET /api/admin/access-registry
 // Returns all active user profiles with their roles and status, including
 // email addresses (PII) - kept to ACCESS_REGISTRY_ROLES (admin, mentor,
-// monitor, auditor), narrower than the general READABLE_ROLES set.
-// fable_system_review §2.1: this previously used canReadOnly(), which is
-// actually an 8-role set - broader than the comment here ever claimed.
+// monitor, auditor), narrower than the general READABLE_ROLES/canReadOnly()
+// 8-role set, since this exposes PII that most readable-scope roles
+// shouldn't see.
 // Supports ?format=csv for regulatory export.
 export async function GET(request: Request): Promise<Response> {
   try {

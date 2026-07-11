@@ -10,7 +10,7 @@ test.describe('Additional mutations (demo mode)', () => {
     await page.getByLabel('Email Address').fill('mentor@demo.com');
     await page.getByLabel('Password').fill('demo123');
     await page.locator('button[type="submit"]', { hasText: 'Sign In' }).click();
-    // VS2026 shell: heading updated to "Participant Registry".
+    // Landing page after login is Participant Registry.
     await expect(page.getByRole('heading', { name: 'Participant Registry' })).toBeVisible({ timeout: 10_000 });
 
     // Add a participant via the inline panel.
