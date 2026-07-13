@@ -334,7 +334,7 @@ function SystemLogTab({ isDemoMode }: { isDemoMode: boolean }) {
 
   if (loading && rows.length === 0) return <div style={emptyMsgStyle}>Loading…</div>;
   if (rows.length === 0) {
-    return <div style={emptyMsgStyle}>No system-level events yet (logins, study creation/locking, user access changes).</div>;
+    return <div style={emptyMsgStyle}>No system-level events yet (study creation/locking, sign-offs, user access changes).</div>;
   }
 
   return (

@@ -52,6 +52,7 @@ export async function GET(request: Request): Promise<Response> {
       .limit(500);
 
     if (studyId) query = query.eq('study_id', studyId);
+    if (scope === 'system') query = query.is('study_id', null);
     if (actor) query = query.eq('actor_id', actor);
     if (action) query = query.eq('action', action);
     if (from) query = query.gte('occurred_at', from);

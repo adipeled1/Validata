@@ -884,7 +884,10 @@ BEGIN
     END IF;
 
     BEGIN
-        IF TG_OP <> 'DELETE' THEN
+        IF TG_TABLE_NAME = 'studies' THEN
+            -- studies has no study_id column - it IS the study, keyed by id.
+            v_study_id := COALESCE((v_new_val->>'id')::UUID, (v_old_val->>'id')::UUID);
+        ELSIF TG_OP <> 'DELETE' THEN
             v_study_id := (v_new_val->>'study_id')::UUID;
         ELSE
             v_study_id := (v_old_val->>'study_id')::UUID;
