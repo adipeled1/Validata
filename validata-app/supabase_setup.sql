@@ -307,56 +307,6 @@ CREATE TABLE IF NOT EXISTS public.delegations (
     created_at       TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
 );
 
--- Treatment assignment vault. The study's main data tables never contain
--- treatment codes - only this table does, readable only by mentor/admin
--- (blinded-study default).
-CREATE TABLE IF NOT EXISTS public.treatment_assignments (
-    id                 BIGSERIAL PRIMARY KEY,
-    study_id           UUID NOT NULL REFERENCES public.studies(id),
-    participant_id     TEXT NOT NULL,
-    randomisation_code TEXT NOT NULL,
-    treatment_arm      TEXT NOT NULL,
-    assigned_at        TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
-    assigned_by        UUID NOT NULL REFERENCES auth.users(id),
-    FOREIGN KEY (participant_id, study_id) REFERENCES public.participants (id, study_id)
-);
-
--- Emergency unblinding log - an audited route to reveal a treatment
--- assignment outside the normal blinded flow.
-CREATE TABLE IF NOT EXISTS public.unblinding_events (
-    id             BIGSERIAL PRIMARY KEY,
-    study_id       UUID NOT NULL REFERENCES public.studies(id),
-    participant_id TEXT, -- intentionally no FK - not scoped to one participant
-    reason         TEXT NOT NULL,
-    requested_by   UUID NOT NULL REFERENCES auth.users(id),
-    approved_by    UUID REFERENCES auth.users(id),
-    revealed_arm   TEXT,
-    occurred_at    TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
-);
-
-CREATE TABLE IF NOT EXISTS public.ip_inventory (
-    id                BIGSERIAL PRIMARY KEY,
-    study_id          UUID NOT NULL REFERENCES public.studies(id),
-    batch_number      TEXT NOT NULL,
-    treatment_arm     TEXT NOT NULL,
-    quantity_received INT NOT NULL,
-    received_at       TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
-    expiry_date       DATE,
-    received_by       UUID NOT NULL REFERENCES auth.users(id)
-);
-
-CREATE TABLE IF NOT EXISTS public.ip_dispensations (
-    id                 BIGSERIAL PRIMARY KEY,
-    study_id           UUID NOT NULL REFERENCES public.studies(id),
-    participant_id     TEXT NOT NULL,
-    inventory_id       BIGINT NOT NULL REFERENCES public.ip_inventory(id),
-    quantity_dispensed INT NOT NULL,
-    dispensed_at       TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
-    dispensed_by       UUID NOT NULL REFERENCES auth.users(id),
-    visit_number       TEXT,
-    FOREIGN KEY (participant_id, study_id) REFERENCES public.participants (id, study_id)
-);
-
 -- Single-use, short-lived tokens minted only after a successful password
 -- re-check, required and atomically consumed by POST /api/signatures - so
 -- signing can never be replayed without presenting a password each time.
@@ -510,10 +460,6 @@ ALTER TABLE public.consent_form_versions   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.consent_records         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.adverse_events          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.delegations             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.treatment_assignments   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.unblinding_events       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.ip_inventory            ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.ip_dispensations        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.signing_tokens          ENABLE ROW LEVEL SECURITY;
 
 -- profiles
@@ -810,45 +756,6 @@ ON public.delegations FOR UPDATE TO authenticated
 USING (public.can_manage_delegations() OR delegated_to = auth.uid())
 WITH CHECK (public.can_manage_delegations() OR delegated_to = auth.uid());
 
--- treatment_assignments (mentor/admin only - blinded-study default)
-DROP POLICY IF EXISTS "treatment_assignments_select" ON public.treatment_assignments;
-CREATE POLICY "treatment_assignments_select"
-ON public.treatment_assignments FOR SELECT TO authenticated
-USING (public.is_mentor());
-
-DROP POLICY IF EXISTS "treatment_assignments_insert" ON public.treatment_assignments;
-CREATE POLICY "treatment_assignments_insert"
-ON public.treatment_assignments FOR INSERT TO authenticated
-WITH CHECK (public.is_mentor());
-
--- unblinding_events
-DROP POLICY IF EXISTS "unblinding_events_select" ON public.unblinding_events;
-CREATE POLICY "unblinding_events_select"
-ON public.unblinding_events FOR SELECT TO authenticated
-USING (public.is_mentor());
-
-DROP POLICY IF EXISTS "unblinding_events_insert" ON public.unblinding_events;
-CREATE POLICY "unblinding_events_insert"
-ON public.unblinding_events FOR INSERT TO authenticated
-WITH CHECK (public.is_mentor());
-
--- ip_inventory / ip_dispensations
-DROP POLICY IF EXISTS "ip_inventory_select" ON public.ip_inventory;
-CREATE POLICY "ip_inventory_select"
-ON public.ip_inventory FOR SELECT TO authenticated USING (public.can_read_only() AND public.is_study_member(study_id));
-
-DROP POLICY IF EXISTS "ip_inventory_insert" ON public.ip_inventory;
-CREATE POLICY "ip_inventory_insert"
-ON public.ip_inventory FOR INSERT TO authenticated WITH CHECK (public.can_edit_data() AND public.is_study_member(study_id));
-
-DROP POLICY IF EXISTS "ip_dispensations_select" ON public.ip_dispensations;
-CREATE POLICY "ip_dispensations_select"
-ON public.ip_dispensations FOR SELECT TO authenticated USING (public.can_read_only() AND public.is_study_member(study_id));
-
-DROP POLICY IF EXISTS "ip_dispensations_insert" ON public.ip_dispensations;
-CREATE POLICY "ip_dispensations_insert"
-ON public.ip_dispensations FOR INSERT TO authenticated WITH CHECK (public.can_edit_data() AND public.is_study_member(study_id));
-
 -- signing_tokens - users may only mint/read/consume their own tokens.
 -- No DELETE policy - expired/consumed rows are cheap to keep and are useful
 -- audit evidence of when re-authentication actually happened.
@@ -940,7 +847,12 @@ DECLARE
     v_actor_email TEXT;
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        v_action    := 'INSERT';
+        -- Special-case a signature insert: it's a sign-off event, not a generic write.
+        IF TG_TABLE_NAME = 'signatures' THEN
+            v_action := 'SIGN_OFF';
+        ELSE
+            v_action := 'INSERT';
+        END IF;
         v_old_val   := NULL;
         v_new_val   := to_jsonb(NEW);
         v_record_id := NEW.id::TEXT;
@@ -948,6 +860,10 @@ BEGIN
         -- Special-case a few updates for readability in the audit trail.
         IF TG_TABLE_NAME = 'studies' AND OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN
             v_action := 'SOFT_DELETE';
+        ELSIF TG_TABLE_NAME = 'studies' AND OLD.lock_state = 'open' AND NEW.lock_state = 'locked' THEN
+            v_action := 'LOCK';
+        ELSIF TG_TABLE_NAME = 'studies' AND OLD.lock_state = 'locked' AND NEW.lock_state = 'open' THEN
+            v_action := 'UNLOCK';
         ELSIF TG_TABLE_NAME = 'profiles' AND OLD.role <> NEW.role THEN
             v_action := 'ROLE_CHANGE';
         ELSIF TG_TABLE_NAME = 'profiles' AND OLD.status <> NEW.status THEN
@@ -1045,26 +961,6 @@ CREATE TRIGGER audit_adverse_events
 DROP TRIGGER IF EXISTS audit_delegations ON public.delegations;
 CREATE TRIGGER audit_delegations
     AFTER INSERT OR UPDATE ON public.delegations
-    FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
-
-DROP TRIGGER IF EXISTS audit_treatment_assignments ON public.treatment_assignments;
-CREATE TRIGGER audit_treatment_assignments
-    AFTER INSERT ON public.treatment_assignments
-    FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
-
-DROP TRIGGER IF EXISTS audit_unblinding_events ON public.unblinding_events;
-CREATE TRIGGER audit_unblinding_events
-    AFTER INSERT ON public.unblinding_events
-    FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
-
-DROP TRIGGER IF EXISTS audit_ip_inventory ON public.ip_inventory;
-CREATE TRIGGER audit_ip_inventory
-    AFTER INSERT OR UPDATE ON public.ip_inventory
-    FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
-
-DROP TRIGGER IF EXISTS audit_ip_dispensations ON public.ip_dispensations;
-CREATE TRIGGER audit_ip_dispensations
-    AFTER INSERT ON public.ip_dispensations
     FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
 
 -- study_members has its own audit trigger (not log_audit_event()) because

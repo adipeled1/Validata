@@ -16,8 +16,8 @@ As an investigator you have full data-entry and sign-off rights, and you can als
 This is your main navigation, grouped by purpose:
 
 - **Study switcher** (top of sidebar) — a dropdown to change which study you're currently viewing. Every screen after this reflects whichever study is selected here. Switching studies is just a view change — completely safe, reversible, doesn't touch data.
-- **Participants & Data** — Participant Registry, Data Collection, Results Table
-- **Analysis & Results** — Study Overview, Analysis & Reporting
+- **Participants & Data** — Participant Registry, Data Collection
+- **Overview & Analysis** — Study Overview, Results Table, Analysis & Reporting
 - **Query Management** — Queries
 - **Compliance** — Audit Trail, Electronic Signatures, Consent Records, Adverse Events
 - **Delegation** — Delegation Log
@@ -52,15 +52,15 @@ None of the top/bottom bar controls modify study data by themselves; they're nav
 - **Upload File (CSV import)** — bulk-creates measurements, one row = one insert. Each imported row becomes its own record and can be corrected individually afterward, but there's no single "undo this import" button that removes the whole batch at once.
 - **Download Template** — just gives you the expected CSV format, no data effect.
 
-### Results Table (`/results`)
-- **Mark Invalid** ✗ — the closest thing Validata has to "deleting" a measurement, but it's actually a **soft-delete**: the record isn't erased, it's flagged invalid and excluded from all statistics/analysis. A reason is required and gets written to the audit trail. There is no "mark valid again" button — once flagged invalid, it stays invalid on that record permanently.
-
 ---
 
-## 3. Analysis & Results
+## 3. Overview & Analysis
 
 ### Study Overview (`/study-overview`)
 Read-only dashboard: recent activity, open query count, current lock state. Nothing here can be changed; it just links you to Queries and Audit Trail.
+
+### Results Table (`/results`)
+- **Mark Invalid** ✗ — the closest thing Validata has to "deleting" a measurement, but it's actually a **soft-delete**: the record isn't erased, it's flagged invalid and excluded from all statistics/analysis. A reason is required and gets written to the audit trail. There is no "mark valid again" button — once flagged invalid, it stays invalid on that record permanently.
 
 ### Analysis & Reporting (`/analysis`)
 - **Generate Report** ✓ — computes statistics (RMSE/MAE, Bland-Altman plots, pass rates) on the currently-valid measurements. You can regenerate this as often as you like; it doesn't change underlying data.

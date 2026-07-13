@@ -221,16 +221,7 @@ Versioned consent forms decoupled from participant records.
 
 ## Data-model foundations (schema + RLS only — no application UI yet)
 
-These tables are fully defined in `supabase_setup.sql` with Row-Level Security policies, but have no API routes, Server Actions, or dashboard pages built on top of them yet — there is currently no UI in the app for any of the following.
-
-**Blinding / Treatment Assignment Vault**
-- **`treatment_assignments`** table — participant → treatment arm mapping, readable only by `mentor`/`admin` via RLS (blinded-study default)
-- **`unblinding_events`** — records any emergency unblinding request with reason, requester, approver, and the revealed arm
-- **`organisations`** table — foundation for multi-sponsor / multi-site configuration (`profiles.organisation_id` FK)
-
-**IP (Investigational Product) Accountability**
-- **`ip_inventory`** — batch/lot records (batch number, treatment arm, quantity received, expiry date)
-- **`ip_dispensations`** — records each dispensing event linked to a participant and an inventory batch
+- **`organisations`** table — fully defined in `supabase_setup.sql` with RLS, foundation for multi-sponsor / multi-site configuration (`profiles.organisation_id` FK). No API routes, Server Actions, or dashboard pages built on top of it yet.
 
 ---
 

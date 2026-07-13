@@ -24,7 +24,7 @@ async function fetchLog(params: URLSearchParams): Promise<any[]> {
 }
 
 // Full-page version of the bottom panel's "System Log" tab - system-wide
-// events (logins, study creation/locking, user access changes) that aren't
+// events (study creation/locking, sign-offs, user access changes) that aren't
 // scoped to any one study, so this page (unlike Study Log/Audit Trail)
 // doesn't filter by currentStudyId.
 export default function SystemLogPage() {
@@ -56,7 +56,7 @@ export default function SystemLogPage() {
             System Log
           </h1>
           <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px', maxWidth: '600px' }}>
-            System-level events not tied to any one study - logins, study creation/locking, and user access changes.
+            System-level events not tied to any one study - study creation/locking, sign-offs, and user access changes.
           </div>
         </div>
         <button
@@ -81,7 +81,7 @@ export default function SystemLogPage() {
 
       {!loading && rows.length === 0 && (
         <div style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-muted)' }}>
-          No system-level events yet (logins, study creation/locking, user access changes).
+          No system-level events yet (study creation/locking, sign-offs, user access changes).
         </div>
       )}
 

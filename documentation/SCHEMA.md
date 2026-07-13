@@ -15,21 +15,14 @@ erDiagram
     STUDIES ||--o{ CONSENT_RECORDS : "has"
     STUDIES ||--o{ ADVERSE_EVENTS : "has"
     STUDIES ||--o{ DELEGATIONS : "has"
-    STUDIES ||--o{ TREATMENT_ASSIGNMENTS : "has"
-    STUDIES ||--o{ UNBLINDING_EVENTS : "has"
-    STUDIES ||--o{ IP_INVENTORY : "has"
-    STUDIES ||--o{ IP_DISPENSATIONS : "has"
     STUDIES ||--o{ PARTICIPANT_ID_COUNTERS : "has"
     STUDIES ||--o{ AUDIT_LOG : "logs"
 
     PARTICIPANTS ||--o{ MEASUREMENTS : "has"
     PARTICIPANTS ||--o{ CONSENT_RECORDS : "has"
     PARTICIPANTS ||--o{ ADVERSE_EVENTS : "has"
-    PARTICIPANTS ||--o{ TREATMENT_ASSIGNMENTS : "has"
-    PARTICIPANTS ||--o{ IP_DISPENSATIONS : "has"
 
     CONSENT_FORM_VERSIONS ||--o{ CONSENT_RECORDS : "versions"
-    IP_INVENTORY ||--o{ IP_DISPENSATIONS : "dispensed from"
     ORGANISATIONS ||--o{ PROFILES : "employs"
 
     PROFILES {
@@ -197,49 +190,6 @@ erDiagram
         TIMESTAMPTZ created_at
     }
 
-    TREATMENT_ASSIGNMENTS {
-        BIGSERIAL id PK
-        UUID study_id FK
-        TEXT participant_id FK "composite -> participants(id, study_id)"
-        TEXT randomisation_code
-        TEXT treatment_arm
-        TIMESTAMPTZ assigned_at
-        UUID assigned_by FK
-    }
-
-    UNBLINDING_EVENTS {
-        BIGSERIAL id PK
-        UUID study_id FK
-        TEXT participant_id "no FK - not scoped to one participant"
-        TEXT reason
-        UUID requested_by FK
-        UUID approved_by FK
-        TEXT revealed_arm
-        TIMESTAMPTZ occurred_at
-    }
-
-    IP_INVENTORY {
-        BIGSERIAL id PK
-        UUID study_id FK
-        TEXT batch_number
-        TEXT treatment_arm
-        INT quantity_received
-        TIMESTAMPTZ received_at
-        DATE expiry_date
-        UUID received_by FK
-    }
-
-    IP_DISPENSATIONS {
-        BIGSERIAL id PK
-        UUID study_id FK
-        TEXT participant_id FK "composite -> participants(id, study_id)"
-        BIGINT inventory_id FK
-        INT quantity_dispensed
-        TIMESTAMPTZ dispensed_at
-        UUID dispensed_by FK
-        TEXT visit_number
-    }
-
     STUDY_MEMBERS {
         UUID study_id PK,FK
         UUID user_id PK,FK
@@ -282,3 +232,5 @@ erDiagram
   (`log_audit_event`) attached to nearly every table above.
 - `SIGNING_TOKENS` has no FK relationship drawn to other domain tables — it only relates to
   `auth.users` via `user_id`.
+- **`ORGANISATIONS`** is schema + RLS groundwork only (see `FEATURES.md`) — no API routes, Server
+  Actions, or dashboard pages exist for it yet. `profiles.organisation_id` is a nullable FK into it.
