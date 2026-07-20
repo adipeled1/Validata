@@ -39,10 +39,14 @@ describe('PrimarySidebar', () => {
     expect(screen.queryByText('Administration')).not.toBeInTheDocument(); // not admin/mentor
   });
 
-  it('an active mentor sees Administration and System sections', () => {
+  it('an active mentor sees Administration, including System Inventory (merged in, no separate System section)', () => {
     render(<PrimarySidebar userRole="mentor" userStatus="active" currentPath="/study-overview" />);
     expect(screen.getByText('Administration')).toBeInTheDocument();
-    expect(screen.getByText('System')).toBeInTheDocument();
+    expect(screen.queryByText('System')).not.toBeInTheDocument();
+    const adminSection = screen.getByText('Administration').closest('div')!.parentElement!;
+    expect(within(adminSection).getByText('Study Management')).toBeInTheDocument();
+    expect(within(adminSection).getByText('User Registry')).toBeInTheDocument();
+    expect(within(adminSection).getByText('System Inventory')).toBeInTheDocument();
   });
 
   it('a non-mentor/admin does not see Administration', () => {
@@ -74,18 +78,20 @@ describe('PrimarySidebar', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it('Results Table lives under "Overview & Analysis", alongside Study Overview and Analysis & Reporting', () => {
+  it('Results Table, Analysis & Reporting, and Queries live under "Overview & Analysis"; Study Overview is pinned above it, not inside it', () => {
     render(<PrimarySidebar userRole="investigator" userStatus="active" currentPath="/study-overview" />);
 
     expect(screen.getByText('Overview & Analysis')).toBeInTheDocument();
     expect(screen.queryByText('Analysis & Results')).not.toBeInTheDocument(); // old section name is gone
+    expect(screen.queryByText('Query Management')).not.toBeInTheDocument(); // folded into Overview & Analysis
 
     // SectionHeader renders its own <div> just for the label text; the
     // wrapping <div> that also holds the NavGroup is one level up.
     const section = screen.getByText('Overview & Analysis').closest('div')!.parentElement!;
-    expect(within(section).getByText('Study Overview')).toBeInTheDocument();
     expect(within(section).getByText('Results Table')).toBeInTheDocument();
     expect(within(section).getByText('Analysis & Reporting')).toBeInTheDocument();
+    expect(within(section).getByText('Queries')).toBeInTheDocument();
+    expect(within(section).queryByText('Study Overview')).not.toBeInTheDocument();
   });
 
   it('does not offer Results Table in the "Participants & Data" section', () => {

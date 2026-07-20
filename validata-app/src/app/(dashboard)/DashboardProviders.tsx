@@ -312,6 +312,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           {/* Bottom panel */}
           <BottomPanel
             studyId={currentStudyId}
+            studies={studies}
             isOpen={isPanelOpen}
             onClose={closePanel}
             height={panelHeight}
@@ -323,7 +324,6 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       {/* Status bar (22px) */}
       <StatusBar
         userRole={userRole}
-        currentUserEmail={currentUserEmail}
         isDemoMode={isDemoMode}
         studyName={studyName}
         lockState={currentStudy?.lock_state === 'locked' ? 'locked' : 'unlocked'}

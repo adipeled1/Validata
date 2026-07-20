@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import useSWR, { SWRConfig } from 'swr';
-import mockData from '../mockData.json';
 import { mapParticipants, mapMeasurements, withEnrollmentDates } from '../lib/mappers';
 import { useSession } from './SessionContext';
 import { setCurrentStudyAction } from '../app/actions/session';
@@ -20,7 +19,11 @@ interface StudyContextValue {
   switchStudy: (studyId: string) => void;
   addStudy: (name: string, goal: string | number) => Promise<void>;
   deleteStudy: (id: string) => Promise<void>;
-  updateRecruitmentGoal: (newGoal: string | number) => Promise<void>;
+  // studyId defaults to currentStudyId (the active workspace) - pass it
+  // explicitly to update a different study (e.g. Study Management's own
+  // per-study goal editor, which lets you edit any study in the list, not
+  // just the active one).
+  updateRecruitmentGoal: (newGoal: string | number, studyId?: string) => Promise<void>;
   participants: any[];
   measurements: any[];
   // Returns the newly created participant's id (or undefined if the create
@@ -49,17 +52,18 @@ const STUDIES_KEY = 'studies';
 const participantsKey = (studyId: string | null) => (studyId ? `participants:${studyId}` : null);
 const measurementsKey = (studyId: string | null) => (studyId ? `measurements:${studyId}` : null);
 
-// Demo mode reads mockData.json directly and merges in whatever lock
-// override is on record in clientDemoStore (sessionStorage, this browser tab
-// only) - no network round trip, and no reliance on a server-side store that
-// wouldn't survive a Vercel serverless invocation boundary anyway. Live mode
-// is unaffected and still goes through the API/Supabase.
+// Demo mode reads from clientDemoStore (sessionStorage, this browser tab
+// only) - seeded once from mockData.json but from then on the sole source of
+// truth for demo-mode studies/participants/measurements, so anything added
+// or changed actually persists for the tab's lifetime instead of being
+// silently reverted to the static seed data on the next refresh or SWR
+// revalidation (e.g. the tab regaining focus). No network round trip either
+// way, and no reliance on a server-side store that wouldn't survive a Vercel
+// serverless invocation boundary anyway. Live mode is unaffected and still
+// goes through the API/Supabase.
 async function fetchStudies(isDemoMode: boolean): Promise<any[]> {
   if (isDemoMode) {
-    return (mockData as any).studies.map((s: any) => {
-      const override = clientDemoStore.getStudyLockOverride(s.id);
-      return override ? { ...s, ...override } : s;
-    });
+    return clientDemoStore.getStudies();
   }
 
   const res = await fetch('/api/studies');
@@ -71,7 +75,7 @@ async function fetchStudies(isDemoMode: boolean): Promise<any[]> {
 
 async function fetchParticipants(studyId: string, isDemoMode: boolean): Promise<any[]> {
   if (isDemoMode) {
-    return mapParticipants((mockData as any).participants.filter((p: any) => p.study_id === studyId));
+    return mapParticipants(clientDemoStore.getParticipants(studyId));
   }
 
   const res = await fetch(`/api/participants?study_id=${studyId}`);
@@ -83,7 +87,7 @@ async function fetchParticipants(studyId: string, isDemoMode: boolean): Promise<
 
 async function fetchMeasurements(studyId: string, isDemoMode: boolean): Promise<any[]> {
   if (isDemoMode) {
-    return mapMeasurements((mockData as any).measurements.filter((m: any) => m.study_id === studyId));
+    return mapMeasurements(clientDemoStore.getMeasurements(studyId));
   }
 
   const res = await fetch(`/api/measurements?study_id=${studyId}`);
@@ -138,6 +142,8 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     currentStudyId,
     mutateMeasurementsData,
     triggerToast,
+    isDemoMode,
+    currentUserEmail,
   });
 
   const isLoading = studiesLoading || (!!currentStudyId && (participantsLoading || measurementsLoading));
@@ -150,29 +156,21 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     });
   };
 
-  // Both demo and live modes use whatever createStudyAction returns, rather
-  // than the demo branch building its own study object inline - studies
-  // aren't run through a mapper (they're used in raw DB shape directly), so
-  // there's exactly one place that decides a new study's shape either way.
+  // Demo mode bypasses the Server Action entirely and writes straight to
+  // clientDemoStore (sessionStorage) - the same pattern every other demo
+  // entity in this file already follows (signatures, queries, delegations,
+  // lock state, user overrides), so a created study survives a refresh
+  // instead of only living in this render's SWR cache.
   const addStudy = async (name: string, goal: string | number) => {
     const recruitmentGoal = parseInt(String(goal)) || 50;
 
     try {
-      const data = await createStudyAction({ name, recruitmentGoal });
+      const data = isDemoMode
+        ? clientDemoStore.addStudy({ name, recruitmentGoal, actorEmail: currentUserEmail })
+        : await createStudyAction({ name, recruitmentGoal });
 
       mutateStudies((current: any[] = []) => [...current, data], { revalidate: false });
       switchStudy(data.id);
-      if (isDemoMode) {
-        clientDemoStore.addAuditEntry({
-          actorEmail: currentUserEmail,
-          tableName: 'studies',
-          recordId: data.id,
-          action: 'INSERT',
-          studyId: data.id,
-          reason: `Study "${name}" created`,
-          scope: 'system',
-        });
-      }
       triggerToast(isDemoMode ? `Study "${name}" created. (Demo)` : `Study "${name}" created.`);
     } catch (error: any) {
       console.error('Error creating study:', error);
@@ -192,17 +190,9 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     const nextStudyId = wasCurrent ? (remaining.length > 0 ? remaining[0].id : null) : currentStudyId;
 
     if (isDemoMode) {
+      clientDemoStore.deleteStudy({ studyId: id, studyName: study.name, actorEmail: currentUserEmail });
       mutateStudies(remaining, { revalidate: false });
       if (wasCurrent && nextStudyId) switchStudy(nextStudyId);
-      clientDemoStore.addAuditEntry({
-        actorEmail: currentUserEmail,
-        tableName: 'studies',
-        recordId: id,
-        action: 'DELETE',
-        studyId: id,
-        reason: `Study "${study.name}" deleted`,
-        scope: 'system',
-      });
       triggerToast(`Study "${study.name}" deleted. (Demo)`);
       return;
     }
@@ -219,36 +209,30 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     }
   };
 
-  const updateRecruitmentGoal = async (newGoal: string | number) => {
+  const updateRecruitmentGoal = async (newGoal: string | number, studyId?: string) => {
+    const targetStudyId = studyId ?? currentStudyId;
     const goal = parseInt(String(newGoal));
     if (isNaN(goal) || goal < 1) {
       triggerToast('Recruitment goal must be a positive number.');
       return;
     }
+    if (!targetStudyId) return;
 
     if (isDemoMode) {
+      clientDemoStore.updateStudyGoal({ studyId: targetStudyId, recruitmentGoal: goal, actorEmail: currentUserEmail });
       mutateStudies(
-        (current: any[] = []) => current.map((s) => (s.id === currentStudyId ? { ...s, recruitment_goal: goal } : s)),
+        (current: any[] = []) => current.map((s) => (s.id === targetStudyId ? { ...s, recruitment_goal: goal } : s)),
         { revalidate: false }
       );
-      clientDemoStore.addAuditEntry({
-        actorEmail: currentUserEmail,
-        tableName: 'studies',
-        recordId: currentStudyId ?? '-',
-        action: 'UPDATE',
-        studyId: currentStudyId,
-        reason: `Recruitment goal updated to ${goal}`,
-        scope: 'system',
-      });
       triggerToast('Recruitment goal updated. (Demo)');
       return;
     }
 
     try {
-      await updateStudyGoalAction({ id: currentStudyId, recruitmentGoal: goal });
+      await updateStudyGoalAction({ id: targetStudyId, recruitmentGoal: goal });
 
       mutateStudies(
-        (current: any[] = []) => current.map((s) => (s.id === currentStudyId ? { ...s, recruitment_goal: goal } : s)),
+        (current: any[] = []) => current.map((s) => (s.id === targetStudyId ? { ...s, recruitment_goal: goal } : s)),
         { revalidate: false }
       );
       triggerToast('Recruitment goal updated.');
@@ -258,12 +242,10 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     }
   };
 
-  // Both demo and live go through the same createParticipantAction ->
-  // repository -> mapParticipants path, rather than hand-building a
-  // participant object locally for demo mode - the repository's own isDemo
-  // branch (in participants.ts) is the only place demo/live diverge, and it
-  // returns the same raw-DB-shaped object either way, so there is exactly
-  // one mapping step for both.
+  // Demo mode bypasses the Server Action/repository entirely and writes
+  // straight to clientDemoStore (sessionStorage) - the same pattern every
+  // other demo entity in this file already follows, so an added participant
+  // survives a refresh instead of only living in this render's SWR cache.
   const addParticipant = async ({ age, gender, healthStatus, enrollmentDate }: { age: string; gender: string; healthStatus: string; enrollmentDate: string }) => {
     if (!currentStudyId) {
       triggerToast('Select or create a study before adding participants.');
@@ -271,27 +253,26 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     }
 
     try {
-      const savedData = await createParticipantAction({
-        age: parseInt(age) || null,
-        gender,
-        healthStatus,
-        enrollmentDate: enrollmentDate || new Date().toISOString().split('T')[0],
-        studyId: currentStudyId
-      });
+      const savedData = isDemoMode
+        ? clientDemoStore.addParticipant({
+          studyId: currentStudyId,
+          age: parseInt(age) || null,
+          gender,
+          healthStatus,
+          enrollmentDate: enrollmentDate || new Date().toISOString().split('T')[0],
+          actorEmail: currentUserEmail,
+        })
+        : await createParticipantAction({
+          age: parseInt(age) || null,
+          gender,
+          healthStatus,
+          enrollmentDate: enrollmentDate || new Date().toISOString().split('T')[0],
+          studyId: currentStudyId
+        });
 
       const [newParticipant] = mapParticipants([savedData]);
 
       mutateParticipants((current: any[] = []) => [newParticipant, ...current], { revalidate: false });
-      if (isDemoMode) {
-        clientDemoStore.addAuditEntry({
-          actorEmail: currentUserEmail,
-          tableName: 'participants',
-          recordId: savedData.id,
-          action: 'INSERT',
-          studyId: currentStudyId,
-          reason: 'Participant registered',
-        });
-      }
       triggerToast(isDemoMode
         ? `Participant ${savedData.id} registered successfully! (Demo)`
         : `Participant ${savedData.id} registered and saved in database!`);
@@ -314,33 +295,20 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     }
 
     try {
-      await updateParticipantStatusAction({ id, status: 'Dropped', studyId: currentStudyId, reason });
-      await updateMeasurementValidityAction({
-        participantId: id,
-        studyId: currentStudyId,
-        reason: `Participant dropped: ${reason}`,
-      });
-
-      mutateParticipants((current: any[] = []) => current.map((p) => (p.id === id ? { ...p, status: 'Dropped' } : p)), { revalidate: false });
-      mutateMeasurementsData((current: any[] = []) => current.map((m) => (m.participant === id ? { ...m, isValid: false } : m)), { revalidate: false });
       if (isDemoMode) {
-        clientDemoStore.addAuditEntry({
-          actorEmail: currentUserEmail,
-          tableName: 'participants',
-          recordId: id,
-          action: 'STATUS_CHANGE',
-          studyId: currentStudyId,
-          reason,
-        });
-        clientDemoStore.addAuditEntry({
-          actorEmail: currentUserEmail,
-          tableName: 'measurements',
-          recordId: id,
-          action: 'UPDATE',
+        clientDemoStore.updateParticipantStatus({ id, studyId: currentStudyId, status: 'Dropped', reason, actorEmail: currentUserEmail });
+        clientDemoStore.invalidateMeasurementsForParticipant({ participantId: id, studyId: currentStudyId, reason, actorEmail: currentUserEmail });
+      } else {
+        await updateParticipantStatusAction({ id, status: 'Dropped', studyId: currentStudyId, reason });
+        await updateMeasurementValidityAction({
+          participantId: id,
           studyId: currentStudyId,
           reason: `Participant dropped: ${reason}`,
         });
       }
+
+      mutateParticipants((current: any[] = []) => current.map((p) => (p.id === id ? { ...p, status: 'Dropped' } : p)), { revalidate: false });
+      mutateMeasurementsData((current: any[] = []) => current.map((m) => (m.participant === id ? { ...m, isValid: false } : m)), { revalidate: false });
       triggerToast(isDemoMode
         ? `Participant ${id} dropped. Reason recorded in audit trail. (Demo)`
         : `Participant ${id} dropped. Reason recorded in audit trail.`);
@@ -360,19 +328,13 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     const nextStatus = participant.status === 'Completed' ? 'Active' : 'Completed';
 
     try {
-      await updateParticipantStatusAction({ id, status: nextStatus, studyId: currentStudyId });
+      if (isDemoMode) {
+        clientDemoStore.updateParticipantStatus({ id, studyId: currentStudyId!, status: nextStatus, actorEmail: currentUserEmail });
+      } else {
+        await updateParticipantStatusAction({ id, status: nextStatus, studyId: currentStudyId });
+      }
 
       mutateParticipants((current: any[] = []) => current.map((p) => (p.id === id ? { ...p, status: nextStatus } : p)), { revalidate: false });
-      if (isDemoMode) {
-        clientDemoStore.addAuditEntry({
-          actorEmail: currentUserEmail,
-          tableName: 'participants',
-          recordId: id,
-          action: 'STATUS_CHANGE',
-          studyId: currentStudyId,
-          reason: `Status changed to ${nextStatus}`,
-        });
-      }
       triggerToast(isDemoMode
         ? `Participant ${id} marked ${nextStatus.toLowerCase()}. (Demo)`
         : `Participant ${id} marked ${nextStatus.toLowerCase()}.`);
@@ -382,14 +344,12 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     }
   };
 
-  // Both demo and live go through the same createMeasurementAction ->
-  // repository -> mapMeasurements path, so there is exactly one place that
-  // shapes a measurement for display - a locally hand-built object for demo
-  // mode (or for the live-mode optimistic update) would be an independent
-  // shape prone to drifting from what mapMeasurements produces for lists.
-  // In particular, timestamps always go through mapMeasurements' UTC
-  // formatting, so an optimistic row and the same row after SWR revalidates
-  // never show a different time due to local-timezone formatting.
+  // Both demo and live go through the createMeasurementAction/clientDemoStore
+  // path then mapMeasurements, so there is exactly one place that shapes a
+  // measurement for display either way. In particular, timestamps always go
+  // through mapMeasurements' UTC formatting, so an optimistic row and the
+  // same row after SWR revalidates never show a different time due to
+  // local-timezone formatting.
   const logMeasurement = async ({ participantId, goniometer, aiModel, notes, testDate }: { participantId: string; goniometer: string; aiModel: string; notes: string; testDate: string }) => {
     if (!currentStudyId) {
       triggerToast('Select or create a study before logging a measurement.');
@@ -397,28 +357,28 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     }
 
     try {
-      const savedData = await createMeasurementAction({
-        participantId,
-        goniometer,
-        aiModel,
-        notes,
-        testDate: testDate || new Date().toISOString().split('T')[0],
-        studyId: currentStudyId
-      });
+      const savedData = isDemoMode
+        ? clientDemoStore.addMeasurement({
+          studyId: currentStudyId,
+          participantId,
+          goniometer: parseFloat(goniometer.replace('°', '')) || 0.0,
+          aiModel: parseFloat(aiModel.replace('°', '')) || 0.0,
+          notes,
+          testDate: testDate || new Date().toISOString().split('T')[0],
+          actorEmail: currentUserEmail,
+        })
+        : await createMeasurementAction({
+          participantId,
+          goniometer,
+          aiModel,
+          notes,
+          testDate: testDate || new Date().toISOString().split('T')[0],
+          studyId: currentStudyId
+        });
 
       const [newMeasurement] = mapMeasurements([savedData]);
 
       mutateMeasurementsData((current: any[] = []) => [newMeasurement, ...current], { revalidate: false });
-      if (isDemoMode) {
-        clientDemoStore.addAuditEntry({
-          actorEmail: currentUserEmail,
-          tableName: 'measurements',
-          recordId: String(savedData.id),
-          action: 'INSERT',
-          studyId: currentStudyId,
-          reason: `Measurement logged for ${participantId}`,
-        });
-      }
       triggerToast(isDemoMode ? 'Measurement logged and saved! (Demo)' : 'Measurement saved directly to the database!');
     } catch (error: any) {
       console.error('Error logging measurement:', error);
@@ -437,19 +397,13 @@ function StudyProviderInner({ children, initialCurrentStudyId }: { children: Rea
     }
 
     try {
-      await updateMeasurementValidityAction({ id, studyId: currentStudyId, reason });
+      if (isDemoMode) {
+        clientDemoStore.markMeasurementInvalid({ id, studyId: currentStudyId, reason, actorEmail: currentUserEmail });
+      } else {
+        await updateMeasurementValidityAction({ id, studyId: currentStudyId, reason });
+      }
 
       mutateMeasurementsData((current: any[] = []) => current.map((m) => (m.id === id ? { ...m, isValid: false } : m)), { revalidate: false });
-      if (isDemoMode) {
-        clientDemoStore.addAuditEntry({
-          actorEmail: currentUserEmail,
-          tableName: 'measurements',
-          recordId: String(id),
-          action: 'UPDATE',
-          studyId: currentStudyId,
-          reason: reason ?? 'Marked invalid',
-        });
-      }
       triggerToast(isDemoMode
         ? 'Measurement marked invalid. Reason recorded in audit trail. (Demo)'
         : 'Measurement marked invalid. Reason recorded in audit trail.');

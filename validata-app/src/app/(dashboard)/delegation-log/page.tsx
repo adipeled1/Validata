@@ -7,8 +7,10 @@ import { useStudy } from '../../../context/StudyContext';
 import { READABLE_ROLES, DELEGATION_ROLES, hasRole, canAccessPage } from '../../../lib/permissions';
 import * as clientDemoStore from '../../../lib/clientDemoStore';
 import { DEMO_USERS } from '../../../lib/demoData';
-import { getDelegationStatus, DELEGATION_STATUS_LABELS, DELEGATION_STATUS_COLOR_VARS } from '../../../lib/delegationStatus';
+import { getDelegationStatus, isDelegationOpen, DELEGATION_STATUS_LABELS, DELEGATION_STATUS_COLOR_VARS } from '../../../lib/delegationStatus';
 import DelegationForm from '../../components/Delegation/DelegationForm';
+
+const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
 
 interface Delegation {
   id: number;
@@ -60,6 +62,10 @@ export default function DelegationLogPage() {
 
   const canCreate = hasRole(userRole, DELEGATION_ROLES);
   const delegateLabel = (id: string) => profiles.find((p) => p.id === id)?.email ?? id;
+  // delegated_by is a real UUID in production (session.user.id) but an email
+  // string in demo mode (see clientDemoStore's addDelegation) - matching
+  // "did I create this" has to branch on that rather than assume one shape.
+  const isDelegatedByMe = (d: Delegation) => (isDemoMode ? d.delegated_by === currentUserEmail : d.delegated_by === currentUserId);
 
   const swrKey = currentStudyId ? `delegations:${currentStudyId}` : null;
   const { data: delegations = [], isLoading: loading, error: swrError, mutate: mutateDelegations } = useSWR(
@@ -197,8 +203,21 @@ export default function DelegationLogPage() {
 
   const studyName = (studies as any[])?.find((s: any) => s.id === currentStudyId)?.name ?? currentStudyId;
 
+  // Same split view as Study Overview's delegation cards - "what's delegated
+  // to me" and "what I've delegated out", so the at-a-glance summary and the
+  // full record-keeping table live on the same page instead of only on the
+  // dashboard.
+  const delegatedToMe = delegations.filter((d) => d.delegated_to === currentUserId && isDelegationOpen(d));
+  const openDelegatedByMe = canCreate ? delegations.filter((d) => isDelegatedByMe(d) && isDelegationOpen(d)) : [];
+  const now = Date.now();
+  const recentlyCompletedByMe = canCreate
+    ? delegations
+      .filter((d) => isDelegatedByMe(d) && getDelegationStatus(d) === 'completed' && d.completed_at && now - new Date(d.completed_at).getTime() < FOURTEEN_DAYS_MS)
+      .sort((a, b) => new Date(b.completed_at!).getTime() - new Date(a.completed_at!).getTime())
+    : [];
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '8px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       {/* Header */}
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
@@ -227,9 +246,240 @@ export default function DelegationLogPage() {
         </div>
       )}
 
-      <div style={{ display: 'flex', flex: 1, gap: '0', minHeight: 0 }}>
-        {/* Main table */}
-        <div style={{ flex: 1, border: '1px solid var(--border)', overflowY: 'auto' }}>
+      {/* Delegated to Me + Delegated by Me on the left, "+ New" side panel on
+          the right when open - matching Study Overview's layout exactly, so
+          the panel appears right next to the button that opens it (not down
+          by the table) and participates in normal page flow (so the page
+          itself scrolls if the form is tall, instead of being trapped in its
+          own small scrollable box). */}
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', minWidth: 0 }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {/* Delegated to Me */}
+      <div style={{ flexShrink: 0, background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+        <div
+          style={{
+            padding: '8px 12px',
+            borderBottom: '1px solid var(--border)',
+            fontSize: 'var(--font-size-xs)',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          Delegated to Me ({delegatedToMe.length})
+        </div>
+        {delegatedToMe.length === 0 ? (
+          <div style={{ padding: '12px', fontSize: 'var(--font-size-md)', color: 'var(--status-active)' }}>
+            Nothing delegated to you right now.
+          </div>
+        ) : (
+          <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+            {delegatedToMe.map((d, i) => (
+              <div
+                key={d.id}
+                style={{
+                  padding: '4px 12px',
+                  minHeight: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                  background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
+                  borderBottom: '1px solid var(--border)',
+                  fontSize: 'var(--font-size-sm)',
+                }}
+              >
+                <span
+                  title={d.task_description}
+                  style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}
+                >
+                  {d.task_description}
+                </span>
+                <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-xs)', whiteSpace: 'nowrap' }}>
+                  {d.effective_to ? `until ${d.effective_to}` : 'no end date'}
+                </span>
+                <button
+                  onClick={() => handleComplete(d.id)}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid var(--status-complete)',
+                    color: 'var(--status-complete)',
+                    cursor: 'pointer',
+                    fontSize: 'var(--font-size-xs)',
+                    padding: '1px 6px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Mark Complete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Delegated by Me + Recently Completed - one grouped card, lighter
+          internal divider between the two, so it reads as one family
+          ("things I handed out") rather than two separate concerns. */}
+      {canCreate && (
+        <div style={{ flexShrink: 0, background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+          <div
+            style={{
+              padding: '8px 12px',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <span
+              style={{
+                fontSize: 'var(--font-size-xs)',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              Delegated by Me ({openDelegatedByMe.length})
+            </span>
+            <button
+              onClick={() => setShowPanel((p) => !p)}
+              style={{ padding: '3px 8px', fontSize: 'var(--font-size-xs)', fontWeight: 600, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer' }}
+            >
+              + New
+            </button>
+          </div>
+
+          {openDelegatedByMe.length === 0 ? (
+            <div style={{ padding: '12px', fontSize: 'var(--font-size-md)', color: 'var(--text-muted)' }}>
+              Nothing open that you&apos;ve delegated.
+            </div>
+          ) : (
+            <div style={{ maxHeight: '160px', overflowY: 'auto' }}>
+              {openDelegatedByMe.map((d, i) => (
+                <div
+                  key={d.id}
+                  style={{
+                    padding: '4px 12px',
+                    minHeight: '28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
+                    borderBottom: '1px solid var(--border)',
+                    fontSize: 'var(--font-size-sm)',
+                  }}
+                >
+                  <span style={{ color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{delegateLabel(d.delegated_to)}</span>
+                  <span
+                    title={d.task_description}
+                    style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}
+                  >
+                    {d.task_description}
+                  </span>
+                  <span style={{ color: DELEGATION_STATUS_COLOR_VARS.active, fontSize: 'var(--font-size-xs)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    ● Active
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Lighter separation than the outer card border - same family,
+              different status, not a new concern. */}
+          <div
+            style={{
+              padding: '6px 12px',
+              borderTop: '1px solid var(--border)',
+              fontSize: 'var(--font-size-xs)',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: 'var(--text-muted)',
+            }}
+          >
+            Recently Completed (last 14 days)
+          </div>
+          {recentlyCompletedByMe.length === 0 ? (
+            <div style={{ padding: '12px', fontSize: 'var(--font-size-md)', color: 'var(--text-muted)' }}>
+              Nothing completed in the last two weeks.
+            </div>
+          ) : (
+            <div style={{ maxHeight: '160px', overflowY: 'auto' }}>
+              {recentlyCompletedByMe.map((d, i) => (
+                <div
+                  key={d.id}
+                  style={{
+                    padding: '4px 12px',
+                    minHeight: '28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
+                    borderBottom: '1px solid var(--border)',
+                    fontSize: 'var(--font-size-sm)',
+                  }}
+                >
+                  <span style={{ color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{delegateLabel(d.delegated_to)}</span>
+                  <span
+                    title={d.task_description}
+                    style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}
+                  >
+                    {d.task_description}
+                  </span>
+                  <span style={{ color: DELEGATION_STATUS_COLOR_VARS.completed, fontSize: 'var(--font-size-xs)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    ● Completed {new Date(d.completed_at!).toISOString().slice(0, 10)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      </div>
+
+      {/* Side panel - same width/header/form as Study Overview's equivalent
+          panel. No fixed-height/overflow wrapper here (unlike the table
+          below), so it never gets squeezed into its own tiny scrollport -
+          it just sizes to its content and the page scrolls normally. */}
+      {showPanel && (
+        <div style={{
+          width: '320px', flexShrink: 0,
+          border: '1px solid var(--border)', background: 'var(--bg-editor)',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderBottom: '1px solid var(--border)' }}>
+            <span style={{ fontSize: 'var(--font-size-md)', fontWeight: 700, color: 'var(--text-primary)' }}>New Delegation Entry</span>
+            <button onClick={() => setShowPanel(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'var(--font-size-lg)' }}>×</button>
+          </div>
+          <div style={{ padding: '12px' }}>
+            <DelegationForm
+              roster={profiles}
+              form={form}
+              onChange={(field, value) => setForm(p => ({ ...p, [field]: value }))}
+              onSubmit={handleCreate}
+              onCancel={() => setShowPanel(false)}
+              saving={saving}
+            />
+          </div>
+        </div>
+      )}
+      </div>
+
+      <div style={{ flexShrink: 0, fontSize: 'var(--font-size-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
+        Full Delegation Log ({delegations.length})
+      </div>
+
+        {/* No fixed-height/overflow wrapper here either - same reasoning as
+            the side panel above. The table renders in full and the page
+            itself scrolls, instead of trapping the table in its own small
+            scrollport (the sticky header still works: it sticks to the
+            nearest scrolling ancestor, which is now the page). */}
+        <div style={{ border: '1px solid var(--border)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-md)' }}>
             <thead>
               <tr style={{ background: 'var(--bg-surface)', position: 'sticky', top: 0, zIndex: 1 }}>
@@ -292,31 +542,6 @@ export default function DelegationLogPage() {
             </tbody>
           </table>
         </div>
-
-        {/* Inline right panel */}
-        {showPanel && (
-          <div style={{
-            width: '320px', flexShrink: 0, marginLeft: '1px',
-            border: '1px solid var(--border)', background: 'var(--bg-editor)',
-            display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderBottom: '1px solid var(--border)' }}>
-              <span style={{ fontSize: 'var(--font-size-md)', fontWeight: 700, color: 'var(--text-primary)' }}>New Delegation Entry</span>
-              <button onClick={() => setShowPanel(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'var(--font-size-lg)' }}>×</button>
-            </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
-              <DelegationForm
-                roster={profiles}
-                form={form}
-                onChange={(field, value) => setForm(p => ({ ...p, [field]: value }))}
-                onSubmit={handleCreate}
-                onCancel={() => setShowPanel(false)}
-                saving={saving}
-              />
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

@@ -2,19 +2,10 @@
 
 import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
+import { useStudy } from '../../../context/StudyContext';
 import { AUDIT_VIEWER_ROLES, canAccessPage } from '../../../lib/permissions';
-
-const ACTION_COLORS: Record<string, string> = {
-  INSERT: 'var(--status-insert)',
-  UPDATE: 'var(--status-update)',
-  DELETE: 'var(--status-dropped)',
-  SOFT_DELETE: 'var(--status-warning)',
-  ROLE_CHANGE: 'var(--status-sign)',
-  STATUS_CHANGE: 'var(--status-pending)',
-  SIGN_OFF: 'var(--status-sign)',
-  LOCK: 'var(--text-muted)',
-  UNLOCK: 'var(--text-secondary)',
-};
+import { ACTION_COLORS } from '../../../lib/auditActionColors';
+import * as clientDemoStore from '../../../lib/clientDemoStore';
 
 async function fetchLog(params: URLSearchParams): Promise<any[]> {
   const res = await fetch(`/api/audit-log?${params}`);
@@ -28,13 +19,20 @@ async function fetchLog(params: URLSearchParams): Promise<any[]> {
 // scoped to any one study, so this page (unlike Study Log/Audit Trail)
 // doesn't filter by currentStudyId.
 export default function SystemLogPage() {
-  const { userRole, userStatus } = useSession();
+  const { userRole, userStatus, isDemoMode } = useSession();
+  const { studies } = useStudy();
 
   const canView = canAccessPage(userRole, userStatus, AUDIT_VIEWER_ROLES);
+  const studyNameById = new Map(studies.map((s: any) => [s.id, s.name]));
 
+  // Demo mode reads clientDemoStore (sessionStorage, this browser tab) directly
+  // instead of fetching - the Lock modal and every other demo mutation write
+  // there, not to the server-side store an API round trip would read from.
   const { data: rows = [], isLoading: loading, mutate: refresh } = useSWR(
     canView ? 'system-log' : null,
-    () => fetchLog(new URLSearchParams({ scope: 'system' }))
+    () => (isDemoMode
+      ? Promise.resolve(clientDemoStore.getAuditLog({ scope: 'system' }))
+      : fetchLog(new URLSearchParams({ scope: 'system' })))
   );
 
   if (!canView) {
@@ -50,13 +48,13 @@ export default function SystemLogPage() {
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
-            SYSTEM / System Log
+            COMPLIANCE / System Log
           </div>
           <h1 style={{ fontSize: 'var(--font-size-h1)', fontWeight: 700, color: 'var(--text-primary)' }}>
             System Log
           </h1>
           <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px', maxWidth: '600px' }}>
-            System-level events not tied to any one study - study creation/locking, sign-offs, and user access changes.
+            <strong>System-wide</strong> - events across every study, regardless of which one you currently have selected: study creation/locking, sign-offs, and user access changes.
           </div>
         </div>
         <button
@@ -103,6 +101,11 @@ export default function SystemLogPage() {
             <span style={{ color: 'var(--text-actor)', fontWeight: 600 }}>{row.actor_email ?? 'Someone'}</span>
             {' '}
             <span style={{ color: ACTION_COLORS[row.action] ?? 'var(--text-secondary)', fontWeight: 600 }}>{row.action}</span>
+            {row.study_id && (
+              <span style={{ color: 'var(--text-secondary)' }}>
+                {' '}({studyNameById.get(row.study_id) ?? row.study_id})
+              </span>
+            )}
             {row.reason && <span style={{ color: 'var(--text-muted)' }}> — {row.reason}</span>}
           </div>
         ))}

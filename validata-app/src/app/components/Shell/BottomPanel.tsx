@@ -5,31 +5,21 @@ import { useRouter } from 'next/navigation';
 import { useSession } from '../../../context/SessionContext';
 import { AUDIT_VIEWER_ROLES, hasRole } from '../../../lib/permissions';
 import * as clientDemoStore from '../../../lib/clientDemoStore';
+import { ACTION_COLORS } from '../../../lib/auditActionColors';
 
 interface BottomPanelProps {
   studyId: string | null;
+  studies: any[];
   isOpen: boolean;
   onClose: () => void;
   height: number;
   onResize: (height: number) => void;
 }
 
-type TabId = 'story' | 'audit' | 'queries' | 'system';
+type TabId = 'story' | 'queries' | 'system';
 
 const MIN_PANEL_HEIGHT = 100;
 const MAX_PANEL_HEIGHT = 640;
-
-const ACTION_COLORS: Record<string, string> = {
-  INSERT: 'var(--status-insert)',
-  UPDATE: 'var(--status-update)',
-  DELETE: 'var(--status-dropped)',
-  SOFT_DELETE: 'var(--status-warning)',
-  ROLE_CHANGE: 'var(--status-sign)',
-  STATUS_CHANGE: 'var(--status-pending)',
-  SIGN_OFF: 'var(--status-sign)',
-  LOCK: 'var(--text-muted)',
-  UNLOCK: 'var(--text-secondary)',
-};
 
 const ACTION_VERBS: Record<string, string> = {
   INSERT: 'created',
@@ -149,105 +139,6 @@ function StoryTab({ studyId, isDemoMode }: { studyId: string | null; isDemoMode:
   );
 }
 
-function AuditTab({ studyId, isDemoMode }: { studyId: string | null; isDemoMode: boolean }) {
-  const { rows: logs, loading } = useAuditRows(studyId ? { studyId, scope: 'study' } : null, isDemoMode);
-
-  if (!studyId) return <div style={emptyMsgStyle}>No study selected.</div>;
-  if (loading && logs.length === 0) return <div style={emptyMsgStyle}>Loading…</div>;
-
-  return (
-    <div style={{ overflowX: 'auto', height: '100%' }}>
-      <table
-        style={{
-          width: '100%',
-          borderCollapse: 'collapse',
-          fontFamily: 'var(--font-data)',
-          fontSize: 'var(--font-size-sm)',
-        }}
-      >
-        <thead>
-          <tr style={{ background: 'var(--bg-panel-header)' }}>
-            {['UTC Timestamp', 'Actor', 'Action', 'Table', 'Record'].map((col) => (
-              <th
-                key={col}
-                style={{
-                  padding: '3px 8px',
-                  textAlign: 'left',
-                  color: 'var(--text-col-header)',
-                  fontFamily: 'var(--font-ui)',
-                  fontSize: 'var(--font-size-xs)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.07em',
-                  fontWeight: 600,
-                  borderBottom: '1px solid var(--border)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {col}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {logs.slice(0, 50).map((row, i) => (
-            <tr
-              key={row.id}
-              style={{
-                background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
-                height: '22px',
-              }}
-            >
-              <td
-                style={{
-                  padding: '0 8px',
-                  color: 'var(--text-timestamp)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {new Date(row.occurred_at).toISOString().replace('T', ' ').substring(0, 19)} UTC
-              </td>
-              <td style={{ padding: '0 8px', color: 'var(--text-actor)', whiteSpace: 'nowrap' }}>
-                {row.actor_email ?? '—'}
-              </td>
-              <td
-                style={{
-                  padding: '0 8px',
-                  color: ACTION_COLORS[row.action] ?? 'var(--text-secondary)',
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {row.action}
-              </td>
-              <td style={{ padding: '0 8px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                {row.table_name}
-              </td>
-              <td style={{ padding: '0 8px', color: 'var(--text-id)', whiteSpace: 'nowrap' }}>
-                {row.record_id?.substring(0, 8) ?? '—'}
-              </td>
-            </tr>
-          ))}
-          {logs.length === 0 && (
-            <tr>
-              <td
-                colSpan={5}
-                style={{
-                  padding: '8px',
-                  color: 'var(--text-muted)',
-                  textAlign: 'center',
-                  fontFamily: 'var(--font-ui)',
-                }}
-              >
-                No audit entries yet.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 async function fetchOpenQueries(studyId: string): Promise<any[]> {
   const res = await fetch(`/api/queries?studyId=${studyId}`);
   if (!res.ok) return [];
@@ -329,8 +220,9 @@ function OpenQueriesTab({ studyId, isDemoMode }: { studyId: string | null; isDem
   );
 }
 
-function SystemLogTab({ isDemoMode }: { isDemoMode: boolean }) {
+function SystemLogTab({ isDemoMode, studies }: { isDemoMode: boolean; studies: any[] }) {
   const { rows, loading } = useAuditRows({ scope: 'system' }, isDemoMode);
+  const studyNameById = useMemo(() => new Map(studies.map((s: any) => [s.id, s.name])), [studies]);
 
   if (loading && rows.length === 0) return <div style={emptyMsgStyle}>Loading…</div>;
   if (rows.length === 0) {
@@ -356,6 +248,11 @@ function SystemLogTab({ isDemoMode }: { isDemoMode: boolean }) {
           <span style={{ color: 'var(--text-actor)', fontWeight: 600 }}>{row.actor_email ?? 'Someone'}</span>
           {' '}
           <span style={{ color: ACTION_COLORS[row.action] ?? 'var(--text-secondary)', fontWeight: 600 }}>{row.action}</span>
+          {row.study_id && (
+            <span style={{ color: 'var(--text-secondary)' }}>
+              {' '}({studyNameById.get(row.study_id) ?? row.study_id})
+            </span>
+          )}
           {row.reason && <span style={{ color: 'var(--text-muted)' }}> — {row.reason}</span>}
         </div>
       ))}
@@ -363,7 +260,7 @@ function SystemLogTab({ isDemoMode }: { isDemoMode: boolean }) {
   );
 }
 
-export default function BottomPanel({ studyId, isOpen, onClose, height, onResize }: BottomPanelProps) {
+export default function BottomPanel({ studyId, studies, isOpen, onClose, height, onResize }: BottomPanelProps) {
   const { isDemoMode, userRole } = useSession();
   const showAuditLogs = hasRole(userRole, AUDIT_VIEWER_ROLES);
   const [activeTab, setActiveTab] = useState<TabId>(showAuditLogs ? 'story' : 'queries');
@@ -373,7 +270,6 @@ export default function BottomPanel({ studyId, isOpen, onClose, height, onResize
     const list: Array<{ id: TabId; label: string }> = [];
     if (showAuditLogs) {
       list.push({ id: 'story', label: 'STUDY LOG' });
-      list.push({ id: 'audit', label: 'AUDIT TRAIL' });
     }
     list.push({ id: 'queries', label: 'OPEN QUERIES' });
     if (showAuditLogs) {
@@ -459,7 +355,6 @@ export default function BottomPanel({ studyId, isOpen, onClose, height, onResize
                 color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
                 background: 'transparent',
                 border: 'none',
-                borderRight: tab.id === 'story' ? '1px solid var(--border)' : 'none',
                 borderBottom: isActive ? '2px solid var(--accent-soft)' : '2px solid transparent',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
@@ -493,9 +388,8 @@ export default function BottomPanel({ studyId, isOpen, onClose, height, onResize
       {/* Tab content */}
       <div style={{ flex: 1, overflow: 'hidden' }}>
         {activeTab === 'story' && <StoryTab studyId={studyId} isDemoMode={isDemoMode} />}
-        {activeTab === 'audit' && <AuditTab studyId={studyId} isDemoMode={isDemoMode} />}
         {activeTab === 'queries' && <OpenQueriesTab studyId={studyId} isDemoMode={isDemoMode} />}
-        {activeTab === 'system' && <SystemLogTab isDemoMode={isDemoMode} />}
+        {activeTab === 'system' && <SystemLogTab isDemoMode={isDemoMode} studies={studies} />}
       </div>
     </div>
   );

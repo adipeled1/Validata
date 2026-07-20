@@ -5,7 +5,6 @@ import { Sun, Moon, PanelBottomOpen, PanelBottomClose, LogOut } from 'lucide-rea
 
 interface StatusBarProps {
   userRole: string;
-  currentUserEmail: string;
   isDemoMode: boolean;
   studyName?: string;
   lockState?: 'locked' | 'unlocked';
@@ -49,7 +48,6 @@ const clickableSegmentStyle: React.CSSProperties = {
 
 export default function StatusBar({
   userRole,
-  currentUserEmail,
   isDemoMode,
   studyName,
   lockState = 'unlocked',
@@ -109,8 +107,6 @@ export default function StatusBar({
           <span style={{ color: '#f59e0b', fontWeight: 600, marginLeft: '4px' }}>(DEMO)</span>
         )}
       </span>
-      <Sep />
-      <span>{currentUserEmail || '—'}</span>
       <Sep />
       {canAdmin ? (
         <button

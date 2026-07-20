@@ -8,7 +8,6 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 import StatusBar from './StatusBar';
 
 const baseProps = {
-  currentUserEmail: 'mentor@demo.com',
   isDemoMode: false,
   theme: 'dark' as const,
   onToggleTheme: vi.fn(),

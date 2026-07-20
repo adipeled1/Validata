@@ -4,18 +4,8 @@ import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 import { AUDIT_VIEWER_ROLES, canAccessPage } from '../../../lib/permissions';
-
-const ACTION_COLORS: Record<string, string> = {
-  INSERT: 'var(--status-insert)',
-  UPDATE: 'var(--status-update)',
-  DELETE: 'var(--status-dropped)',
-  SOFT_DELETE: 'var(--status-warning)',
-  ROLE_CHANGE: 'var(--status-sign)',
-  STATUS_CHANGE: 'var(--status-pending)',
-  SIGN_OFF: 'var(--status-sign)',
-  LOCK: 'var(--text-muted)',
-  UNLOCK: 'var(--text-secondary)',
-};
+import { ACTION_COLORS } from '../../../lib/auditActionColors';
+import * as clientDemoStore from '../../../lib/clientDemoStore';
 
 const ACTION_VERBS: Record<string, string> = {
   INSERT: 'created',
@@ -54,14 +44,25 @@ async function fetchLog(params: URLSearchParams): Promise<any[]> {
 // study-scoped audit data as the Audit Trail page, retold as a readable
 // timeline instead of a raw table.
 export default function StudyLogPage() {
-  const { userRole, userStatus } = useSession();
+  const { userRole, userStatus, isDemoMode } = useSession();
   const { currentStudyId } = useStudy();
 
   const canView = canAccessPage(userRole, userStatus, AUDIT_VIEWER_ROLES);
 
+  // Demo mode reads clientDemoStore (sessionStorage, this browser tab) directly
+  // instead of fetching - every demo mutation writes there, not to the
+  // server-side store an API round trip would read from.
+  //
+  // No scope filter here (unlike System Log, which filters to scope:
+  // 'system') - Study Log is meant to be the same underlying data as Audit
+  // Trail, retold as plain-language events, so it includes this study's own
+  // LOCK/UNLOCK entries too. Filtering by studyId alone already keeps other
+  // studies' lock/unlock events out.
   const swrKey = currentStudyId ? `study-log:${currentStudyId}` : null;
   const { data: rows = [], isLoading: loading, mutate: refresh } = useSWR(swrKey, () =>
-    fetchLog(new URLSearchParams({ studyId: currentStudyId!, scope: 'study' }))
+    isDemoMode
+      ? Promise.resolve(clientDemoStore.getAuditLog({ studyId: currentStudyId! }))
+      : fetchLog(new URLSearchParams({ studyId: currentStudyId! }))
   );
 
   if (!canView) {
@@ -83,7 +84,7 @@ export default function StudyLogPage() {
             Study Log
           </h1>
           <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px', maxWidth: '600px' }}>
-            A readable timeline of everything that has happened in this study - the same audit data as Audit Trail, retold as plain-language events.
+            <strong>This study only</strong> - a readable timeline of everything that has happened in the currently selected study, the same audit data as Audit Trail retold as plain-language events.
           </div>
         </div>
         <button

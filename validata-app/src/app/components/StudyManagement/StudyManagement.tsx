@@ -9,7 +9,6 @@ import RetentionPanel from './RetentionPanel';
 import { useStudy } from '../../../context/StudyContext';
 import { useSession } from '../../../context/SessionContext';
 import { useTabs } from '../../../context/TabContext';
-import { updateStudyGoalAction } from '../../../app/actions/studies';
 
 
 interface Member {
@@ -64,7 +63,7 @@ const cellStyle: React.CSSProperties = {
 };
 
 const StudyManagement = () => {
-  const { studies, currentStudyId, addStudy, deleteStudy } = useStudy();
+  const { studies, currentStudyId, addStudy, deleteStudy, updateRecruitmentGoal } = useStudy();
   const { isDemoMode } = useSession();
   const { openTab } = useTabs();
 
@@ -165,23 +164,8 @@ const StudyManagement = () => {
       return;
     }
 
-    try {
-      if (isDemoMode) {
-        // Mock update in memory studies
-        studies.forEach(s => {
-          if (s.id === selectedStudyId) s.recruitment_goal = goalVal;
-        });
-      } else {
-        await updateStudyGoalAction({ id: selectedStudyId, recruitmentGoal: goalVal });
-        // Update local array element
-        studies.forEach(s => {
-          if (s.id === selectedStudyId) s.recruitment_goal = goalVal;
-        });
-      }
-      setEditingGoal(false);
-    } catch (err: any) {
-      alert('Failed to update goal: ' + err.message);
-    }
+    await updateRecruitmentGoal(goalVal, selectedStudyId);
+    setEditingGoal(false);
   };
 
   const selectedStudy = studies.find((s) => s.id === selectedStudyId);

@@ -110,7 +110,7 @@ export default function StudyLockModal({ studyId, onClose }: { studyId: string; 
     }}>
       <div style={{
         background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
-        width: '100%', maxWidth: '720px',
+        width: '100%', maxWidth: '960px',
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.3)',
         display: 'flex', flexDirection: 'column',
       }}>
@@ -141,7 +141,8 @@ export default function StudyLockModal({ studyId, onClose }: { studyId: string; 
               {loading ? 'Loading…' : 'Lock status unavailable for this study.'}
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-base)', marginTop: '16px' }}>
+            <div style={{ overflowX: 'auto', marginTop: '16px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-base)' }}>
               <thead>
                 <tr>
                   {['Study', 'State', 'Locked At (UTC)', 'Locked By', 'Reason', 'Action'].map((col) => (
@@ -229,6 +230,7 @@ export default function StudyLockModal({ studyId, onClose }: { studyId: string; 
                 )}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

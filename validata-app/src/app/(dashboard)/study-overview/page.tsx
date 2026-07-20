@@ -9,49 +9,25 @@ import * as clientDemoStore from '../../../lib/clientDemoStore';
 import { DEMO_USERS } from '../../../lib/demoData';
 import { getDelegationStatus, isDelegationOpen, DELEGATION_STATUS_COLOR_VARS } from '../../../lib/delegationStatus';
 import DelegationForm from '../../components/Delegation/DelegationForm';
+import { ACTION_COLORS } from '../../../lib/auditActionColors';
 
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
-
-const ACTION_COLORS: Record<string, string> = {
-  INSERT: 'var(--status-insert)',
-  UPDATE: 'var(--status-update)',
-  DELETE: 'var(--status-dropped)',
-  SOFT_DELETE: 'var(--status-warning)',
-  ROLE_CHANGE: 'var(--status-sign)',
-  STATUS_CHANGE: 'var(--status-pending)',
-  SIGN_OFF: 'var(--status-sign)',
-  LOCK: 'var(--text-muted)',
-  UNLOCK: 'var(--text-secondary)',
-};
-
-// Same 48h / 7d bands used on the Adverse Events page - a mentor deciding
-// whether something needs attention today should see the same urgency
-// signal here as they would on the page itself.
-function deadlineStatus(deadline: string | null): 'red' | 'yellow' | null {
-  if (!deadline) return null;
-  const diff = new Date(deadline).getTime() - Date.now();
-  if (diff < 48 * 60 * 60 * 1000) return 'red';
-  if (diff < 7 * 24 * 60 * 60 * 1000) return 'yellow';
-  return null;
-}
 
 interface AttentionRow {
   key: string;
   label: string;
   count: number;
-  urgent: boolean;
   onClick: () => void;
 }
 
 function AttentionPanel({ rows }: { rows: AttentionRow[] }) {
   const totalCount = rows.reduce((sum, r) => sum + r.count, 0);
-  const anyUrgent = rows.some((r) => r.urgent);
 
   return (
     <div
       style={{
         background: 'var(--bg-surface)',
-        border: `1px solid ${anyUrgent ? 'var(--color-error)' : totalCount > 0 ? 'var(--status-warning)' : 'var(--border)'}`,
+        border: '1px solid var(--border)',
       }}
     >
       <div
@@ -85,9 +61,8 @@ function AttentionPanel({ rows }: { rows: AttentionRow[] }) {
                 justifyContent: 'space-between',
                 padding: '8px 12px',
                 background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)',
-                borderBottom: '1px solid var(--border)',
                 border: 'none',
-                borderBottomStyle: 'solid',
+                borderBottom: '1px solid var(--border)',
                 cursor: 'pointer',
                 textAlign: 'left',
                 fontSize: 'var(--font-size-md)',
@@ -96,17 +71,14 @@ function AttentionPanel({ rows }: { rows: AttentionRow[] }) {
               onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-selection)')}
               onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-surface-alt)')}
             >
-              <span>
-                {row.urgent && <span style={{ color: 'var(--color-error)', marginRight: '6px' }}>⚠</span>}
-                {row.label}
-              </span>
+              <span>{row.label}</span>
               <span
                 style={{
                   fontSize: 'var(--font-size-xs)',
                   fontWeight: 700,
                   padding: '1px 7px',
-                  border: `1px solid ${row.urgent ? 'var(--color-error)' : 'var(--status-warning)'}`,
-                  color: row.urgent ? 'var(--color-error)' : 'var(--status-warning)',
+                  border: '1px solid var(--status-warning)',
+                  color: 'var(--status-warning)',
                 }}
               >
                 {row.count}
@@ -279,21 +251,18 @@ export default function StudyOverviewPage() {
   const isLocked = currentStudy?.lock_state === 'locked';
 
   const unsubmittedSAEs = adverseEvents.filter((e) => e.ae_type !== 'ae' && !e.authority_submitted_at);
-  const urgentSAEs = unsubmittedSAEs.filter((e) => deadlineStatus(e.authority_deadline) === 'red');
 
   const attentionRows: AttentionRow[] = [
     {
       key: 'queries',
       label: `Open ${openQueries === 1 ? 'query' : 'queries'} awaiting action`,
       count: openQueries,
-      urgent: false,
       onClick: () => router.push('/queries'),
     },
     {
       key: 'sae',
       label: `SAE/SUSAR${unsubmittedSAEs.length === 1 ? '' : 's'} not yet submitted to authority`,
       count: unsubmittedSAEs.length,
-      urgent: urgentSAEs.length > 0,
       onClick: () => router.push('/adverse-events'),
     },
     ...(canSeeApprovals
@@ -301,7 +270,6 @@ export default function StudyOverviewPage() {
         key: 'approvals',
         label: `Pending user ${pendingApprovals === 1 ? 'approval' : 'approvals'}`,
         count: pendingApprovals,
-        urgent: false,
         onClick: () => router.push('/user-registry'),
       }]
       : []),

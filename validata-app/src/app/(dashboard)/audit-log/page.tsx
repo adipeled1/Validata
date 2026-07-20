@@ -5,18 +5,8 @@ import useSWR from 'swr';
 import { useSession } from '../../../context/SessionContext';
 import { useStudy } from '../../../context/StudyContext';
 import { AUDIT_VIEWER_ROLES, canAccessPage } from '../../../lib/permissions';
-
-const ACTION_COLORS: Record<string, string> = {
-  INSERT: 'var(--status-insert)',
-  UPDATE: 'var(--status-update)',
-  DELETE: 'var(--status-dropped)',
-  SOFT_DELETE: 'var(--status-warning)',
-  ROLE_CHANGE: 'var(--status-sign)',
-  STATUS_CHANGE: 'var(--status-pending)',
-  SIGN_OFF: 'var(--status-sign)',
-  LOCK: 'var(--text-muted)',
-  UNLOCK: 'var(--text-secondary)',
-};
+import { ACTION_COLORS } from '../../../lib/auditActionColors';
+import * as clientDemoStore from '../../../lib/clientDemoStore';
 
 const inputStyle: React.CSSProperties = {
   background: 'var(--bg-input)',
@@ -38,8 +28,19 @@ async function fetchAuditLogs(params: URLSearchParams): Promise<any[]> {
   return res.json();
 }
 
+function toCsv(rows: any[]): string {
+  const header = 'id,occurred_at,actor_email,table_name,record_id,action,reason,study_id\n';
+  const body = rows
+    .map(
+      (r) =>
+        `${r.id},${r.occurred_at},${r.actor_email ?? ''},${r.table_name},${r.record_id},${r.action},"${(r.reason ?? '').replace(/"/g, '""')}",${r.study_id ?? ''}`
+    )
+    .join('\n');
+  return header + body;
+}
+
 export default function AuditLogPage() {
-  const { userRole, userStatus } = useSession();
+  const { userRole, userStatus, isDemoMode } = useSession();
   const { currentStudyId } = useStudy();
   const [actionFilter, setActionFilter] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -47,10 +48,21 @@ export default function AuditLogPage() {
 
   const canView = canAccessPage(userRole, userStatus, AUDIT_VIEWER_ROLES);
 
+  // Demo mode reads clientDemoStore (sessionStorage, this browser tab) directly
+  // instead of fetching - every demo mutation writes there, not to the
+  // server-side store an API round trip would read from.
   const swrKey = currentStudyId
     ? `audit-log:${currentStudyId}:${actionFilter}:${fromDate}:${toDate}`
     : null;
   const { data: logs = [], isLoading: loading, mutate: refreshLogs } = useSWR(swrKey, () => {
+    if (isDemoMode) {
+      return Promise.resolve(clientDemoStore.getAuditLog({
+        studyId: currentStudyId,
+        action: actionFilter || null,
+        from: fromDate || null,
+        to: toDate || null,
+      }));
+    }
     const params = new URLSearchParams({ studyId: currentStudyId! });
     if (actionFilter) params.set('action', actionFilter);
     if (fromDate) params.set('from', fromDate);
@@ -58,8 +70,21 @@ export default function AuditLogPage() {
     return fetchAuditLogs(params);
   });
 
+  // Built from the already-loaded `logs` rather than a separate fetch, so
+  // demo mode's CSV matches what's on screen instead of re-querying the
+  // server-side store (which demo writes never reach).
   const downloadCsv = async () => {
     if (!currentStudyId) return;
+    if (isDemoMode) {
+      const blob = new Blob([toCsv(logs)], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit-log-${currentStudyId}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
     const params = new URLSearchParams({ studyId: currentStudyId, format: 'csv' });
     if (actionFilter) params.set('action', actionFilter);
     if (fromDate) params.set('from', fromDate);
@@ -95,7 +120,7 @@ export default function AuditLogPage() {
             Audit Trail
           </h1>
           <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px', maxWidth: '600px' }}>
-            Immutable, system-generated audit trail. Every data creation, modification, and deletion is recorded with actor identity and UTC timestamp.
+            <strong>This study only</strong> - immutable, system-generated audit trail for the currently selected study. Every data creation, modification, and deletion is recorded with actor identity and UTC timestamp.
           </div>
         </div>
         <button

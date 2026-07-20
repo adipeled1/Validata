@@ -845,6 +845,7 @@ DECLARE
     v_new_val     JSONB;
     v_study_id    UUID;
     v_actor_email TEXT;
+    v_reason      TEXT;
 BEGIN
     IF TG_OP = 'INSERT' THEN
         -- Special-case a signature insert: it's a sign-off event, not a generic write.
@@ -902,11 +903,32 @@ BEGIN
         v_actor_email := 'unknown';
     END;
 
+    -- Each table's own "why" column (set alongside the change itself, e.g.
+    -- lock_reason on studies or status_reason on participants) is what a
+    -- reviewer actually wants to see in the audit trail - without this the
+    -- audit_log.reason column stayed NULL for every one of these actions,
+    -- even though the reason was captured right next to the change.
+    BEGIN
+        IF TG_TABLE_NAME = 'studies' THEN
+            v_reason := COALESCE(v_new_val->>'lock_reason', v_old_val->>'lock_reason');
+        ELSIF TG_TABLE_NAME = 'participants' THEN
+            v_reason := COALESCE(v_new_val->>'status_reason', v_old_val->>'status_reason');
+        ELSIF TG_TABLE_NAME = 'measurements' THEN
+            v_reason := COALESCE(v_new_val->>'validity_reason', v_old_val->>'validity_reason');
+        ELSIF TG_TABLE_NAME = 'profiles' THEN
+            v_reason := COALESCE(v_new_val->>'change_reason', v_old_val->>'change_reason');
+        ELSE
+            v_reason := NULL;
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        v_reason := NULL;
+    END;
+
     INSERT INTO public.audit_log (
-        occurred_at, actor_id, actor_email, table_name, record_id, action, old_value, new_value, study_id
+        occurred_at, actor_id, actor_email, table_name, record_id, action, old_value, new_value, reason, study_id
     ) VALUES (
         NOW() AT TIME ZONE 'UTC', auth.uid(), COALESCE(v_actor_email, 'system'),
-        TG_TABLE_NAME, v_record_id, v_action, v_old_val, v_new_val, v_study_id
+        TG_TABLE_NAME, v_record_id, v_action, v_old_val, v_new_val, v_reason, v_study_id
     );
 
     IF TG_OP = 'DELETE' THEN

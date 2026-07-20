@@ -157,18 +157,20 @@ export default function PrimarySidebar({
   const showCompliance = showReadableData;
   const showAdmin = hasRole(userRole, ADMIN_ROLES) && isActive;
   const showDelegation = hasRole(userRole, DELEGATION_ROLES) && isActive;
-  const showSystem = (userRole === 'mentor' || userRole === 'admin') && isActive;
   const showAuditLogs = hasRole(userRole, AUDIT_VIEWER_ROLES) && isActive;
 
+  // Records first (the day-to-day compliance documentation people actually
+  // touch), logs last (history/oversight, consulted less often) - and the
+  // log trio only for AUDIT_VIEWER_ROLES, same as before.
   const complianceItems = [
+    { label: 'Electronic Signatures', path: '/signatures' },
+    { label: 'Consent Records', path: '/consent-records' },
+    { label: 'Adverse Events', path: '/adverse-events' },
     ...(showAuditLogs ? [
       { label: 'Study Log', path: '/study-log' },
       { label: 'Audit Trail', path: '/audit-log' },
       { label: 'System Log', path: '/system-log' },
     ] : []),
-    { label: 'Electronic Signatures', path: '/signatures' },
-    { label: 'Consent Records', path: '/consent-records' },
-    { label: 'Adverse Events', path: '/adverse-events' },
   ];
 
   // Surface "someone is waiting for approval" without the mentor having to
@@ -205,8 +207,20 @@ export default function PrimarySidebar({
     >
       <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingTop: '4px' }}>
 
+        {/* Study Overview is the app's landing page (see src/app/page.tsx)
+            with no RLS-gated data of its own - it stays visible even for a
+            suspended/unassigned user, under its own "Home" header rather
+            than living inside a section (like Overview & Analysis) it isn't
+            really a member of. */}
+        <div>
+          <SectionHeader label="Home" />
+          <NavItem label="Study Overview" path="/study-overview" currentPath={currentPath} />
+        </div>
+
         {showReadableData && (
           <>
+            <Divider />
+
             {/* Participants & Data - active data entry: who's enrolled and
                 collecting new measurements. Reviewing/analyzing what's
                 already been collected lives in Overview & Analysis instead
@@ -224,35 +238,22 @@ export default function PrimarySidebar({
             </div>
 
             <Divider />
-          </>
-        )}
 
-        {/* Overview & Analysis - reviewing what's already been collected,
-            from a landing dashboard through a raw results grid to
-            statistical analysis. Study Overview always shows (it's the
-            app's landing page and has no RLS-gated data); Results Table and
-            Analysis & Reporting both need READABLE_ROLES since they
-            summarize participant/measurement data. */}
-        <div>
-          <SectionHeader label="Overview & Analysis" />
-          <NavGroup
-            currentPath={currentPath}
-            items={[
-              { label: 'Study Overview', path: '/study-overview' },
-              ...(showReadableData ? [{ label: 'Results Table', path: '/results' }] : []),
-              ...(showReadableData ? [{ label: 'Analysis & Reporting', path: '/analysis' }] : []),
-            ]}
-          />
-        </div>
-
-        {showReadableData && (
-          <>
-            <Divider />
-
-            {/* Query Management */}
+            {/* Overview & Analysis - reviewing what's already been collected
+                (a raw results grid through to statistical analysis) and
+                flagging/resolving data-quality problems in it (Queries) -
+                a third mode between entering data and analyzing it, not
+                really "Participants & Data" or "Analysis" on its own. */}
             <div>
-              <SectionHeader label="Query Management" />
-              <NavItem label="Queries" path="/queries" currentPath={currentPath} />
+              <SectionHeader label="Overview & Analysis" />
+              <NavGroup
+                currentPath={currentPath}
+                items={[
+                  { label: 'Results Table', path: '/results' },
+                  { label: 'Analysis & Reporting', path: '/analysis' },
+                  { label: 'Queries', path: '/queries' },
+                ]}
+              />
             </div>
           </>
         )}
@@ -280,6 +281,7 @@ export default function PrimarySidebar({
                 items={[
                   { label: 'Study Management', path: '/study-management' },
                   { label: 'User Registry', path: '/user-registry', badge: pendingCount },
+                  { label: 'System Inventory', path: '/system-inventory' },
                 ]}
               />
             </div>
@@ -289,20 +291,12 @@ export default function PrimarySidebar({
         {showDelegation && (
           <>
             <Divider />
-            <div>
-              <SectionHeader label="Delegation" />
-              <NavItem label="Delegation Log" path="/delegation-log" currentPath={currentPath} />
-            </div>
-          </>
-        )}
-
-        {showSystem && (
-          <>
-            <Divider />
-            <div>
-              <SectionHeader label="System" />
-              <NavItem label="System Inventory" path="/system-inventory" currentPath={currentPath} />
-            </div>
+            {/* Delegation Log is the only Delegation-scoped page and its
+                audience (admin/mentor/investigator) doesn't match
+                Administration's (admin/mentor), so it can't merge cleanly
+                with that section - pinned here on its own rather than
+                wrapped in a header for a group of one. */}
+            <NavItem label="Delegation Log" path="/delegation-log" currentPath={currentPath} />
           </>
         )}
 

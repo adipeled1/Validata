@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { parseCSV } from '../lib/csvParser';
 import { createMeasurementsBatchAction } from '../app/actions/measurements';
+import * as clientDemoStore from '../lib/clientDemoStore';
 import { mapMeasurements } from '../lib/mappers';
 
 export interface ImportSummary {
@@ -16,17 +17,24 @@ interface FileImportDeps {
   currentStudyId: string | null;
   mutateMeasurementsData: (updater: any, options?: any) => void;
   triggerToast: (message: string) => void;
+  isDemoMode: boolean;
+  currentUserEmail: string;
 }
 
-// Both demo and live go through createMeasurementsBatchAction -> repository
-// (whose isDemo branch returns the same raw-DB shape as the live insert) ->
-// mapMeasurements, so there's exactly one shape-building step for either
-// mode, rather than a separate hand-built demo-mode measurement shape.
+// Demo mode bypasses the Server Action/repository entirely and writes
+// straight to clientDemoStore (sessionStorage) - fixing two gaps the
+// repository's demo branch had: imported rows now persist past a refresh,
+// and each row gets its own audit entry (the repository's isDemo branch
+// built rows but never logged them, so a CSV import used to leave zero
+// trace in Study Log/System Log even though it visibly populated Data
+// Collection). Live mode is unaffected.
 export function useFileImport({
   participants,
   currentStudyId,
   mutateMeasurementsData,
   triggerToast,
+  isDemoMode,
+  currentUserEmail,
 }: FileImportDeps) {
   const [isImporting, setIsImporting] = useState(false);
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
@@ -84,7 +92,9 @@ export function useFileImport({
     }
 
     if (validPayloads.length > 0) {
-      const savedBatch: any[] = await createMeasurementsBatchAction(validPayloads);
+      const savedBatch: any[] = isDemoMode
+        ? clientDemoStore.addMeasurementsBatch(validPayloads, currentUserEmail)
+        : await createMeasurementsBatchAction(validPayloads);
       const newMeasurements = mapMeasurements(savedBatch);
 
       mutateMeasurementsData(

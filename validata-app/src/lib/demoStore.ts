@@ -193,6 +193,22 @@ function initState(): DemoStoreState {
     raised_at: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
   };
 
+  // demo-study-2's own (single) seed query - without this, switching to the
+  // second study shows every compliance screen completely empty, which reads
+  // as broken rather than "a newly opened study" to an unguided visitor.
+  const query3: DemoQuery = {
+    id: 103,
+    study_id: 'demo-study-2',
+    record_table: 'measurements',
+    record_id: 'P-2001',
+    field_name: 'notes',
+    severity: 'minor',
+    query_text: 'Please confirm capture device calibration date for this first session.',
+    status: 'open',
+    raised_by: 'monitor@demo.com',
+    raised_at: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
+  };
+
   const del1: DemoDelegation = {
     id: 201,
     study_id: 'demo-study-1',
@@ -206,6 +222,24 @@ function initState(): DemoStoreState {
     completed_at: null,
     completed_by: null,
     created_at: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
+  };
+
+  // demo-study-2's own (single) seed delegation - same reasoning as query3
+  // above: a switched-to second study should look like a newly opened study,
+  // not an empty/broken one.
+  const del2: DemoDelegation = {
+    id: 202,
+    study_id: 'demo-study-2',
+    delegated_to: 'demo-investigator-id',
+    task_description: 'Set up baseline data collection procedures for this newly opened study.',
+    delegated_by: 'mentor@demo.com',
+    effective_from: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+    effective_to: null,
+    revoked_at: null,
+    revoked_by: null,
+    completed_at: null,
+    completed_by: null,
+    created_at: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
   };
 
   const del3: DemoDelegation = {
@@ -278,9 +312,238 @@ function initState(): DemoStoreState {
     created_at: new Date(Date.now() - 15 * 24 * 3600 * 1000).toISOString(),
   };
 
+  // Seeded so Electronic Signatures isn't empty on first load. sig3 shares
+  // its timestamp with the LOCK audit event above (interim analysis lock),
+  // so the two read as one coherent moment in the study's history rather
+  // than unrelated seed data.
+  const sig1: DemoSignature = {
+    id: 601,
+    study_id: 'demo-study-1',
+    signer_email: 'mentor@demo.com',
+    record_type: 'studies',
+    record_id: 'demo-study-1',
+    milestone: 'protocol_approval',
+    meaning: 'Protocol version 1.0 reviewed and approved for execution.',
+    signed_at: new Date(Date.now() - 25 * 24 * 3600 * 1000).toISOString(),
+  };
+
+  const sig2: DemoSignature = {
+    id: 602,
+    study_id: 'demo-study-1',
+    signer_email: 'investigator@demo.com',
+    record_type: 'studies',
+    record_id: 'demo-study-1',
+    milestone: 'enrollment_review',
+    meaning: 'Enrollment baseline data reviewed and confirmed accurate for all active participants.',
+    signed_at: new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString(),
+  };
+
+  const sig3: DemoSignature = {
+    id: 603,
+    study_id: 'demo-study-1',
+    signer_email: 'mentor@demo.com',
+    record_type: 'studies',
+    record_id: 'demo-study-1',
+    milestone: 'interim_analysis',
+    meaning: 'Interim analysis dataset confirmed complete and accurate as of the lock timestamp.',
+    signed_at: new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
+  };
+
+  // Seeded so Adverse Events isn't empty on first load - one closed AE, one
+  // still-open SAE inside its regulatory deadline window (drives the "Needs
+  // My Attention" urgency banding on Study Overview and the deadline
+  // highlighting on this page), and one fully-processed SUSAR showing the
+  // complete report -> submit -> resolve lifecycle.
+  const ae1: DemoAdverseEvent = {
+    id: 'AE-701',
+    study_id: 'demo-study-1',
+    participant_id: 'P-1004',
+    ae_type: 'ae',
+    description: 'Mild ankle soreness reported after goniometer measurement session.',
+    severity: 'mild',
+    causality: 'possible',
+    expectedness: 'expected',
+    report_date: new Date(Date.now() - 20 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+    onset_date: new Date(Date.now() - 20 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+    authority_deadline: null,
+    authority_submitted_at: null,
+    resolution_date: new Date(Date.now() - 18 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+    outcome: 'resolved',
+    notes: 'Resolved without intervention.',
+    created_at: new Date(Date.now() - 20 * 24 * 3600 * 1000).toISOString(),
+  };
+
+  // Unexpected + life_threatening -> 7-day authority deadline (matches
+  // calculateDeadline() in adverse-events/page.tsx and its route). Reported
+  // 6 days ago, so the deadline lands ~1 day from now - inside the 48-hour
+  // "red" urgency band on purpose, so a live demo has something genuinely
+  // urgent to point at instead of only settled history.
+  const ae2: DemoAdverseEvent = {
+    id: 'AE-702',
+    study_id: 'demo-study-1',
+    participant_id: 'P-1002',
+    ae_type: 'sae',
+    description: 'Acute anaphylactic reaction requiring emergency intervention during measurement session.',
+    severity: 'life_threatening',
+    causality: 'probable',
+    expectedness: 'unexpected',
+    report_date: new Date(Date.now() - 6 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+    onset_date: new Date(Date.now() - 6 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+    authority_deadline: new Date(Date.now() + 1 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+    authority_submitted_at: null,
+    resolution_date: null,
+    outcome: null,
+    notes: 'Regulatory submission pending - coordinating with IRB.',
+    created_at: new Date(Date.now() - 6 * 24 * 3600 * 1000).toISOString(),
+  };
+
+  const ae3: DemoAdverseEvent = {
+    id: 'AE-703',
+    study_id: 'demo-study-1',
+    participant_id: 'P-1014',
+    ae_type: 'susar',
+    description: 'Unexpected severe joint inflammation following ankle flexion protocol.',
+    severity: 'severe',
+    causality: 'possible',
+    expectedness: 'unexpected',
+    report_date: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+    onset_date: new Date(Date.now() - 31 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+    authority_deadline: new Date(Date.now() - 15 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+    authority_submitted_at: new Date(Date.now() - 28 * 24 * 3600 * 1000).toISOString(),
+    resolution_date: new Date(Date.now() - 20 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+    outcome: 'resolved',
+    notes: 'Reported to IRB within required window; device recalibrated.',
+    created_at: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(),
+  };
+
   return {
     counter: 1000,
     auditLog: [
+      // Seeded LOCK/UNLOCK pair - shaped exactly like the entries setStudyLock()
+      // itself writes (table_name 'studies', record_id/study_id the study, scope
+      // 'system'), so the System Log isn't empty on first load and shows the
+      // same kind of row a real lock/unlock produces, not a demo-only shortcut.
+      {
+        id: 'AUD-502',
+        occurred_at: new Date(Date.now() - 12 * 3600 * 1000).toISOString(),
+        actor_email: 'mentor@demo.com',
+        table_name: 'studies',
+        record_id: 'demo-study-1',
+        action: 'UNLOCK',
+        reason: 'Reopened to correct P-1003 consent query before final lock',
+        study_id: 'demo-study-1',
+        scope: 'system',
+      },
+      {
+        id: 'AUD-501',
+        occurred_at: new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
+        actor_email: 'mentor@demo.com',
+        table_name: 'studies',
+        record_id: 'demo-study-1',
+        action: 'LOCK',
+        reason: 'Interim analysis lock ahead of DSMB review',
+        study_id: 'demo-study-1',
+        scope: 'system',
+      },
+      {
+        id: 'AUD-601',
+        occurred_at: sig1.signed_at,
+        actor_email: sig1.signer_email,
+        table_name: 'signatures',
+        record_id: String(sig1.id),
+        action: 'SIGN_OFF',
+        reason: 'Signed protocol approval attestation',
+        study_id: 'demo-study-1',
+        scope: 'study',
+      },
+      {
+        id: 'AUD-602',
+        occurred_at: sig2.signed_at,
+        actor_email: sig2.signer_email,
+        table_name: 'signatures',
+        record_id: String(sig2.id),
+        action: 'SIGN_OFF',
+        reason: 'Signed enrollment review attestation',
+        study_id: 'demo-study-1',
+        scope: 'study',
+      },
+      {
+        id: 'AUD-603',
+        occurred_at: sig3.signed_at,
+        actor_email: sig3.signer_email,
+        table_name: 'signatures',
+        record_id: String(sig3.id),
+        action: 'SIGN_OFF',
+        reason: 'Signed interim analysis attestation',
+        study_id: 'demo-study-1',
+        scope: 'study',
+      },
+      {
+        id: 'AUD-701',
+        occurred_at: ae1.created_at,
+        actor_email: 'investigator@demo.com',
+        table_name: 'adverse_events',
+        record_id: ae1.id,
+        action: 'INSERT',
+        reason: 'Reported AE for P-1004',
+        study_id: 'demo-study-1',
+        scope: 'study',
+      },
+      {
+        id: 'AUD-702',
+        occurred_at: new Date(Date.now() - 18 * 24 * 3600 * 1000).toISOString(),
+        actor_email: 'investigator@demo.com',
+        table_name: 'adverse_events',
+        record_id: ae1.id,
+        action: 'UPDATE',
+        reason: 'Adverse event updated',
+        study_id: 'demo-study-1',
+        scope: 'study',
+      },
+      {
+        id: 'AUD-703',
+        occurred_at: ae2.created_at,
+        actor_email: 'mentor@demo.com',
+        table_name: 'adverse_events',
+        record_id: ae2.id,
+        action: 'INSERT',
+        reason: 'Reported SAE for P-1002',
+        study_id: 'demo-study-1',
+        scope: 'study',
+      },
+      {
+        id: 'AUD-704',
+        occurred_at: ae3.created_at,
+        actor_email: 'investigator@demo.com',
+        table_name: 'adverse_events',
+        record_id: ae3.id,
+        action: 'INSERT',
+        reason: 'Reported SUSAR for P-1014',
+        study_id: 'demo-study-1',
+        scope: 'study',
+      },
+      {
+        id: 'AUD-705',
+        occurred_at: new Date(Date.now() - 28 * 24 * 3600 * 1000).toISOString(),
+        actor_email: 'mentor@demo.com',
+        table_name: 'adverse_events',
+        record_id: ae3.id,
+        action: 'UPDATE',
+        reason: 'Marked as submitted to authority',
+        study_id: 'demo-study-1',
+        scope: 'study',
+      },
+      {
+        id: 'AUD-706',
+        occurred_at: new Date(Date.now() - 20 * 24 * 3600 * 1000).toISOString(),
+        actor_email: 'investigator@demo.com',
+        table_name: 'adverse_events',
+        record_id: ae3.id,
+        action: 'UPDATE',
+        reason: 'Adverse event updated',
+        study_id: 'demo-study-1',
+        scope: 'study',
+      },
       {
         id: 'AUD-101',
         occurred_at: query1.raised_at,
@@ -304,6 +567,17 @@ function initState(): DemoStoreState {
         scope: 'study',
       },
       {
+        id: 'AUD-103',
+        occurred_at: query3.raised_at,
+        actor_email: query3.raised_by,
+        table_name: 'queries',
+        record_id: '103',
+        action: 'INSERT',
+        reason: 'Query raised against measurements/P-2001',
+        study_id: 'demo-study-2',
+        scope: 'study',
+      },
+      {
         id: 'AUD-201',
         occurred_at: del1.created_at,
         actor_email: del1.delegated_by,
@@ -312,6 +586,17 @@ function initState(): DemoStoreState {
         action: 'INSERT',
         reason: 'Delegated "Perform interim review of active participant measurements and address open queries." to demo-investigator-id',
         study_id: 'demo-study-1',
+        scope: 'study',
+      },
+      {
+        id: 'AUD-202',
+        occurred_at: del2.created_at,
+        actor_email: del2.delegated_by,
+        table_name: 'delegations',
+        record_id: '202',
+        action: 'INSERT',
+        reason: 'Delegated "Set up baseline data collection procedures for this newly opened study." to demo-investigator-id',
+        study_id: 'demo-study-2',
         scope: 'study',
       },
       {
@@ -370,12 +655,12 @@ function initState(): DemoStoreState {
         scope: 'study',
       }
     ],
-    signatures: [],
-    queries: [query1, query2],
-    adverseEvents: [],
+    signatures: [sig1, sig2, sig3],
+    queries: [query1, query2, query3],
+    adverseEvents: [ae1, ae2, ae3],
     consentVersions: [consentV1],
     consentRecords: [consentRecord1],
-    delegations: [del1, del3, del4, del5],
+    delegations: [del1, del2, del3, del4, del5],
     studyLockOverrides: new Map(),
     userOverrides: new Map(),
   };
@@ -476,7 +761,7 @@ export function addSignature(input: {
     recordId: String(row.id),
     action: 'SIGN_OFF',
     studyId: input.studyId,
-    reason: `Endorsed ${input.milestone.replace(/_/g, ' ')}`,
+    reason: `Signed ${input.milestone.replace(/_/g, ' ')} attestation`,
   });
   return row;
 }

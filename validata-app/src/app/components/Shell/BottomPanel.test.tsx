@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 const push = vi.fn();
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 
-let sessionValue = { isDemoMode: true, userRole: 'mentor' };
+let sessionValue = { isDemoMode: true, userRole: 'mentor', userStatus: 'active' };
 vi.mock('../../../context/SessionContext', () => ({
   useSession: () => sessionValue,
 }));
@@ -18,11 +18,11 @@ vi.mock('../../../lib/clientDemoStore', () => ({
 import BottomPanel from './BottomPanel';
 import * as clientDemoStore from '../../../lib/clientDemoStore';
 
-const baseProps = { studyId: 'demo-study-1', isOpen: true, onClose: vi.fn(), height: 200, onResize: vi.fn() };
+const baseProps = { studyId: 'demo-study-1', studies: [], isOpen: true, onClose: vi.fn(), height: 200, onResize: vi.fn() };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  sessionValue = { isDemoMode: true, userRole: 'mentor' };
+  sessionValue = { isDemoMode: true, userRole: 'mentor', userStatus: 'active' };
   vi.mocked(clientDemoStore.getAuditLog).mockReturnValue([]);
   vi.mocked(clientDemoStore.getQueries).mockReturnValue([]);
 });
@@ -34,17 +34,17 @@ describe('BottomPanel', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('AUDIT_VIEWER_ROLES (mentor) see Study Log/Audit Trail/System Log tabs; others only see Open Queries', () => {
+  it('AUDIT_VIEWER_ROLES (mentor) see Study Log/System Log tabs', () => {
     render(<BottomPanel {...baseProps} />);
     expect(screen.getByText('STUDY LOG')).toBeInTheDocument();
-    expect(screen.getByText('AUDIT TRAIL')).toBeInTheDocument();
     expect(screen.getByText('SYSTEM LOG')).toBeInTheDocument();
   });
 
   it('a role outside AUDIT_VIEWER_ROLES only sees Open Queries, defaulting to that tab', () => {
-    sessionValue = { isDemoMode: true, userRole: 'site_coordinator' };
+    sessionValue = { isDemoMode: true, userRole: 'site_coordinator', userStatus: 'active' };
     render(<BottomPanel {...baseProps} />);
     expect(screen.queryByText('STUDY LOG')).not.toBeInTheDocument();
+    expect(screen.queryByText('SYSTEM LOG')).not.toBeInTheDocument();
     expect(screen.getByText('OPEN QUERIES')).toBeInTheDocument();
     expect(screen.getByText(/no open queries/i)).toBeInTheDocument();
   });
@@ -52,13 +52,6 @@ describe('BottomPanel', () => {
   it('defaults to the Story tab for an audit-viewer role, showing the empty-state message', () => {
     render(<BottomPanel {...baseProps} />);
     expect(screen.getByText(/nothing has happened in this study yet/i)).toBeInTheDocument();
-  });
-
-  it('switching to the Audit Trail tab shows the "No audit entries yet." table state', async () => {
-    const user = userEvent.setup();
-    render(<BottomPanel {...baseProps} />);
-    await user.click(screen.getByText('AUDIT TRAIL'));
-    expect(screen.getByText('No audit entries yet.')).toBeInTheDocument();
   });
 
   it('demo mode: reads audit rows from clientDemoStore, not fetch', async () => {
@@ -83,7 +76,7 @@ describe('BottomPanel', () => {
     vi.mocked(clientDemoStore.getQueries).mockReturnValue([
       { id: 1, status: 'open', severity: 'major', record_table: 'participants', record_id: 'P-1001', field_name: 'age' },
     ] as any);
-    sessionValue = { isDemoMode: true, userRole: 'site_coordinator' };
+    sessionValue = { isDemoMode: true, userRole: 'site_coordinator', userStatus: 'active' };
     render(<BottomPanel {...baseProps} />);
     await user.click(screen.getByText('OPEN QUERIES'));
     await user.click(screen.getByText(/Q-001/));
